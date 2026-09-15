@@ -24,9 +24,9 @@ test("candidate verification rejects tampering and added files before deployment
     await writeFile(join(dir, "example.txt"), "original");
     await seal(dir, { source: "a".repeat(40), version: "0.1.0-local", dirty: true });
     await writeFile(join(dir, "example.txt"), "changed");
-    await expect(verify(dir)).rejects.toThrow("Candidate changed");
+    await expect(verify(dir, "a".repeat(40))).rejects.toThrow("Candidate changed");
     await writeFile(join(dir, "unexpected.txt"), "extra");
-    await expect(verify(dir)).rejects.toThrow("Candidate file set changed");
+    await expect(verify(dir, "a".repeat(40))).rejects.toThrow("Candidate file set changed");
     await expect(verify(dir, "b".repeat(40))).rejects.toThrow("Candidate source");
   } finally {
     await rm(dir, { recursive: true, force: true });
