@@ -1,0 +1,22 @@
+{
+  "name": "@arcforges/web-site",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "license": "AGPL-3.0-only",
+  "scripts": {
+    "dev": "react-router dev --host 127.0.0.1",
+    "build": "react-router build",
+    "typecheck": "react-router typegen && tsc -p tsconfig.json"
+  },
+  "dependencies": {
+    "@arcforges/api-client": "1.0.0-ci.25.1",
+    "@arcforges/proto": "1.0.0-ci.25.1",
+    "@arcforges/web-ui": "0.0.0",
+    "@bufbuild/protobuf": "2.14.1",
+    "react": "19.3.0",
+    "react-dom": "19.3.0",
+    "react-router": "8.4.0",
+    "isbot": "5.2.2"
+  }
+}

@@ -1,0 +1,22 @@
+name: Bug report
+description: Report a reproducible Web or delivery problem.
+body:
+  - type: markdown
+    attributes:
+      value: "Report security issues privately using the Security policy. Never attach tokens or personal account data."
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Steps, expected and actual behavior
+    validations:
+      required: true
+  - type: textarea
+    id: environment
+    attributes:
+      label: Version, browser and operating system
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Sanitized logs or screenshots

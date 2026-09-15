@@ -1,0 +1,29 @@
+/* SPDX-License-Identifier: AGPL-3.0-only */
+body {
+  margin: 0;
+  background: #f4f3ed;
+  color: #1e2824;
+  font-family: "Segoe UI", sans-serif;
+}
+main {
+  max-width: 700px;
+  margin: 15vh auto;
+  padding: 32px;
+}
+h1 {
+  font-size: clamp(40px, 8vw, 64px);
+  letter-spacing: -2px;
+  font-weight: 450;
+}
+p {
+  line-height: 1.7;
+}
+a {
+  color: #235844;
+  display: inline-block;
+  margin-top: 24px;
+}
+a:focus-visible {
+  outline: 3px solid #235844;
+  outline-offset: 5px;
+}
