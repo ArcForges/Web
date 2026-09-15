@@ -34,7 +34,9 @@ jobs:
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version-file: .node-version
-          cache: npm
+          # Avoid blocking Windows validation on optional cache upload retries.
+          cache: ${{ matrix.os == 'ubuntu-latest' && 'npm' || '' }}
+          package-manager-cache: false
       - run: npm ci --ignore-scripts
       - run: npm run check
 
