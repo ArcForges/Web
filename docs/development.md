@@ -33,6 +33,8 @@ Open `win.slnx` with a Visual Studio release supporting the JavaScript project S
 
 Use exact direct versions and commit the root `package-lock.json` after intentional dependency changes. Keep React/DOM/types and Router packages aligned. Keep protobuf/Connect versions compatible with the published Contracts packages. Do not replace pinned Contracts versions with `latest`, Git URLs, local paths or floating ranges. Update the pins and lock through a reviewed PR; Dependabot groups related updates and the full pipeline validates them.
 
+Lock provenance checks require npm registry URLs and SHA-512 integrity for downloaded artifacts. npm's `inBundle` entries are extracted from an enclosing package tarball and may omit their own URL/hash; the check traces them to that verified artifact, including nested bundles. Orphaned entries and workspace links cannot substitute for a registry artifact. Keep this metadata when Dependabot adds it; see the [npm lockfile format](https://docs.npmjs.com/cli/v11/configuring-npm/package-lock-json/#packages).
+
 Node runtime and `@types/node` stay on major 24. Updating Node also requires `.node-version`, engines and `packageManager` to remain consistent. Keep Playwright browser binaries aligned with its package version.
 
 If a dependency update changes license packaging, review `third-party/README.md` and update the generated-notice handling. Build failures for missing licenses are deliberate rather than silently discarding notices.

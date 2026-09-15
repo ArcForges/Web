@@ -237,6 +237,47 @@ async function build() {
     `Verified candidate ${version} at ${source}${dirty ? " (local changes; not deployable)" : ""}`,
   );
 }
+type LockEntry = { link?: boolean; inBundle?: boolean; integrity?: string; resolved?: string };
+
+function requireRegistryArtifact(path: string, entry: LockEntry) {
+  assert(
+    entry.integrity?.startsWith("sha512-") &&
+      entry.resolved?.startsWith("https://registry.npmjs.org/"),
+    `Unverified registry dependency: ${path}`,
+  );
+}
+
+export function verifyLockProvenance(packages: Record<string, LockEntry>) {
+  for (const [path, entry] of Object.entries(packages)) {
+    if (!path.includes("node_modules/")) continue;
+    if (entry.link) {
+      assert(!entry.inBundle, `Bundled dependency cannot be a workspace link: ${path}`);
+      assert(
+        ["apps/site", "packages/ui"].includes(entry.resolved ?? ""),
+        "Unexpected workspace link",
+      );
+      continue;
+    }
+    let artifactPath = path;
+    let artifact = entry;
+    // npm extracts inBundle entries from their enclosing tarball. Its hash covers them.
+    while (artifact.inBundle) {
+      if (artifact.resolved !== undefined || artifact.integrity !== undefined)
+        requireRegistryArtifact(artifactPath, artifact);
+      const boundary = artifactPath.lastIndexOf("/node_modules/");
+      const parentPath = artifactPath.slice(0, boundary);
+      const parent = packages[parentPath];
+      assert(
+        boundary > 0 && parent && !parent.link,
+        `Bundled dependency has no registry package ancestor: ${path}`,
+      );
+      artifactPath = parentPath;
+      artifact = parent;
+    }
+    requireRegistryArtifact(artifactPath, artifact);
+  }
+}
+
 async function policy() {
   assert.equal(
     process.version,
@@ -258,23 +299,7 @@ async function policy() {
   }
   const lock = await json(join(root, "package-lock.json"));
   assert.equal(lock.lockfileVersion, 3);
-  for (const [path, entry] of Object.entries(lock.packages) as [
-    string,
-    { link?: boolean; integrity?: string; resolved?: string },
-  ][]) {
-    if (!path.includes("node_modules/")) continue;
-    if (entry.link)
-      assert(
-        ["apps/site", "packages/ui"].includes(entry.resolved ?? ""),
-        "Unexpected workspace link",
-      );
-    else
-      assert(
-        entry.integrity?.startsWith("sha512-") &&
-          entry.resolved?.startsWith("https://registry.npmjs.org/"),
-        `Unverified registry dependency: ${path}`,
-      );
-  }
+  verifyLockProvenance(lock.packages);
   assert.equal((await json(join(root, "wrangler.json"))).assets.not_found_handling, "404-page");
   assert.equal(
     (await json(join(root, "package.json"))).packageManager,
