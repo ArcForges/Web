@@ -26,7 +26,7 @@ Open `win.slnx` with a Visual Studio release supporting the JavaScript project S
 - React Router framework mode is configured with `ssr: false` and build-time prerendering of `/` and `/hello`. A temporary server build is used by the framework during prerendering and excluded from the candidate. Its generated SPA fallback is also excluded.
 - Initial text and links work without JavaScript. Greeting controls remain disabled until hydration, cannot submit names as native form query parameters and are covered by `form-action 'none'`. Names are trimmed, limited to 80 Unicode code points and reject control characters. React renders the greeting as text.
 - The example serializes real `@arcforges/proto` messages locally. `@arcforges/api-client` is tested with binary gRPC-Web success and failure fixtures. No Cloud endpoint or credential is invented. Real Cloud integration requires its published API, session and CORS decisions.
-- No AI, database, analytics, service worker, custom domain, privileged proxy or user-data storage is included. React Router's scroll restoration may store scroll positions in session storage.
+- No AI, database, analytics, service worker, privileged proxy or user-data storage is included. The production custom domain is `arcforges.com`. React Router's scroll restoration may store scroll positions in session storage.
 - Future Account/Chat/operator/status delivery profiles remain separate work. Shared components live in `packages/ui`; profiles must not import business source from adjacent repositories.
 
 ## Dependencies

@@ -5,6 +5,7 @@ node_modules
 **/build
 artifacts
 playwright-report
+playwright-live-report
 test-results
 package-lock.json
 LICENSE

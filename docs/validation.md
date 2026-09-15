@@ -11,9 +11,18 @@ Evidence is recorded separately for source checks, local production assets, host
 - `dotnet build win.slnx --no-restore` accepted the optional solution with workload resolution disabled; it is not evidence of interactive Visual Studio startup or a separate .NET build.
 - GitHub PR checks will provide separate hosted Linux/Windows, CodeQL, dependency-review, secret-scan and browser evidence. Their result is reported on the PR.
 
-## Deferred or outside scope
+## Real deployment evidence (2026-09-15)
 
-- Real Cloudflare deployment is deferred by the owner because the environment API token is not being configured yet. No public deployment or live verification is claimed.
+- [Main CI run 35030151116](https://github.com/ArcForges/Web/actions/runs/35030151116) deployed source `485150f00cbe9491e02f22a9156f9ce667e9f6dd` as `0.1.0-ci.5.1` and passed remote file/header/404 verification at the initial Workers subdomain. A verified prerelease was created.
+- Additional Chromium, Firefox and WebKit checks against that real deployment passed navigation, hydration and greeting with no runtime errors.
+- The owner attached `arcforges.com`; HTTPS and `__build.json` identify the same deployment. Browser validation then identified an automatically injected Cloudflare analytics script blocked by CSP. The custom-domain change prevents that injection and adds real browser checks to the release gate. Its deployment is not claimed by the preceding bootstrap evidence.
+
+## Custom-domain local validation
+
+Custom-domain local validation passed the pinned restore, source checks, nine unit/component/delivery tests, candidate build, twelve Chromium/Firefox/WebKit tests and post-browser candidate verification. The live browser gate itself requires the new configuration to be deployed; local results do not establish that the Cloudflare edge honors `no-transform`.
+
+## Outside scope
+
 - The gRPC-Web tests use binary wire fixtures; they do not call a real C# Cloud service.
 - Complete Account/Chat flows, login, payment, AI and commercial product acceptance are outside this Hello bootstrap.
 - Visual Studio interactive startup requires the appropriate local IDE; npm is the authoritative validated build path.

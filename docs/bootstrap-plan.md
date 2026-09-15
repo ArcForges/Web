@@ -9,7 +9,7 @@
 - Cloudflare supports Workers Static Assets directly. This bootstrap needs no request-time application server, database, AI binding, domain change or Workers paid feature.
 - The repository initially has no Cloudflare environment or credentials. Create a main-only `cloudflare` environment and configure the existing account ID; the owner must supply its deployment API token through GitHub's secret UI.
 
-Owner decision during implementation: defer the deployment credential. Complete local/PR validation and the deployment pipeline, but do not perform a real Cloudflare deployment in this task. The environment and account variable have been configured; the token remains absent.
+Historical owner decision during the bootstrap: defer the deployment credential while completing local/PR validation. The owner subsequently supplied the token and authorized real delivery; see [validation evidence](validation.md) and the subsequent [custom-domain plan](custom-domain-plan.md).
 
 ## Bounded implementation
 

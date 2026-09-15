@@ -42,9 +42,9 @@ Baseline: TypeScript **7.0.2**, React **19.3.0**, React Router **8.4.0**, Vite *
 
 ## Delivery
 
-PRs run source checks on Linux/Windows, dependency auditing/review, secret scanning, CodeQL, and three-browser tests of a single candidate. Every successful `main` push then deploys those exact candidate bytes to `arcforges-web.<account-subdomain>.workers.dev`, verifies them over HTTPS, and creates a GitHub prerelease with an automatically generated version. CI does not publish these private workspaces to npm.
+PRs run source checks on Linux/Windows, dependency auditing/review, secret scanning, CodeQL, and three-browser tests of a single candidate. Every successful `main` push then deploys those exact candidate bytes to [arcforges.com](https://arcforges.com), verifies public files and browser behavior over HTTPS, and creates a GitHub prerelease with an automatically generated version. CI does not publish these private workspaces to npm. The default Workers subdomain and preview URLs are disabled by the deployment configuration.
 
-**Deployment setup is currently deferred by the owner.** The repository's main-only `cloudflare` environment and account variable exist; its API token has not been configured. PR checks work without it. A main deployment without that secret fails with a setup message and creates no successful release. See [deployment setup and recovery](docs/deploying.md) before merging when a live release is wanted.
+The main-only GitHub `cloudflare` environment contains the account variable and deployment secret. The custom-domain binding is managed in Cloudflare; CI verifies that it belongs to this Worker before deploying. PR checks remain credential-free. See [deployment setup and recovery](docs/deploying.md) and [evidence](docs/validation.md).
 
 Workers Static Assets supports this static React build directly. Frameworks that need request-time server code require a Workers-compatible adapter/runtime. This setup does not host C# or provide an API proxy. See the [official React guide](https://developers.cloudflare.com/workers/framework-guides/web-apps/react/) and [static assets guide](https://developers.cloudflare.com/workers/static-assets/get-started/).
 

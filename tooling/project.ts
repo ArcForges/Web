@@ -120,7 +120,7 @@ export async function verify(
   ]);
   assert.equal(config.name, "arcforges-web");
   assert.equal(config.preview_urls, false);
-  assert.equal(config.workers_dev, true);
+  assert.equal(config.workers_dev, false);
   assert.deepEqual(config.assets, {
     directory: "./assets",
     html_handling: "auto-trailing-slash",
@@ -210,7 +210,7 @@ async function build() {
   assert(csp.length < 1800, "CSP exceeds the Workers header line budget");
   await writeFile(
     join(publicRoot, "_headers"),
-    `/*\n  Content-Security-Policy: ${csp}\n  X-Content-Type-Options: nosniff\n  Referrer-Policy: no-referrer\n  Permissions-Policy: camera=(), microphone=(), geolocation=(), payment=()\n  X-Frame-Options: DENY\n  X-Robots-Tag: noindex, nofollow\n  Cache-Control: no-cache\n/assets/*\n  ! Cache-Control\n  Cache-Control: public, max-age=31536000, immutable\n/__build.json\n  ! Cache-Control\n  Cache-Control: no-store\n`,
+    `/*\n  Content-Security-Policy: ${csp}\n  X-Content-Type-Options: nosniff\n  Referrer-Policy: no-referrer\n  Permissions-Policy: camera=(), microphone=(), geolocation=(), payment=()\n  X-Frame-Options: DENY\n  X-Robots-Tag: noindex, nofollow\n  Cache-Control: public, no-cache, no-transform\n/assets/*\n  ! Cache-Control\n  Cache-Control: public, max-age=31536000, immutable, no-transform\n/__build.json\n  ! Cache-Control\n  Cache-Control: no-store, no-transform\n`,
   );
   await cp(join(root, "LICENSE"), join(publicRoot, "license.txt"));
   await writeFile(join(publicRoot, "third-party-notices.txt"), await notices());

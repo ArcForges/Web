@@ -29,10 +29,10 @@ test("production pages hydrate under CSP and support keyboard greeting without n
   expect(requests).toEqual([]);
   expect(errors).toEqual([]);
 });
-test("public content and navigation work without JavaScript", async ({ browser }) => {
+test("public content and navigation work without JavaScript", async ({ browser, baseURL }) => {
   const context = await browser.newContext({ javaScriptEnabled: false });
   const page = await context.newPage();
-  await page.goto("http://127.0.0.1:4173/");
+  await page.goto(`${baseURL}/`);
   await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
   await page.getByRole("link", { name: "Make it your hello" }).click();
   await expect(page.getByRole("status")).toContainText("Hello, World!");
@@ -70,11 +70,12 @@ test("static delivery has security/cache headers and no API or asset fallback", 
   expect(home.headers()["content-security-policy"]).toContain("script-src 'self' 'sha256-");
   expect(home.headers()["content-security-policy"]).not.toMatch(/unsafe-inline|unsafe-eval/);
   expect(home.headers()["x-content-type-options"]).toBe("nosniff");
+  expect(home.headers()["cache-control"]).toContain("no-transform");
   const html = await home.text();
   const asset = html.match(/href="(\/assets\/[^"]+\.css)"/)?.[1];
   expect(asset).toBeDefined();
   expect((await request.get(asset ?? "")).headers()["cache-control"]).toContain("immutable");
-  expect((await request.get("/__build.json")).headers()["cache-control"]).toBe("no-store");
+  expect((await request.get("/__build.json")).headers()["cache-control"]).toContain("no-store");
   for (const path of [
     "/no-such-page",
     "/api/login",

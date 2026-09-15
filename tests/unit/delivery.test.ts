@@ -5,7 +5,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { expect, test } from "vitest";
 import { contentSecurityPolicy, releaseVersion, seal, verify } from "../../tooling/project.ts";
-import { deploymentUrl, waitForIdentity } from "../../tooling/cloudflare.ts";
+import { deploymentUrl, requireCustomDomain, waitForIdentity } from "../../tooling/cloudflare.ts";
 test("CSP authorizes exact prerendered scripts without unsafe inline/eval", () => {
   const script = "console.log('hello')";
   const csp = contentSecurityPolicy([`<script>${script}</script><script src='/x.js'></script>`]);
@@ -40,7 +40,7 @@ test("candidate verification rejects tampering and added files before deployment
 test("live verification tolerates propagation with read-only requests", async () => {
   const identity = { source: "a".repeat(40), version: "0.1.0-ci.1.1" };
   let calls = 0;
-  await waitForIdentity(deploymentUrl("example"), identity, {
+  await waitForIdentity(deploymentUrl, identity, {
     attempts: 3,
     pause: async () => {},
     fetcher: async (_input, init) => {
@@ -51,11 +51,29 @@ test("live verification tolerates propagation with read-only requests", async ()
   });
   expect(calls).toBe(2);
   await expect(
-    waitForIdentity(deploymentUrl("example"), identity, {
+    waitForIdentity(deploymentUrl, identity, {
       attempts: 2,
       pause: async () => {},
       fetcher: async () => Response.json({ version: "old" }),
     }),
   ).rejects.toThrow("No redeployment");
-  expect(() => deploymentUrl("bad/host")).toThrow();
+  await expect(waitForIdentity("https://other.example.com", identity)).rejects.toThrow(
+    "Unexpected deployment host",
+  );
+});
+
+test("deployment requires the custom domain to belong to this production Worker", () => {
+  const domain = {
+    hostname: "arcforges.com",
+    service: "arcforges-web",
+    environment: "production",
+  };
+  expect(() => requireCustomDomain([domain])).not.toThrow();
+  for (const domains of [
+    [],
+    [{ ...domain, service: "another-worker" }],
+    [{ ...domain, hostname: "other.example.com" }],
+    [{ ...domain, environment: "staging" }],
+  ])
+    expect(() => requireCustomDomain(domains)).toThrow("Attach arcforges.com");
 });
