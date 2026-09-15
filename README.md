@@ -2,7 +2,7 @@
 
 React and TypeScript Web foundation for the ArcForges family. This first increment contains a public Hello World site, an interactive local greeting, shared UI, published Contracts consumption and an automated Cloudflare Workers Static Assets delivery pipeline.
 
-It does not implement the planned Account/Chat application, authentication, payments or a C# backend. The greeting runs locally and sends no name to a server. Business authority remains in ArcForges Cloud.
+It does not implement the planned Account/Chat application, authentication, payments or a C# backend. The `/hello/` greeting runs locally and sends no name to a server. A separate `/cloud-hello/` page prepares the published gRPC-Web Hello call for the future Cloud container; it currently reports unavailable until that service is deployed. Business authority remains in ArcForges Cloud.
 
 ## Start locally
 
@@ -30,7 +30,7 @@ The preview serves the actual candidate through local Wrangler at `http://127.0.
 
 | Path                                | Purpose                                                               |
 | ----------------------------------- | --------------------------------------------------------------------- |
-| `apps/site`                         | Prerendered home and `/hello` pages                                   |
+| `apps/site`                         | Prerendered home, local greeting and server connection pages          |
 | `apps/app`                          | Documented boundary for the future Account/Chat profiles              |
 | `packages/ui`                       | Shared components and Tailwind/CSS styles                             |
 | `tooling`                           | TypeScript build, provenance, policy and Cloudflare delivery commands |
@@ -46,7 +46,7 @@ PRs run source checks on Linux/Windows, dependency auditing/review, secret scann
 
 The main-only GitHub `cloudflare` environment contains the account variable and deployment secret. The custom-domain binding is managed in Cloudflare; CI verifies that it belongs to this Worker before deploying. PR checks remain credential-free. See [deployment setup and recovery](docs/deploying.md) and [evidence](docs/validation.md).
 
-Workers Static Assets supports this static React build directly. Frameworks that need request-time server code require a Workers-compatible adapter/runtime. This setup does not host C# or provide an API proxy. See the [official React guide](https://developers.cloudflare.com/workers/framework-guides/web-apps/react/) and [static assets guide](https://developers.cloudflare.com/workers/static-assets/get-started/).
+Workers Static Assets supports this static React build directly. Frameworks that need request-time server code require a Workers-compatible adapter/runtime. This setup does not host C# or provide an API proxy. The future Cloud Worker will own the same-origin `/api/*` route and forward to its Native AOT container; see the [Hello integration boundary and remaining Cloud setup](docs/cloud-hello.md). See also the [official React guide](https://developers.cloudflare.com/workers/framework-guides/web-apps/react/) and [static assets guide](https://developers.cloudflare.com/workers/static-assets/get-started/).
 
 ## Contribute
 

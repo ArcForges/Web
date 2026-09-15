@@ -132,6 +132,7 @@ export async function verify(
   for (const path of [
     "assets/index.html",
     "assets/hello/index.html",
+    "assets/cloud-hello/index.html",
     "assets/404.html",
     "assets/_headers",
     "sbom.cdx.json",

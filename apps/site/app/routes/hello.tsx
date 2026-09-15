@@ -74,6 +74,9 @@ export default function Hello() {
         <span className="greeting-label">Your greeting</span>
         <p>{message}</p>
       </div>
+      <p className="field-hint">
+        <a href="/cloud-hello/">Check the server connection →</a>
+      </p>
     </section>
   );
 }

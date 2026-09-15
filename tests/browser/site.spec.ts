@@ -38,10 +38,13 @@ test("public content and navigation work without JavaScript", async ({ browser, 
   await expect(page.getByRole("status")).toContainText("Hello, World!");
   await expect(page.getByLabel("Your name")).toBeDisabled();
   await expect(page.getByRole("button", { name: "Say hello" })).toBeDisabled();
+  await page.getByRole("link", { name: "Check the server connection" }).click();
+  await expect(page.getByRole("button", { name: "Check connection" })).toBeDisabled();
   await context.close();
 });
 test("pages are accessible and fit narrow screens", async ({ page }, info) => {
-  for (const route of ["/", "/hello/"]) {
+  for (const route of ["/", "/hello/", "/cloud-hello/"]) {
+    const pageName = route === "/" ? "home" : route.split("/")[1];
     await page.goto(route);
     const results = await new AxeBuilder({ page })
       .withTags(["wcag2a", "wcag2aa", "wcag21aa"])
@@ -52,17 +55,31 @@ test("pages are accessible and fit narrow screens", async ({ page }, info) => {
       await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth),
     ).toBe(true);
     await page.screenshot({
-      path: info.outputPath(route === "/" ? "home-mobile.png" : "hello-mobile.png"),
+      path: info.outputPath(`${pageName}-mobile.png`),
       fullPage: true,
     });
     await page.setViewportSize({ width: 1440, height: 1000 });
     await page.screenshot({
-      path: info.outputPath(route === "/" ? "home-desktop.png" : "hello-desktop.png"),
+      path: info.outputPath(`${pageName}-desktop.png`),
       fullPage: true,
     });
   }
 });
-test("static delivery has security/cache headers and no API or asset fallback", async ({
+test("server connection page makes no automatic API calls", async ({ page }) => {
+  const requests: string[] = [];
+  const errors: string[] = [];
+  page.on("request", (request) => {
+    if (new URL(request.url()).pathname.startsWith("/api/")) requests.push(request.url());
+  });
+  page.on("pageerror", (error) => errors.push(error.message));
+  await page.goto("/cloud-hello/");
+  await expect(page.getByRole("heading", { level: 1 })).toContainText("from the server");
+  await expect(page.getByRole("button", { name: "Check connection" })).toBeEnabled();
+  await expect(page.getByRole("status")).toContainText("No request sent yet");
+  expect(requests).toEqual([]);
+  expect(errors).toEqual([]);
+});
+test("static delivery has security/cache headers and real missing-page and asset responses", async ({
   request,
 }) => {
   const home = await request.get("/");
@@ -76,12 +93,7 @@ test("static delivery has security/cache headers and no API or asset fallback", 
   expect(asset).toBeDefined();
   expect((await request.get(asset ?? "")).headers()["cache-control"]).toContain("immutable");
   expect((await request.get("/__build.json")).headers()["cache-control"]).toContain("no-store");
-  for (const path of [
-    "/no-such-page",
-    "/api/login",
-    "/assets/missing.js",
-    "/__spa-fallback.html",
-  ]) {
+  for (const path of ["/no-such-page", "/assets/missing.js", "/__spa-fallback.html"]) {
     const missing = await request.get(path);
     expect(missing.status()).toBe(404);
     expect(await missing.text()).toContain("Page not found");

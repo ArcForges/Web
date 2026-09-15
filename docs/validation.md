@@ -21,6 +21,17 @@ Evidence is recorded separately for source checks, local production assets, host
 
 Custom-domain local validation passed the pinned restore, source checks, nine unit/component/delivery tests, candidate build, twelve Chromium/Firefox/WebKit tests and post-browser candidate verification. The live browser gate itself requires the new configuration to be deployed; local results do not establish that the Cloudflare edge honors `no-transform`.
 
+## Custom-domain hosted delivery
+
+The custom-domain change and its bounded propagation correction are now deployed: [main run 35033094886](https://github.com/ArcForges/Web/actions/runs/35033094886) passed on source `0405df4b85c36f32988b0847d8c53fc0c80f1c24`, version `0.1.0-ci.10.1`. Its real file/header/404 checks and twelve Chromium/Firefox/WebKit tests passed, and the verified release was created. An independent public check returned that identity from `https://arcforges.com/__build.json` and HTTP 404 from the disabled `arcforges-web.sammilergood.workers.dev` entry. This establishes the existing site's delivery, not the subsequent Cloud connection feature or a running C# service.
+
+## Cloud Hello preparation: local evidence
+
+- Source checks passed with twelve unit/component/SDK/delivery tests after rebasing onto the verified custom-domain main commit.
+- The candidate build and all eighteen Chromium/Firefox/WebKit checks passed, followed by candidate hash/file-set verification. Desktop and narrow-screen connection pages were visually inspected.
+- Candidate tests confirm GET 404 and POST 405 before a Cloud API exists, explicitly mocked unavailable/success responses through the published binary client, and no automatic requests or retries. These do not validate a C# container.
+- Listing the live suite confirms fifteen static/idle-page tests and excludes the three browser wire-fixture cases. This feature has not been deployed; its public API and Native AOT evidence remain pending Cloud implementation.
+
 ## Outside scope
 
 - The gRPC-Web tests use binary wire fixtures; they do not call a real C# Cloud service.
