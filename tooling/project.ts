@@ -5,6 +5,7 @@ import { spawnSync } from "node:child_process";
 import { cp, mkdir, readFile, readdir, rm, writeFile } from "node:fs/promises";
 import { dirname, join, relative, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
+import { type DefaultTreeAdapterTypes, parse } from "parse5";
 
 export const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 export const candidate = join(root, "artifacts/candidate");
@@ -56,11 +57,18 @@ export function releaseVersion(runNumber: string | undefined, attempt: string | 
 }
 export function contentSecurityPolicy(html: string[]) {
   const scripts = new Set<string>();
-  for (const page of html)
-    for (const match of page.matchAll(/<script\b[^>]*>([\s\S]*?)<\/script>/gi)) {
-      if (match[1])
-        scripts.add(`'sha256-${createHash("sha256").update(match[1]).digest("base64")}'`);
+  function visit(node: DefaultTreeAdapterTypes.Node) {
+    if (
+      "tagName" in node &&
+      node.tagName === "script" &&
+      !node.attrs.some((attr) => attr.name === "src")
+    ) {
+      const script = node.childNodes.map((child) => ("value" in child ? child.value : "")).join("");
+      if (script) scripts.add(`'sha256-${createHash("sha256").update(script).digest("base64")}'`);
     }
+    if ("childNodes" in node) for (const child of node.childNodes) visit(child);
+  }
+  for (const page of html) visit(parse(page));
   return `default-src 'self'; script-src 'self' ${[...scripts].sort().join(" ")}; style-src 'self'; img-src 'self' data:; font-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'; form-action 'none'`;
 }
 interface Manifest {

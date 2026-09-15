@@ -17,6 +17,8 @@ Install the exact Node version in `.node-version`, which includes npm 11.19.0. `
 
 Hooks run `npm run check` at commit and push. CI repeats checks independently. Git enables `extensions.worktreeConfig` so the hook path does not alter the main checkout's configuration. The `.githooks` shell files only dispatch the TypeScript/npm checks. On Windows they run through Git for Windows.
 
+The protected `main` branch requires both `Verify` and the separate GitHub `CodeQL` scanning result. A successful CodeQL analysis job alone does not imply that it found no blocking security alerts.
+
 Open `win.slnx` with a Visual Studio release supporting the JavaScript project SDK for optional IDE navigation and startup. Install dependencies explicitly first. The npm commands are the authoritative cross-platform build; no .NET application or server is produced by the `.esproj`.
 
 ## Application boundaries

@@ -12,6 +12,11 @@ test("CSP authorizes exact prerendered scripts without unsafe inline/eval", () =
   expect(csp).toContain(createHash("sha256").update(script).digest("base64"));
   expect(csp).not.toMatch(/unsafe-inline|unsafe-eval/);
   expect(csp).toContain("form-action 'none'");
+  const variant = contentSecurityPolicy([
+    `<!-- <script>not executable</script> --><SCRIPT data-note='>'>\r\n${script}</SCRIPT \t>`,
+  ]);
+  expect(variant).toContain(createHash("sha256").update(`\n${script}`).digest("base64"));
+  expect(variant).not.toContain(createHash("sha256").update("not executable").digest("base64"));
 });
 test("CI versions are unique across runs and reruns", () => {
   expect(releaseVersion("10", "2")).toBe("0.1.0-ci.10.2");
