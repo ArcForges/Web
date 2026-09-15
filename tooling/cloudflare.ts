@@ -3,23 +3,27 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import { join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import { candidate, digest, json, root, run, save, verify } from "./project.ts";
+import { candidate, digest, json, npm, root, run, save, verify } from "./project.ts";
 
 const statePath = join(root, "artifacts/deployment.json");
 type Identity = { source: string; version: string };
 type Deployment = Identity & { url: string; verified: boolean; deployedAt: string };
-export function deploymentUrl(subdomain: string): string {
-  assert(/^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?$/.test(subdomain), "Invalid workers.dev subdomain");
-  return `https://arcforges-web.${subdomain}.workers.dev`;
-}
+export const deploymentUrl = "https://arcforges.com";
 function checkUrl(url: string) {
-  const parsed = new URL(url);
-  assert.equal(parsed.protocol, "https:");
+  assert.equal(url, deploymentUrl, "Unexpected deployment host");
+}
+export function requireCustomDomain(
+  domains: { hostname: string; service: string; environment: string }[],
+) {
   assert(
-    /^arcforges-web\.[a-z0-9-]+\.workers\.dev$/.test(parsed.hostname),
-    "Unexpected deployment host",
+    domains.some(
+      (domain) =>
+        domain.hostname === "arcforges.com" &&
+        domain.service === "arcforges-web" &&
+        domain.environment === "production",
+    ),
+    "Attach arcforges.com to arcforges-web in Cloudflare Settings > Domains & Routes before deployment. No DNS changes were made.",
   );
-  assert.equal(parsed.origin, url);
 }
 export async function waitForIdentity(
   url: string,
@@ -89,7 +93,7 @@ async function deploy() {
     "Superseded run: deploy the current main candidate instead",
   );
   const response = await fetch(
-    `https://api.cloudflare.com/client/v4/accounts/${account}/workers/subdomain`,
+    `https://api.cloudflare.com/client/v4/accounts/${account}/workers/domains?hostname=arcforges.com`,
     {
       headers: { Authorization: `Bearer ${token}` },
       signal: AbortSignal.timeout(15000),
@@ -97,17 +101,18 @@ async function deploy() {
   );
   assert(
     response.ok,
-    `Cannot read the account workers.dev subdomain (${response.status}). Check Workers Scripts:Edit permission.`,
+    `Cannot read Worker domain mappings (${response.status}). Check Workers Scripts:Edit permission.`,
   );
-  const body = (await response.json()) as { success: boolean; result?: { subdomain: string } };
-  assert(
-    body.success && body.result?.subdomain,
-    "Register an account workers.dev subdomain in Cloudflare before deploying",
-  );
+  const body = (await response.json()) as {
+    success: boolean;
+    result?: { hostname: string; service: string; environment: string }[];
+  };
+  assert(body.success && Array.isArray(body.result), "Cannot read Worker domain mappings");
+  requireCustomDomain(body.result);
   const state: Deployment = {
     source: manifest.source,
     version: manifest.version,
-    url: deploymentUrl(body.result.subdomain),
+    url: deploymentUrl,
     verified: false,
     deployedAt: new Date().toISOString(),
   };
@@ -140,6 +145,7 @@ async function smoke() {
     let route = path.slice("assets".length);
     if (route.endsWith("/index.html")) route = route.slice(0, -"index.html".length);
     const response = await fetch(`${state.url}${route}`, {
+      headers: { Accept: route.endsWith("/") ? "text/html" : "*/*" },
       redirect: "error",
       signal: AbortSignal.timeout(15000),
     });
@@ -150,6 +156,7 @@ async function smoke() {
       `Deployed bytes differ: ${route}`,
     );
     assert.equal(response.headers.get("x-content-type-options"), "nosniff");
+    assert(response.headers.get("cache-control")?.includes("no-transform"));
     if (route.endsWith("/"))
       assert(
         response.headers.get("content-security-policy")?.includes("script-src 'self' 'sha256-"),
@@ -169,10 +176,15 @@ async function smoke() {
       digest(await readFile(join(candidate, "assets/404.html"))),
     );
   }
+  console.log("Verifying the real domain in Chromium, Firefox and WebKit.");
+  process.stdout.write(
+    npm(["exec", "--no", "--", "playwright", "test", "--config", "playwright.live.config.ts"]),
+  );
   await save(statePath, {
     ...state,
     verified: true,
     status: "verified",
+    browsersVerified: true,
     verifiedAt: new Date().toISOString(),
   });
   console.log(`Verified ${state.version}: ${state.url}`);
