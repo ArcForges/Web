@@ -30,7 +30,7 @@
     "check": "npm run policy && npm run format:check && npm run lint && npm run typecheck && npm test",
     "build": "node tooling/project.ts build",
     "verify:candidate": "node tooling/project.ts verify",
-    "preview": "wrangler dev --config artifacts/candidate/wrangler.json --local --ip 127.0.0.1 --port 4173",
+    "preview": "wrangler dev --config artifacts/candidate/wrangler.json --local --persist-to .wrangler/state --ip 127.0.0.1 --port 4173",
     "test:e2e": "playwright test",
     "deploy": "node tooling/cloudflare.ts deploy",
     "test:live": "node tooling/cloudflare.ts smoke"

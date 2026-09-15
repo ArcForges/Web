@@ -39,4 +39,6 @@ If a dependency update changes license packaging, review `third-party/README.md`
 
 Browser reports, traces for failures and responsive screenshots are under `playwright-report` and `test-results`. CI uploads them separately from the deployable candidate. The candidate contains no tests, source maps, SSR runtime, `.env` files or npm dependencies directory. Do not commit any generated artifacts.
 
+Local Wrangler persistence is explicitly placed at the repository's ignored `.wrangler/state`, outside the immutable candidate. Verification runs again after browser tests to catch any unexpected tool writes into that artifact.
+
 `manifest.json` records a full source SHA, version, dirty flag and hash of every other candidate file. Local modified builds are useful for testing but rejected by automatic deployment. `__build.json` exposes only the non-sensitive source/version identity. A successful build is not evidence of a real Cloudflare deployment or working C# business API.
