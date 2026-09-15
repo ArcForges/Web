@@ -5,7 +5,12 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { expect, test } from "vitest";
 import { contentSecurityPolicy, releaseVersion, seal, verify } from "../../tooling/project.ts";
-import { deploymentUrl, requireCustomDomain, waitForIdentity } from "../../tooling/cloudflare.ts";
+import {
+  deploymentUrl,
+  requireCustomDomain,
+  waitForDelivery,
+  waitForIdentity,
+} from "../../tooling/cloudflare.ts";
 test("CSP authorizes exact prerendered scripts without unsafe inline/eval", () => {
   const script = "console.log('hello')";
   const csp = contentSecurityPolicy([`<script>${script}</script><script src='/x.js'></script>`]);
@@ -76,4 +81,25 @@ test("deployment requires the custom domain to belong to this production Worker"
     [{ ...domain, environment: "staging" }],
   ])
     expect(() => requireCustomDomain(domains)).toThrow("Attach arcforges.com");
+});
+
+test("asset verification waits for headers as well as identity and fails boundedly", async () => {
+  let reads = 0;
+  await waitForDelivery(
+    async (signal) => {
+      expect(signal.aborted).toBe(false);
+      reads++;
+      if (reads === 1) throw new Error("Missing no-transform: /404.css");
+    },
+    { timeoutMs: 1000, intervalMs: 0 },
+  );
+  expect(reads).toBe(2);
+  await expect(
+    waitForDelivery(
+      async () => {
+        throw new Error("Deployed bytes differ: /hello/");
+      },
+      { timeoutMs: 10, intervalMs: 0 },
+    ),
+  ).rejects.toThrow("no redeployment was attempted. Error: Deployed bytes differ: /hello/");
 });

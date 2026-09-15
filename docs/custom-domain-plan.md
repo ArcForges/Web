@@ -27,3 +27,9 @@ The remaining issues are bounded:
 - Report real deployment evidence separately from local tests. Cloud/C# Containers and the future Hello API are a subsequent worktree, after this delivery step is verified.
 
 References: [Workers subdomain configuration](https://developers.cloudflare.com/workers/configuration/routing/workers-dev/), [Web Analytics and no-transform](https://developers.cloudflare.com/web-analytics/get-started/).
+
+## Targeted live correction
+
+Main run `35032047709` deployed the custom-domain configuration, but its immediate live check saw a response without `no-transform` after the new identity was already available. Without another deployment, every public file then returned the expected headers and all twelve real browser tests passed. Identity readiness alone therefore cannot establish that every edge response is ready.
+
+The correction is limited to delivery verification: wait at most two minutes for the complete read-only file/header/404 check to converge, with a shared abort deadline and per-request limits. Preserve exact content checks, report the last failing path, never redeploy automatically, and still fail permanently incorrect content/configuration. Browser assertions remain mandatory and are not automatically retried.

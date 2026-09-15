@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import { join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { setTimeout as delay } from "node:timers/promises";
 import { candidate, digest, json, npm, root, run, save, verify } from "./project.ts";
 
 const statePath = join(root, "artifacts/deployment.json");
@@ -57,6 +58,30 @@ export async function waitForIdentity(
   throw new Error(
     "Deployed assets did not reach the expected source/version within the read-only polling window. No redeployment was attempted.",
   );
+}
+export async function waitForDelivery(
+  probe: (signal: AbortSignal) => Promise<void>,
+  options: { timeoutMs?: number; intervalMs?: number } = {},
+) {
+  const signal = AbortSignal.timeout(options.timeoutMs ?? 120000);
+  let lastError: unknown;
+  while (!signal.aborted) {
+    try {
+      await probe(signal);
+      signal.throwIfAborted();
+      return;
+    } catch (error) {
+      lastError = error;
+    }
+    if (!signal.aborted) {
+      try {
+        await delay(options.intervalMs ?? 2000, undefined, { signal });
+      } catch (error) {
+        if (!signal.aborted) throw error;
+      }
+    }
+  }
+  throw new Error(`Public assets did not converge; no redeployment was attempted. ${lastError}`);
 }
 async function deploy() {
   const manifest = await verify();
@@ -139,43 +164,52 @@ async function smoke() {
   checkUrl(state.url);
   console.log("Waiting for the published static candidate using read-only HTTPS requests.");
   await waitForIdentity(state.url, state);
-  for (const [path, hash] of Object.entries(manifest.files)) {
-    if (!path.startsWith("assets/") || path === "assets/_headers" || path === "assets/404.html")
-      continue;
-    let route = path.slice("assets".length);
-    if (route.endsWith("/index.html")) route = route.slice(0, -"index.html".length);
-    const response = await fetch(`${state.url}${route}`, {
-      headers: { Accept: route.endsWith("/") ? "text/html" : "*/*" },
-      redirect: "error",
-      signal: AbortSignal.timeout(15000),
-    });
-    assert(response.ok, `Deployed ${route} returned ${response.status}`);
-    assert.equal(
-      digest(new Uint8Array(await response.arrayBuffer())),
-      hash,
-      `Deployed bytes differ: ${route}`,
-    );
-    assert.equal(response.headers.get("x-content-type-options"), "nosniff");
-    assert(response.headers.get("cache-control")?.includes("no-transform"));
-    if (route.endsWith("/"))
-      assert(
-        response.headers.get("content-security-policy")?.includes("script-src 'self' 'sha256-"),
-        "Missing generated CSP",
+  await waitForDelivery(async (signal) => {
+    for (const [path, hash] of Object.entries(manifest.files)) {
+      if (!path.startsWith("assets/") || path === "assets/_headers" || path === "assets/404.html")
+        continue;
+      let route = path.slice("assets".length);
+      if (route.endsWith("/index.html")) route = route.slice(0, -"index.html".length);
+      const response = await fetch(`${state.url}${route}`, {
+        headers: { Accept: route.endsWith("/") ? "text/html" : "*/*" },
+        redirect: "error",
+        signal: AbortSignal.any([signal, AbortSignal.timeout(15000)]),
+      });
+      assert(response.ok, `Deployed ${route} returned ${response.status}`);
+      assert.equal(
+        digest(new Uint8Array(await response.arrayBuffer())),
+        hash,
+        `Deployed bytes differ: ${route}`,
       );
-    if (route.startsWith("/assets/"))
-      assert(response.headers.get("cache-control")?.includes("immutable"));
-  }
-  for (const path of ["/api/missing", "/assets/missing.js", "/not-a-page"]) {
-    const response = await fetch(state.url + path, {
-      signal: AbortSignal.timeout(15000),
-      redirect: "error",
-    });
-    assert.equal(response.status, 404, `Unexpected fallback at ${path}`);
-    assert.equal(
-      digest(new Uint8Array(await response.arrayBuffer())),
-      digest(await readFile(join(candidate, "assets/404.html"))),
-    );
-  }
+      assert.equal(
+        response.headers.get("x-content-type-options"),
+        "nosniff",
+        `Missing nosniff: ${route}`,
+      );
+      assert(
+        response.headers.get("cache-control")?.includes("no-transform"),
+        `Missing no-transform: ${route}; received ${response.headers.get("cache-control")}`,
+      );
+      if (route.endsWith("/"))
+        assert(
+          response.headers.get("content-security-policy")?.includes("script-src 'self' 'sha256-"),
+          "Missing generated CSP",
+        );
+      if (route.startsWith("/assets/"))
+        assert(response.headers.get("cache-control")?.includes("immutable"));
+    }
+    for (const path of ["/api/missing", "/assets/missing.js", "/not-a-page"]) {
+      const response = await fetch(state.url + path, {
+        signal: AbortSignal.any([signal, AbortSignal.timeout(15000)]),
+        redirect: "error",
+      });
+      assert.equal(response.status, 404, `Unexpected fallback at ${path}`);
+      assert.equal(
+        digest(new Uint8Array(await response.arrayBuffer())),
+        digest(await readFile(join(candidate, "assets/404.html"))),
+      );
+    }
+  });
   console.log("Verifying the real domain in Chromium, Firefox and WebKit.");
   process.stdout.write(
     npm(["exec", "--no", "--", "playwright", "test", "--config", "playwright.live.config.ts"]),
