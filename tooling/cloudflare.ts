@@ -198,7 +198,8 @@ async function smoke() {
       if (route.startsWith("/assets/"))
         assert(response.headers.get("cache-control")?.includes("immutable"));
     }
-    for (const path of ["/api/missing", "/assets/missing.js", "/not-a-page"]) {
+    // The future Cloud Worker owns /api/*; verify only Web-owned public paths here.
+    for (const path of ["/assets/missing.js", "/not-a-page"]) {
       const response = await fetch(state.url + path, {
         signal: AbortSignal.any([signal, AbortSignal.timeout(15000)]),
         redirect: "error",

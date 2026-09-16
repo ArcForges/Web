@@ -36,7 +36,7 @@ All content is static and public. HTML revalidates, hashed `/assets/*` files are
 
 The source link identifies the candidate's source revision. Public content contains no secret; open-source code does not grant deployment authority. Adding a backend/AI proxy in future requires its own authentication, authorization, quota and abuse controls. This static preview has no paid model invocation path.
 
-Use `https://arcforges.com`. The former Workers subdomain was another public entry to the same deployment, not a staging environment. Do not re-enable it merely to run CI. Disabling it in the dashboard alone is insufficient if a later Wrangler configuration enables it; the source configuration is authoritative. CORS for C# Cloud, auth cookies, API origins and production profile separation remain future integration work.
+Use `https://arcforges.com`. The former Workers subdomain was another public entry to the same deployment, not a staging environment. Do not re-enable it merely to run CI. Disabling it in the dashboard alone is insufficient if a later Wrangler configuration enables it; the source configuration is authoritative. The [Cloud Hello boundary](cloud-hello.md) prepares an anonymous same-origin API call. Authenticated sessions and production profile separation remain future integration work. Live Web delivery checks only Web-owned paths; it must not require its HTML 404 at `/api/*` once Cloud owns that route.
 
 ## Failure and recovery
 
