@@ -6,6 +6,7 @@ import { cp, mkdir, readFile, readdir, rm, writeFile } from "node:fs/promises";
 import { dirname, join, relative, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 import { type DefaultTreeAdapterTypes, parse } from "parse5";
+import { auditLicences, evaluatedManagedLicences } from "./licence-boundary.ts";
 
 export const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 export const candidate = join(root, "artifacts/candidate");
@@ -183,6 +184,7 @@ async function notices() {
   return text;
 }
 async function build() {
+  await save(join(root, "artifacts/evidence/licence-boundary.json"), auditLicences(root));
   const source = run("git", ["rev-parse", "HEAD"]).trim();
   const dirty = run("git", ["status", "--porcelain", "--untracked-files=normal"]).trim().length > 0;
   const version = releaseVersion(process.env.GITHUB_RUN_NUMBER, process.env.GITHUB_RUN_ATTEMPT);
@@ -280,6 +282,7 @@ export function verifyLockProvenance(packages: Record<string, LockEntry>) {
 }
 
 async function policy() {
+  await save(join(root, "artifacts/evidence/licence-boundary.json"), auditLicences(root));
   assert.equal(
     process.version,
     `v${(await readFile(join(root, ".node-version"), "utf8")).trim()}`,
@@ -320,6 +323,12 @@ async function main() {
     }
     case "policy":
       await policy();
+      break;
+    case "licence-evaluated":
+      await save(
+        join(root, "artifacts/evidence/licence-evaluated.json"),
+        evaluatedManagedLicences(root),
+      );
       break;
     case "hooks":
       run("git", ["config", "extensions.worktreeConfig", "true"]);
