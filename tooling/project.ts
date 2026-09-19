@@ -7,6 +7,15 @@ import { dirname, join, relative, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 import { type DefaultTreeAdapterTypes, parse } from "parse5";
 import { auditLicences, evaluatedManagedLicences } from "./licence-boundary.ts";
+import { auditProvenance, gitEnvironment } from "./provenance.ts";
+import {
+  canonicalBuildSbom,
+  extraNotices,
+  prepareProvenance,
+  runtimeSbom,
+  verifyBrowserCandidate,
+  verifyBrowserInputs,
+} from "./browser-provenance.ts";
 
 export const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 export const candidate = join(root, "artifacts/candidate");
@@ -16,6 +25,7 @@ export function run(command: string, args: string[], cwd = root): string {
     encoding: "utf8",
     maxBuffer: 16 * 1024 * 1024,
     windowsHide: true,
+    env: gitEnvironment(),
   });
   if (result.status !== 0)
     throw new Error(
@@ -90,7 +100,13 @@ export async function verify(
   expectedSource = process.env.GITHUB_SHA,
 ): Promise<Manifest> {
   const manifest = (await json(join(directory, "manifest.json"))) as Manifest;
+  assert.deepEqual(Object.keys(manifest).sort(), ["dirty", "files", "schema", "source", "version"]);
   assert.equal(manifest.schema, 1);
+  assert.equal(typeof manifest.dirty, "boolean");
+  assert(
+    /^0\.1\.0-(?:local|ci\.[1-9]\d*\.[1-9]\d*)$/u.test(manifest.version),
+    "Invalid candidate version",
+  );
   assert(/^[a-f0-9]{40}$/.test(manifest.source), "Invalid source revision");
   if (expectedSource)
     assert.equal(manifest.source, expectedSource, "Candidate source does not match this run");
@@ -128,8 +144,7 @@ export async function verify(
     not_found_handling: "404-page",
   });
   const identity = await json(join(directory, "assets/__build.json"));
-  assert.equal(identity.source, manifest.source);
-  assert.equal(identity.version, manifest.version);
+  assert.deepEqual(identity, { source: manifest.source, version: manifest.version });
   for (const path of [
     "assets/index.html",
     "assets/hello/index.html",
@@ -142,6 +157,15 @@ export async function verify(
     "assets/third-party-notices.txt",
   ])
     assert(manifest.files[path], `Missing required file: ${path}`);
+  const html = await Promise.all(
+    ["index.html", "hello/index.html", "cloud-hello/index.html"].map((file) =>
+      readFile(join(directory, "assets", file), "utf8"),
+    ),
+  );
+  verifyBrowserCandidate(directory, manifest, await notices(), securityHeaders(html));
+  const { $schema: _schema, ...expectedConfig } = await json(join(root, "wrangler.json"));
+  expectedConfig.assets.directory = "./assets";
+  assert.deepEqual(config, expectedConfig, "Deployment configuration changed");
   return manifest;
 }
 async function notices() {
@@ -181,10 +205,17 @@ async function notices() {
     for (const name of names)
       text += `\n${name}\n${await readFile(join(directory, name), "utf8")}\n`;
   }
-  return text;
+  return text + extraNotices();
+}
+function securityHeaders(html: string[]) {
+  const csp = contentSecurityPolicy(html);
+  assert(csp.length < 1800, "CSP exceeds the Workers header line budget");
+  return `/*\n  Content-Security-Policy: ${csp}\n  X-Content-Type-Options: nosniff\n  Referrer-Policy: no-referrer\n  Permissions-Policy: camera=(), microphone=(), geolocation=(), payment=()\n  X-Frame-Options: DENY\n  X-Robots-Tag: noindex, nofollow\n  Cache-Control: public, no-cache, no-transform\n/assets/*\n  ! Cache-Control\n  Cache-Control: public, max-age=31536000, immutable, no-transform\n/__build.json\n  ! Cache-Control\n  Cache-Control: no-store, no-transform\n`;
 }
 async function build() {
   await save(join(root, "artifacts/evidence/licence-boundary.json"), auditLicences(root));
+  await save(join(root, "artifacts/evidence/source-provenance.json"), auditProvenance(root));
+  verifyBrowserInputs();
   const source = run("git", ["rev-parse", "HEAD"]).trim();
   const dirty = run("git", ["status", "--porcelain", "--untracked-files=normal"]).trim().length > 0;
   const version = releaseVersion(process.env.GITHUB_RUN_NUMBER, process.env.GITHUB_RUN_ATTEMPT);
@@ -209,12 +240,7 @@ async function build() {
       await writeFile(join(publicRoot, path), page);
       html.push(page);
     }
-  const csp = contentSecurityPolicy(html);
-  assert(csp.length < 1800, "CSP exceeds the Workers header line budget");
-  await writeFile(
-    join(publicRoot, "_headers"),
-    `/*\n  Content-Security-Policy: ${csp}\n  X-Content-Type-Options: nosniff\n  Referrer-Policy: no-referrer\n  Permissions-Policy: camera=(), microphone=(), geolocation=(), payment=()\n  X-Frame-Options: DENY\n  X-Robots-Tag: noindex, nofollow\n  Cache-Control: public, no-cache, no-transform\n/assets/*\n  ! Cache-Control\n  Cache-Control: public, max-age=31536000, immutable, no-transform\n/__build.json\n  ! Cache-Control\n  Cache-Control: no-store, no-transform\n`,
-  );
+  await writeFile(join(publicRoot, "_headers"), securityHeaders(html));
   await cp(join(root, "LICENSE"), join(publicRoot, "license.txt"));
   await writeFile(join(publicRoot, "third-party-notices.txt"), await notices());
   await save(join(publicRoot, "__build.json"), { version, source });
@@ -229,11 +255,14 @@ async function build() {
         join(candidate, "contracts", packageName, path),
       );
     }
-  await writeFile(join(candidate, "sbom.cdx.json"), npm(["sbom", "--sbom-format", "cyclonedx"]));
-  await writeFile(
-    join(candidate, "runtime-sbom.cdx.json"),
-    npm(["sbom", "--sbom-format", "cyclonedx", "--omit=dev"]),
+  await save(
+    join(candidate, "sbom.cdx.json"),
+    canonicalBuildSbom(
+      JSON.parse(npm(["sbom", "--sbom-format", "cyclonedx", "--package-lock-only"])),
+    ),
   );
+  await save(join(candidate, "runtime-sbom.cdx.json"), runtimeSbom());
+  prepareProvenance(candidate, { source, version });
   await seal(candidate, { version, source, dirty });
   await verify();
   console.log(
@@ -283,6 +312,8 @@ export function verifyLockProvenance(packages: Record<string, LockEntry>) {
 
 async function policy() {
   await save(join(root, "artifacts/evidence/licence-boundary.json"), auditLicences(root));
+  await save(join(root, "artifacts/evidence/source-provenance.json"), auditProvenance(root));
+  verifyBrowserInputs();
   assert.equal(
     process.version,
     `v${(await readFile(join(root, ".node-version"), "utf8")).trim()}`,

@@ -46,3 +46,7 @@ Browser reports, traces for failures and responsive screenshots are under `playw
 Local Wrangler persistence is explicitly placed at the repository's ignored `.wrangler/state`, outside the immutable candidate. Verification runs again after browser tests to catch any unexpected tool writes into that artifact.
 
 `manifest.json` records a full source SHA, version, dirty flag and hash of every other candidate file. Local modified builds are useful for testing but rejected by automatic deployment. `__build.json` exposes only the non-sensitive source/version identity. A successful build is not evidence of a real Cloudflare deployment or working C# business API.
+
+## Provenance changes
+
+Follow [the provenance process](provenance.md) before introducing reused or generated material. `npm run check` includes `npm run test:provenance`, which first builds an actual candidate and then runs source-policy and resealed-candidate failure scenarios. `npm run verify:candidate` validates the independent browser resource profile and complete legal/SBOM closure as well as the outer manifest.

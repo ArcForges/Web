@@ -6,7 +6,7 @@ Evidence is recorded separately for source checks, local production assets, host
 
 - Windows pinned toolchain: exact dependency restore, policy, formatting, Biome, strict TypeScript and eight unit/component/SDK/delivery tests have passed.
 - A static candidate with source identity, file hashes, CSP, licenses, Contracts provenance and SBOMs has been built and verified locally.
-- Twelve production-browser tests passed across Chromium, Firefox and WebKit against local Wrangler. They cover hydration under the generated CSP, greeting/validation, no transmitted name, no-JavaScript content/navigation, axe WCAG checks, narrow layout, cache/security headers and real 404s. Desktop and mobile screenshots were visually inspected.
+- Twelve production-browser tests passed across Chromium, Firefox and WebKit against local Wrangler. They cover hydration under the generated CSP, greeting/validation, no transmitted name, no-JavaScript content/navigation, axe WCAG checks, narrow layout, cache/security headers and real 404s. Wide and narrow browser viewport screenshots were visually inspected; these are not native desktop or Android application tests.
 - npm audit reported zero known vulnerabilities. The SHA-verified actionlint 1.7.12 executable accepted the workflow.
 - `dotnet build win.slnx --no-restore` accepted the optional solution with workload resolution disabled; it is not evidence of interactive Visual Studio startup or a separate .NET build.
 - GitHub PR checks will provide separate hosted Linux/Windows, CodeQL, dependency-review, secret-scan and browser evidence. Their result is reported on the PR.
@@ -28,7 +28,7 @@ The custom-domain change and its bounded propagation correction are now deployed
 ## Cloud Hello preparation: local evidence
 
 - Source checks passed with twelve unit/component/SDK/delivery tests after rebasing onto the verified custom-domain main commit.
-- The candidate build and all eighteen Chromium/Firefox/WebKit checks passed, followed by candidate hash/file-set verification. Desktop and narrow-screen connection pages were visually inspected.
+- The candidate build and all eighteen Chromium/Firefox/WebKit checks passed, followed by candidate hash/file-set verification. Wide and narrow browser viewport connection pages were visually inspected.
 - Candidate tests confirm GET 404 and POST 405 before a Cloud API exists, explicitly mocked unavailable/success responses through the published binary client, and no automatic requests or retries. These do not validate a C# container.
 - Listing the live suite confirms fifteen static/idle-page tests and excludes the three browser wire-fixture cases. This feature has not been deployed; its public API and Native AOT evidence remain pending Cloud implementation.
 

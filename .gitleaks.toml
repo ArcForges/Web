@@ -1,0 +1,17 @@
+# Exact public-source checksum false positives, independently verified against upstream bytes.
+[extend]
+useDefault = true
+
+[[allowlists]]
+description = "Reviewed public source hashes in the immutable browser resource profile"
+condition = "AND"
+targetRules = ["generic-api-key"]
+regexTarget = "line"
+paths = ['''^eng/provenance/profiles/browser-resources-r1\.json$''']
+regexes = [
+  '''^\s*"(?:apps/site/)?node_modules/@bufbuild/protobuf/dist/esm/wkt/gen/google/protobuf/api_pb\.js": "73e489001027c703bc0224ae73f78ecefe028e88284bd06952e8603c3d81472c",?$''',
+  '''^\s*"node_modules/@connectrpc/connect-web/dist/esm/assert-fetch-api\.js": "bd56033776818aaa82959c12561dd084d3a730180e6e8f1e681f5d3d439b6474",?$''',
+  '''^\s*"packages/protobuf/src/wkt/gen/google/protobuf/api_pb\.ts": "(?:538052ccd9a02c464702000dfc92a5e7cc01b7b5f55970b14af39662c7b46ae5|440d9371d9b04a8025e6f89d0041c2a54c7c926abedfbd24cef1432ec3fc38a4)",?$''',
+  '''^\s*"packages/connect-web/src/assert-fetch-api\.ts": "b577e990dcf088f942a1dcf66405aab52c7d6f72bed2757c64e213e32ce91dac",?$''',
+  '''^\s*"packages/shared/ReactFlightPropertyAccess\.js": "b80258eb57aa5de9d4386788424c10b259b87b76f84498605bf10f0b0dd7c793",?$''',
+]

@@ -52,6 +52,8 @@ Workers Static Assets supports this static React build directly. Frameworks that
 
 The build and CI enforce the [project licence declarations](docs/licence-boundary.md)
 across every npm workspace and the JavaScript IDE adapter.
+They also enforce [source and actual browser artifact provenance](docs/provenance.md),
+including complete legal notices, immutable reuse records and the emitted browser SBOM.
 
 Read [development](docs/development.md), [contributing](CONTRIBUTING.md), [security](SECURITY.md), [validation](docs/validation.md), and the [bootstrap plan](docs/bootstrap-plan.md).
 

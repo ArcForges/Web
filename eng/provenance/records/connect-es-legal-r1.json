@@ -1,0 +1,60 @@
+{
+  "schemaVersion": 1,
+  "id": "connect-es-legal-r1",
+  "kind": "legal-document",
+  "sourceRepository": "https://github.com/connectrpc/connect-es",
+  "sourceCommit": "378bb8fde1209afc3ab6a9b0aa97c00d0db58c24",
+  "sourcePaths": ["LICENSE"],
+  "licence": {
+    "spdx": "Apache-2.0",
+    "category": "permissive",
+    "evidence": [
+      {
+        "path": "LICENSE",
+        "sha256": "445e3398edab2a40d8d5e5c1a1d533af6464fbae8378ecc0caaf2668e9bbea73",
+        "finding": "Reviewed complete governing legal file, including any explicit companion requirement."
+      }
+    ],
+    "scope": "Legal text only. Preserve all bytes and required copyrights. Governing implementation is separately admitted through the browser artifact profile.",
+    "copyingPermission": "Verbatim legal-document reproduction under the retained permission and copyright terms; no implementation admitted by this record."
+  },
+  "attribution": ["Copyright 2021-2026 The Connect Authors. Full Apache-2.0 terms retained."],
+  "targets": [
+    {
+      "path": "third-party/connect-es-LICENSE.txt",
+      "sha256": "445e3398edab2a40d8d5e5c1a1d533af6464fbae8378ecc0caaf2668e9bbea73",
+      "normalization": "lf"
+    }
+  ],
+  "artifactTargets": [],
+  "disposition": "Copy",
+  "verification": {
+    "kind": "immutable-source-and-byte-review",
+    "command": "Verify named upstream bytes and transformations, then npm run policy and npm run test:provenance.",
+    "expected": "Legal text only. Preserve all bytes and required copyrights. Governing implementation is separately admitted through the browser artifact profile. Every LF-normalized target matches its reviewed hash.",
+    "artifacts": []
+  },
+  "notice": {
+    "required": true,
+    "text": "Copyright 2021-2026 The Connect Authors. Full Apache-2.0 terms retained.",
+    "files": ["eng/provenance/NOTICE.txt", "third-party/connect-es-LICENSE.txt"],
+    "distribution": "source-and-applicable-artifacts",
+    "reason": "Retain original copyright and full legal texts; source-only tooling is not bundled in the browser."
+  },
+  "lifetime": {
+    "status": "permanent",
+    "owner": "Web Licensing and Provenance Owner",
+    "removalTrigger": null
+  },
+  "generation": null,
+  "review": {
+    "owner": "Licensing and Provenance Owner",
+    "reviewer": "Codex, maintainer-authorized implementation review",
+    "reviewedOn": "2026-09-19",
+    "decision": "approved",
+    "rationale": "Legal text only. Preserve all bytes and required copyrights. Governing implementation is separately admitted through the browser artifact profile. Inspected exact source scope, full applicable terms, compatibility, transformation and notice requirements under the unchanged Design five-row table.",
+    "baselineCommit": "8d02a519a4494189e6646637e99de30a909d36ae",
+    "reconciliation": true
+  },
+  "supersedes": null
+}
