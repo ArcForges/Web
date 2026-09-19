@@ -1,0 +1,63 @@
+Web source provenance
+
+Original material retains its recorded licence and full legal text.
+
+browser-resources-r1
+https://github.com/ArcForges/Web @ 8d02a519a4494189e6646637e99de30a909d36ae
+AGPL-3.0-only
+Web generated browser resources: AGPL-3.0-only owned code with permissive React/Router/Buf/Connect runtime and Vite/Rolldown/Tailwind helpers. Retain complete original legal texts, Router turbo-stream/devalue MIT attribution, original Google protobuf BSD schemas and Buf varint BSD notice. The companion punycode notice is retained for a parsed input, not a claim of emitted code. See the immutable profile for each exact source and package identity.
+
+canonical-agpl-legal-r1
+https://github.com/github/choosealicense.com @ 58267f8f2c5c0099810849cfd7677f52ae0c0eb3
+AGPL-3.0-only
+Copyright (C) 2007 Free Software Foundation, Inc. Full AGPL legal text retained.
+
+cloud-provenance-port-r2
+https://github.com/ArcForges/Cloud @ 3165c97cccd3ea1e0b230d66e22ab9c775ca19d8
+AGPL-3.0-only
+ArcForges contributors. AGPL-3.0-only source tooling and tests ported from Cloud; full corresponding source remains available.
+
+connect-es-legal-r1
+https://github.com/connectrpc/connect-es @ 378bb8fde1209afc3ab6a9b0aa97c00d0db58c24
+Apache-2.0
+Copyright 2021-2026 The Connect Authors. Full Apache-2.0 terms retained.
+
+protobuf-es-legal-r1
+https://github.com/bufbuild/protobuf-es @ 09c98f182a86cd6d4bb89a418f261812d8eb2108
+Apache-2.0
+The Buf authors; Apache-2.0 terms and separate Google varint BSD attribution remain intact.
+
+protobuf-legal-r1
+https://github.com/protocolbuffers/protobuf @ 4b0c3aacf0657fbf38253b38918d3358dd4319ec
+BSD-3-Clause
+Copyright 2008 Google Inc.; original protobuf schema BSD terms, including any, descriptor and struct.
+
+punycode-legal-r1
+https://github.com/mathiasbynens/punycode.js @ 9e1b2cda98d215d3a73fcbfe93c62e021f4ba768
+MIT
+Copyright Mathias Bynens; full original MIT terms for adapted punycode input, parsed but not emitted.
+
+rolldown-companions-legal-r1
+https://github.com/rolldown/rolldown @ 9704b565076baf57b3703c98ebde973855506a68
+MIT
+Rollup contributors (2017) and Evan Wallace (2020); complete referenced MIT companions.
+
+rolldown-legal-r1
+https://github.com/rolldown/rolldown @ 9704b565076baf57b3703c98ebde973855506a68
+MIT
+Copyright (c) 2024-present VoidZero Inc and Rolldown contributors.
+
+tailwind-legal-r1
+https://github.com/tailwindlabs/tailwindcss @ c2b24dd15fed1c59dd521bd86082f520c9f5ad0d
+MIT
+Tailwind Labs, Inc.; MIT generated stylesheet inputs.
+
+turbo-stream-legal-r1
+https://github.com/jacob-ebey/turbo-stream @ bc545ccf1e036dd4e3cd08d00d03efd4187cfa00
+MIT
+Copyright (c) 2018-19 devalue contributors named by the original retained link; turbo-stream 2.4.1 retains these terms.
+
+vite-legal-r1
+https://github.com/vitejs/vite @ 434e8e9495436a60789f2b588a04a6a24a3d1661
+MIT
+Vite contributors and Evan You; MIT preload helper.

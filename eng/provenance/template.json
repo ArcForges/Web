@@ -1,0 +1,66 @@
+{
+  "schemaVersion": 1,
+  "instructions": "Complete all ten evidence subjects and conditional generated/temporary obligations before use. A generated record identifies every generator and input at immutable source identities. This legal-document example is not approved; used records are append-only.",
+  "example": {
+    "schemaVersion": 1,
+    "id": "material-name-r1",
+    "kind": "legal-document",
+    "sourceRepository": "https://github.com/github/choosealicense.com",
+    "sourceCommit": "58267f8f2c5c0099810849cfd7677f52ae0c0eb3",
+    "sourcePaths": ["_licenses/agpl-3.0.txt"],
+    "licence": {
+      "spdx": "AGPL-3.0-only",
+      "category": "agpl-compatible",
+      "evidence": [
+        {
+          "path": "_licenses/agpl-3.0.txt",
+          "sha256": "2a1fda78234b71502e2cf8035021b5592f5eba7e8107228aca4d95bba645e397",
+          "finding": "Canonical AGPL legal text after excluding site metadata; no assertion of a historical download origin."
+        }
+      ],
+      "scope": "Legal document only, with its explicit permission for verbatim reproduction. This example does not admit governed implementation.",
+      "copyingPermission": "Everyone is permitted to copy and distribute verbatim copies of this license document, but changing it is not allowed."
+    },
+    "attribution": [
+      "Copyright (C) 2007 Free Software Foundation, Inc. Full canonical text retained."
+    ],
+    "targets": [
+      {
+        "path": "LICENSE",
+        "sha256": "8486a10c4393cee1c25392769ddd3b2d6c242d6ec7928e1414efff7dfb2f07ef",
+        "normalization": "lf"
+      }
+    ],
+    "artifactTargets": [],
+    "disposition": "Copy",
+    "verification": {
+      "kind": "byte-review",
+      "command": "Compare the LF-normalized full legal text after removing authoritative site front matter; run source provenance checks.",
+      "expected": "The canonical body and target hash match exactly.",
+      "artifacts": []
+    },
+    "notice": {
+      "required": true,
+      "text": "Copyright (C) 2007 Free Software Foundation, Inc. Full canonical text retained.",
+      "files": ["eng/provenance/NOTICE.txt"],
+      "distribution": "source-and-applicable-artifacts",
+      "reason": "Retain full legal text and original copyright."
+    },
+    "lifetime": {
+      "status": "permanent",
+      "owner": "Web Licensing and Provenance Owner",
+      "removalTrigger": null
+    },
+    "generation": null,
+    "review": {
+      "owner": "Licensing and Provenance Owner",
+      "reviewer": "REVIEWER_REQUIRED",
+      "reviewedOn": "2026-09-19",
+      "decision": "REVIEW_REQUIRED",
+      "rationale": "Review the particular material and exact terms before use. This template is not an approved record.",
+      "baselineCommit": "8d02a519a4494189e6646637e99de30a909d36ae",
+      "reconciliation": true
+    },
+    "supersedes": null
+  }
+}

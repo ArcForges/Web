@@ -1,0 +1,83 @@
+{
+  "schemaVersion": 1,
+  "id": "cloud-provenance-port-r1",
+  "kind": "source",
+  "sourceRepository": "https://github.com/ArcForges/Cloud",
+  "sourceCommit": "3165c97cccd3ea1e0b230d66e22ab9c775ca19d8",
+  "sourcePaths": [
+    "tooling/provenance.ts",
+    "tooling/process.ts",
+    "tests/worker/provenance.test.ts",
+    "eng/policy/reuse-policy.json",
+    "eng/provenance/template.json"
+  ],
+  "licence": {
+    "spdx": "AGPL-3.0-only",
+    "category": "agpl-compatible",
+    "evidence": [
+      {
+        "path": "LICENSE",
+        "sha256": "8486a10c4393cee1c25392769ddd3b2d6c242d6ec7928e1414efff7dfb2f07ef",
+        "finding": "Full AGPL licence applies to owned tooling and its tests; no subordinate exception."
+      }
+    ],
+    "scope": "Port only these four reviewed files. Adapt owner/fixture paths, inline the Git-environment helper, retain existing hyphenated legal filenames, explicitly classify reviewed Unlicense, and supply a canonical legal-text example. Exact AGPL-to-AGPL compatibility; no sibling build import.",
+    "copyingPermission": null
+  },
+  "attribution": [
+    "ArcForges contributors. AGPL-3.0-only source tooling and tests ported from Cloud; full corresponding source remains available."
+  ],
+  "targets": [
+    {
+      "path": "tooling/provenance.ts",
+      "sha256": "6caff40003dc351db906daa74b28858becf5547753753bdbf09792b58277435d",
+      "normalization": "lf"
+    },
+    {
+      "path": "tests/provenance/source.test.ts",
+      "sha256": "f8c3437dfed3278218cbbcc99ab8cfb71a173230e7f83b526738e3f94ecdcc9f",
+      "normalization": "lf"
+    },
+    {
+      "path": "eng/policy/reuse-policy.json",
+      "sha256": "83a93be25e242d9179e395484c7ce6542582c64a5dd7c4e56289c9e2df09e9e2",
+      "normalization": "lf"
+    },
+    {
+      "path": "eng/provenance/template.json",
+      "sha256": "ed1d6209c2246db5ce637a1db435a8988a08238f1920515ecf2c0df2fcf575e1",
+      "normalization": "lf"
+    }
+  ],
+  "artifactTargets": [],
+  "disposition": "Copy",
+  "verification": {
+    "kind": "immutable-source-and-byte-review",
+    "command": "Verify named upstream bytes and transformations, then npm run policy and npm run test:provenance.",
+    "expected": "Port only these four reviewed files. Adapt owner/fixture paths, inline the Git-environment helper, retain existing hyphenated legal filenames, explicitly classify reviewed Unlicense, and supply a canonical legal-text example. Exact AGPL-to-AGPL compatibility; no sibling build import. Every LF-normalized target matches its reviewed hash.",
+    "artifacts": []
+  },
+  "notice": {
+    "required": true,
+    "text": "ArcForges contributors. AGPL-3.0-only source tooling and tests ported from Cloud; full corresponding source remains available.",
+    "files": ["eng/provenance/NOTICE.txt", "LICENSE"],
+    "distribution": "source-only",
+    "reason": "Retain original copyright and full legal texts; source-only tooling is not bundled in the browser."
+  },
+  "lifetime": {
+    "status": "permanent",
+    "owner": "Web Licensing and Provenance Owner",
+    "removalTrigger": null
+  },
+  "generation": null,
+  "review": {
+    "owner": "Licensing and Provenance Owner",
+    "reviewer": "Codex, maintainer-authorized implementation review",
+    "reviewedOn": "2026-09-19",
+    "decision": "approved",
+    "rationale": "Port only these four reviewed files. Adapt owner/fixture paths, inline the Git-environment helper, retain existing hyphenated legal filenames, explicitly classify reviewed Unlicense, and supply a canonical legal-text example. Exact AGPL-to-AGPL compatibility; no sibling build import. Inspected exact source scope, full applicable terms, compatibility, transformation and notice requirements under the unchanged Design five-row table.",
+    "baselineCommit": "8d02a519a4494189e6646637e99de30a909d36ae",
+    "reconciliation": false
+  },
+  "supersedes": null
+}
