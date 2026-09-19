@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0-only
-// Adapted from ArcForges Cloud; exact source and changes are in cloud-provenance-port-r1.
+// Adapted from ArcForges Cloud; exact source and changes are in cloud-provenance-port-r2.
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
 import { createHash } from "node:crypto";
@@ -254,13 +254,18 @@ export function validateRecord(value: unknown): ObjectValue {
     targetPaths.push(relative(target.path));
     digest(target.sha256);
     assert(["raw", "lf"].includes(text(target.normalization)), "Unknown normalization");
-    if (r.kind === "legal-document")
+    if (r.kind === "legal-document") {
+      const parts = path
+        .basename(text(target.path))
+        .replace(/\.(?:txt|md)$/iu, "")
+        .split(/[.-]/u);
+      const name = parts.pop() ?? "";
       assert(
-        /^(?:[a-z0-9_-]+[.-])*(?:license|licence|copying|notices?)(?:[.](?:txt|md))?$/iu.test(
-          path.basename(text(target.path)),
-        ),
+        /^(?:license|licence|copying|notices?)$/iu.test(name) &&
+          parts.every((part) => /^[a-z0-9_]+$/iu.test(part)),
         "Legal document target is not legal text",
       );
+    }
   }
   assert.equal(targetPaths.length, new Set(targetPaths).size, "Duplicate record target");
   for (const value of rows(r.artifactTargets)) {

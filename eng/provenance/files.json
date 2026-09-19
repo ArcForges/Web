@@ -60,6 +60,7 @@
     "eng/provenance/records/browser-resources-r1.json",
     "eng/provenance/records/canonical-agpl-legal-r1.json",
     "eng/provenance/records/cloud-provenance-port-r1.json",
+    "eng/provenance/records/cloud-provenance-port-r2.json",
     "eng/provenance/records/connect-es-legal-r1.json",
     "eng/provenance/records/protobuf-es-legal-r1.json",
     "eng/provenance/records/protobuf-legal-r1.json",
@@ -80,6 +81,7 @@
     "tests/browser/site.spec.ts",
     "tests/fixtures/grpc-web.ts",
     "tests/provenance/candidate.test.ts",
+    "tests/provenance/legal-path.test.ts",
     "tests/unit/cloud-hello.test.ts",
     "tests/unit/contracts.test.ts",
     "tests/unit/delivery.test.ts",
@@ -98,9 +100,9 @@
   ],
   "reused": {
     "LICENSE": "canonical-agpl-legal-r1",
-    "eng/policy/reuse-policy.json": "cloud-provenance-port-r1",
-    "eng/provenance/template.json": "cloud-provenance-port-r1",
-    "tests/provenance/source.test.ts": "cloud-provenance-port-r1",
+    "eng/policy/reuse-policy.json": "cloud-provenance-port-r2",
+    "eng/provenance/template.json": "cloud-provenance-port-r2",
+    "tests/provenance/source.test.ts": "cloud-provenance-port-r2",
     "third-party/connect-es-LICENSE.txt": "connect-es-legal-r1",
     "third-party/protobuf-es-LICENSE.txt": "protobuf-es-legal-r1",
     "third-party/protobuf.LICENSE.txt": "protobuf-legal-r1",
@@ -110,7 +112,7 @@
     "third-party/tailwind.LICENSE.txt": "tailwind-legal-r1",
     "third-party/turbo-stream.LICENSE.txt": "turbo-stream-legal-r1",
     "third-party/vite.LICENSE.txt": "vite-legal-r1",
-    "tooling/provenance.ts": "cloud-provenance-port-r1"
+    "tooling/provenance.ts": "cloud-provenance-port-r2"
   },
   "artifacts": ["browser-resources-r1"]
 }
