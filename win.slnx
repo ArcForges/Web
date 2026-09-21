@@ -1,3 +1,6 @@
 <Solution>
-  <Project Path="ArcForges.Web.esproj" />
+  <Project Path="ArcForges.Web.esproj">
+    <Build />
+    <Deploy />
+  </Project>
 </Solution>
