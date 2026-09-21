@@ -1,0 +1,91 @@
+{
+  "schemaVersion": 1,
+  "id": "cloud-build-identity-r2",
+  "kind": "source",
+  "sourceRepository": "https://github.com/ArcForges/Cloud",
+  "sourceCommit": "749de4b702a0de86859b8ae4a5f22ac90f856ffa",
+  "sourcePaths": [
+    "tooling/build-identity.ts",
+    "tests/worker/build-identity.test.ts",
+    "eng/version-sources.json"
+  ],
+  "licence": {
+    "spdx": "AGPL-3.0-only",
+    "category": "agpl-compatible",
+    "evidence": [
+      {
+        "path": "tooling/build-identity.ts",
+        "sha256": "95ac59d60388c944c980c9ac287c650495437db92c5c8c49589c702fd651707a",
+        "finding": "Exact merged authored file inspected under its explicit SPDX header and complete owner AGPL terms."
+      },
+      {
+        "path": "tests/worker/build-identity.test.ts",
+        "sha256": "62789316338dc33554fdec3ac7edcde33de5097d2754d777a836490d09583245",
+        "finding": "Exact merged authored file inspected under its explicit SPDX header and complete owner AGPL terms."
+      },
+      {
+        "path": "eng/version-sources.json",
+        "sha256": "9a848f211b5b64ce5b75ff398e991e16adc5f20fa716c5b46ccc71ddab210766",
+        "finding": "Exact merged authored file inspected under its explicit SPDX header and complete owner AGPL terms."
+      },
+      {
+        "path": "LICENSE",
+        "sha256": "8486a10c4393cee1c25392769ddd3b2d6c242d6ec7928e1414efff7dfb2f07ef",
+        "finding": "Complete upstream AGPL terms equal receiving owner terms."
+      }
+    ],
+    "scope": "Reviewed AGPL-to-AGPL adaptation of the merged Cloud resolver/catalog/independence tests. Owner and imports are local, the published npm producer pin replaces the .NET pin, and npm workspace links/owned workspace releases are excluded from external dependency inventory. Image-specific argument mapping is omitted. The sealed static report is independently verified against source, locked packages and actual CI run/attempt. No sibling source becomes a build input.",
+    "copyingPermission": null
+  },
+  "attribution": [
+    "Build identity tooling adapted from ArcForges Cloud, Copyright ArcForges contributors, AGPL-3.0-only."
+  ],
+  "targets": [
+    {
+      "path": "tooling/build-identity.ts",
+      "sha256": "843f288009d69a5875882cd3c8314633502fad27700aff31daad28d21d70352a",
+      "normalization": "lf"
+    },
+    {
+      "path": "tests/provenance/build-identity.test.ts",
+      "sha256": "01ced753fcd42e3be498fccc82b94409cb1f00d361310eaa8808ff5ff5819732",
+      "normalization": "lf"
+    },
+    {
+      "path": "eng/version-sources.json",
+      "sha256": "d300a7884d71d87a72fe1da5118ae4bb3d4ea5472203bb94d87e708ff7d92cac",
+      "normalization": "lf"
+    }
+  ],
+  "artifactTargets": [],
+  "disposition": "Improve",
+  "verification": {
+    "kind": "immutable-source-and-byte-review",
+    "command": "Verify named upstream bytes and transformations, then npm run policy and npm run test:provenance.",
+    "expected": "All three admitted resolver, test and catalog targets match the reviewed Cloud-to-Web transformation hashes. Nine-axis independence, actual candidate metadata, dirty/CI rejection, npm workspace exclusion and browser readback pass. No sibling build dependency exists.",
+    "artifacts": []
+  },
+  "notice": {
+    "required": true,
+    "text": "Build identity tooling adapted from ArcForges Cloud, Copyright ArcForges contributors, AGPL-3.0-only.",
+    "files": ["eng/provenance/NOTICE.txt"],
+    "distribution": "source-and-applicable-artifacts",
+    "reason": "Reviewed AGPL-to-AGPL adaptation of the merged Cloud resolver/catalog/independence tests. Owner and imports are local, the published npm producer pin replaces the .NET pin, and npm workspace links/owned workspace releases are excluded from external dependency inventory. Image-specific argument mapping is omitted. The sealed static report is independently verified against source, locked packages and actual CI run/attempt. No sibling source becomes a build input."
+  },
+  "lifetime": {
+    "status": "permanent",
+    "owner": "Web Licensing and Provenance Owner",
+    "removalTrigger": null
+  },
+  "generation": null,
+  "review": {
+    "owner": "Licensing and Provenance Owner",
+    "reviewer": "Codex, maintainer-authorized implementation review",
+    "reviewedOn": "2026-09-21",
+    "decision": "approved",
+    "rationale": "Reviewed AGPL-to-AGPL adaptation of the merged Cloud resolver/catalog/independence tests. Owner and imports are local, the published npm producer pin replaces the .NET pin, and npm workspace links/owned workspace releases are excluded from external dependency inventory. Image-specific argument mapping is omitted. The sealed static report is independently verified against source, locked packages and actual CI run/attempt. No sibling source becomes a build input. This successor corrects the verification description inherited from the earlier unrelated four-file provenance port; the same three target bytes and exact upstream identities remain unchanged.",
+    "baselineCommit": "6678e12cf3c71f5c8be04b4b3b5f4cc3aefacf81",
+    "reconciliation": false
+  },
+  "supersedes": "cloud-build-identity-r1"
+}
