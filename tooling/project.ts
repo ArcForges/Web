@@ -7,6 +7,7 @@ import { dirname, join, relative, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 import { type DefaultTreeAdapterTypes, parse } from "parse5";
 import { auditLicences, evaluatedManagedLicences } from "./licence-boundary.ts";
+import { expectedIdentity, verifyIdentity } from "./build-identity.ts";
 import { auditProvenance, gitEnvironment } from "./provenance.ts";
 import {
   canonicalBuildSbom,
@@ -145,6 +146,7 @@ export async function verify(
   });
   const identity = await json(join(directory, "assets/__build.json"));
   assert.deepEqual(identity, { source: manifest.source, version: manifest.version });
+  verifyIdentity(await json(join(directory, "assets/__build-info.json")), manifest.version);
   for (const path of [
     "assets/index.html",
     "assets/hello/index.html",
@@ -210,7 +212,7 @@ async function notices() {
 function securityHeaders(html: string[]) {
   const csp = contentSecurityPolicy(html);
   assert(csp.length < 1800, "CSP exceeds the Workers header line budget");
-  return `/*\n  Content-Security-Policy: ${csp}\n  X-Content-Type-Options: nosniff\n  Referrer-Policy: no-referrer\n  Permissions-Policy: camera=(), microphone=(), geolocation=(), payment=()\n  X-Frame-Options: DENY\n  X-Robots-Tag: noindex, nofollow\n  Cache-Control: public, no-cache, no-transform\n/assets/*\n  ! Cache-Control\n  Cache-Control: public, max-age=31536000, immutable, no-transform\n/__build.json\n  ! Cache-Control\n  Cache-Control: no-store, no-transform\n`;
+  return `/*\n  Content-Security-Policy: ${csp}\n  X-Content-Type-Options: nosniff\n  Referrer-Policy: no-referrer\n  Permissions-Policy: camera=(), microphone=(), geolocation=(), payment=()\n  X-Frame-Options: DENY\n  X-Robots-Tag: noindex, nofollow\n  Cache-Control: public, no-cache, no-transform\n/assets/*\n  ! Cache-Control\n  Cache-Control: public, max-age=31536000, immutable, no-transform\n/__build.json\n  ! Cache-Control\n  Cache-Control: no-store, no-transform\n/__build-info.json\n  ! Cache-Control\n  Cache-Control: no-store, no-transform\n`;
 }
 async function build() {
   await save(join(root, "artifacts/evidence/licence-boundary.json"), auditLicences(root));
@@ -244,6 +246,9 @@ async function build() {
   await cp(join(root, "LICENSE"), join(publicRoot, "license.txt"));
   await writeFile(join(publicRoot, "third-party-notices.txt"), await notices());
   await save(join(publicRoot, "__build.json"), { version, source });
+  const buildIdentity = expectedIdentity(version);
+  assert.equal(buildIdentity.build.sourceCommit, source);
+  await save(join(publicRoot, "__build-info.json"), buildIdentity);
   const { $schema: _schema, ...config } = await json(join(root, "wrangler.json"));
   config.assets.directory = "./assets";
   await save(join(candidate, "wrangler.json"), config);

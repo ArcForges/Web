@@ -207,3 +207,24 @@ rejects(
   },
   /Unclassified candidate member/u,
 );
+
+rejects(
+  "reject build metadata mutation even after both manifests are resealed",
+  async (root) => {
+    const file = path.join(root, "assets/__build-info.json");
+    const value = await json(file);
+    value.build.buildId = "another-run";
+    await save(file, value);
+  },
+  /Built identity differs/u,
+);
+rejects(
+  "reject axis mutation even after both manifests are resealed",
+  async (root) => {
+    const file = path.join(root, "assets/__build-info.json");
+    const value = await json(file);
+    value.axes.ContractSet.values[0].version = "999";
+    await save(file, value);
+  },
+  /Built identity differs/u,
+);
