@@ -48,6 +48,9 @@ jobs:
       - name: Verify effective IDE project declarations
         if: runner.os == 'Windows'
         run: node tooling/project.ts licence-evaluated
+      - name: Verify actual Windows solution dispatch
+        if: runner.os == 'Windows'
+        run: node tooling/ide.ts
       - name: Retain source licence and provenance evidence
         if: always()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
@@ -57,6 +60,8 @@ jobs:
             artifacts/evidence/licence-*.json
             artifacts/evidence/source-provenance.json
             artifacts/evidence/browser-graph.json
+            artifacts/evidence/ide-*.json
+            artifacts/evidence/ide-*.log
           if-no-files-found: error
           retention-days: 30
 

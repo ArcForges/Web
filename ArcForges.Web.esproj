@@ -10,4 +10,9 @@
     <LicenceBoundary>AGPL</LicenceBoundary>
     <PackageLicenseExpression>AGPL-3.0-only</PackageLicenseExpression>
   </PropertyGroup>
+  <!-- Explicit restore only; Build and design-time evaluation never install dependencies. -->
+  <Target Name="ArcForgesRestoreNpm" BeforeTargets="NPMRestore" Condition="'$(DesignTimeBuild)' != 'true'">
+    <Message Text="ArcForges explicit locked npm restore" Importance="high" />
+    <Exec Command="npm ci --ignore-scripts" WorkingDirectory="$(MSBuildProjectDirectory)" />
+  </Target>
 </Project>

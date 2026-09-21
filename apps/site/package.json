@@ -5,7 +5,7 @@
   "type": "module",
   "license": "AGPL-3.0-only",
   "scripts": {
-    "dev": "react-router dev --host 127.0.0.1",
+    "dev": "react-router dev --host 127.0.0.1 --port 5173 --strictPort",
     "build": "react-router build",
     "typecheck": "react-router typegen && tsc -p tsconfig.json"
   },

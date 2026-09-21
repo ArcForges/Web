@@ -19,7 +19,19 @@ Hooks run `npm run check` at commit and push. CI repeats checks independently. G
 
 The protected `main` branch requires both `Verify` and the separate GitHub `CodeQL` scanning result. A successful CodeQL analysis job alone does not imply that it found no blocking security alerts.
 
-Open `win.slnx` with a Visual Studio release supporting the JavaScript project SDK for optional IDE navigation and startup. Install dependencies explicitly first. The npm commands are the authoritative cross-platform build; no .NET application or server is produced by the `.esproj`.
+Open `win.slnx` with Visual Studio's JavaScript project support, installed Chrome, and the pinned Node/npm on its PATH. Select `ArcForges.Web` as the startup project and `ArcForges Web (Chrome)` as its launch profile. The solution explicitly enables Build and local IDE Deploy for the esproj; that local Deploy starts the development profile and never publishes to Cloudflare.
+
+For an explicit locked restore and solution build on Windows:
+
+```sh
+dotnet msbuild win.slnx -t:Restore
+dotnet msbuild win.slnx -t:Build -p:Configuration=Release
+node tooling/ide.ts
+```
+
+Restore runs root `npm ci --ignore-scripts`. Build delegates to the same root `npm run build` used by portable CI and never installs dependencies; IDE design-time evaluation does not restore. The verifier requires actual npm dispatch and a verified candidate, so a successful solution that skips the esproj fails verification. It also checks that neither restore nor build changes the committed lock, and Build leaves installed dependency metadata untouched.
+
+F5 uses `.vscode/launch.json` and the same root `npm run dev` as the CLI, serving `http://127.0.0.1:5173`. The server uses strict port selection: stop an existing development session before starting another; an occupied port fails rather than moving the IDE to an unrelated service. Stopping browser debugging may leave the development server running; stop that session's terminal when finished. No C# host or business proxy is started. Portable Linux/macOS development uses the root npm commands directly, without Visual Studio or MSBuild. The `.esproj` produces no .NET application or server.
 
 ## Application boundaries
 
