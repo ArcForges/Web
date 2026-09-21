@@ -58,3 +58,5 @@ including complete legal notices, immutable reuse records and the emitted browse
 Read [development](docs/development.md), [contributing](CONTRIBUTING.md), [security](SECURITY.md), [validation](docs/validation.md), and the [bootstrap plan](docs/bootstrap-plan.md).
 
 The existing repository license is **AGPL-3.0-only**; see [LICENSE](LICENSE). Upstream Contracts and other dependencies retain their own licenses. The built site exposes the license, source link and generated third-party notices. See [third-party notices](THIRD_PARTY_NOTICES.md).
+
+The sealed [build identity](docs/build-identity.md) is available at `/__build-info.json` and verified by actual browsers.

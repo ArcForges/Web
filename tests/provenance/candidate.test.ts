@@ -134,7 +134,7 @@ rejects(
 rejects(
   "reject a modified used record",
   async (root) => {
-    const file = "provenance/records/browser-resources-r1.json";
+    const file = "provenance/records/browser-resources-r2.json";
     const value = await json(path.join(root, file));
     value.review.rationale = "forged";
     await save(path.join(root, file), value);
@@ -153,7 +153,7 @@ rejects(
 rejects(
   "reject reformatting of immutable candidate records",
   async (root) => {
-    await edit(root, "provenance/records/browser-resources-r1.json", (text) => `${text}\n`);
+    await edit(root, "provenance/records/browser-resources-r2.json", (text) => `${text}\n`);
   },
   /Candidate record bytes changed/u,
 );
@@ -206,4 +206,25 @@ rejects(
     await writeFile(path.join(root, "private-extra.txt"), "unclassified");
   },
   /Unclassified candidate member/u,
+);
+
+rejects(
+  "reject build metadata mutation even after both manifests are resealed",
+  async (root) => {
+    const file = path.join(root, "assets/__build-info.json");
+    const value = await json(file);
+    value.build.buildId = "another-run";
+    await save(file, value);
+  },
+  /Built identity differs/u,
+);
+rejects(
+  "reject axis mutation even after both manifests are resealed",
+  async (root) => {
+    const file = path.join(root, "assets/__build-info.json");
+    const value = await json(file);
+    value.axes.ContractSet.values[0].version = "999";
+    await save(file, value);
+  },
+  /Built identity differs/u,
 );

@@ -7,7 +7,7 @@ import type { Plugin } from "vite";
 import { auditProvenance, hash, parseDocument, readOwned, relative, store } from "./provenance.ts";
 
 const owner = path.resolve(import.meta.dirname, "..");
-export const profilePath = "eng/provenance/profiles/browser-resources-r1.json";
+export const profilePath = "eng/provenance/profiles/browser-resources-r2.json";
 const sha = (value: string | Uint8Array) => createHash("sha256").update(value).digest("hex");
 const lf = (value: Buffer) =>
   new TextDecoder("utf-8", { fatal: true }).decode(value).replaceAll("\r\n", "\n");
@@ -332,6 +332,7 @@ export function verifyBrowserCandidate(
       .map(relative),
     "_headers",
     "__build.json",
+    "__build-info.json",
     "license.txt",
     "third-party-notices.txt",
     "source-provenance.txt",
