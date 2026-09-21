@@ -1,5 +1,7 @@
 # Custom domain delivery
 
+Historical implementation plan. Its former CI/runtime acceptance requirements are superseded by [the current validation policy](validation-policy.md). Retained results are historical, not instructions to repeat them.
+
 ## Scope and observed issues
 
 The first main deployment, `485150f00cbe9491e02f22a9156f9ce667e9f6dd`, passed real delivery checks at the Workers subdomain. The owner then attached `arcforges.com` to `arcforges-web`. Both hosts serve version `0.1.0-ci.5.1`.

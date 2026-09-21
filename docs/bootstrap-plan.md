@@ -1,5 +1,7 @@
 # Web bootstrap plan
 
+Historical implementation plan. Its former CI/runtime acceptance requirements are superseded by [the current validation policy](validation-policy.md). Retained results are historical, not instructions to repeat them.
+
 ## Collected baseline
 
 - The repository starts at `9c683d5` with the AGPL-3.0 license only. Work is isolated on `codex/web-bootstrap` in a separate worktree.

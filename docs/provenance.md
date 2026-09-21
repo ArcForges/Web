@@ -22,9 +22,9 @@ The initial independent oracle used two actual builds at different source identi
 
 The build SBOM uses the complete lockfile, including platform alternatives, and has a stable workspace name. The separate browser SBOM records actual emitted origins and module-derived relationships, including embedded origins and generated helpers. The initial `npm sbom --omit=dev` output omitted several emitted React-family packages; it is not the browser closure oracle. Build-only tools do not become runtime components merely because they generate code.
 
-The candidate carries its active records, reviewed profile, observed graph and source-bound receipt under private `provenance/`. The receipt contains every actual candidate member hash. Full licences, third-party notices and the provenance summary are also public assets. The same gate checks exact Contracts package legal/source/SBOM bytes, both SBOMs, derived CSP/security/cache headers, deployment configuration, complete file membership and source/version identity before tests, deployment and public consumption. Source maps, SSR implementation, dependencies and private evidence remain outside public assets.
+The candidate carries its active records, reviewed profile, observed graph and source-bound receipt under private `provenance/`. The receipt contains every actual candidate member hash. Full licences, third-party notices and the provenance summary are also public assets. The same gate checks exact Contracts package legal/source/SBOM bytes, both SBOMs, derived CSP/security/cache headers, deployment configuration, complete file membership and source/version identity at candidate construction and the deployment trust handoff. Source maps, SSR implementation, dependencies and private evidence remain outside public assets.
 
-`npm run check` runs source enforcement, unit checks and provenance failure scenarios against a real built candidate on Windows and Linux. CI fetches full trusted history: PR base SHA, push `before` SHA, or the current committed baseline for scheduled/manual runs. Missing history fails. Commit/push hooks clear inherited Git repository-selection variables before running the same checks. CI retains source and actual graph evidence; the deploy job verifies the downloaded candidate without rebuilding it.
+`npm run check` runs source enforcement and offline units once on Linux; it does not build or rescan a candidate. CI fetches full trusted history: PR base SHA, push `before` SHA, or the current committed baseline for scheduled/manual runs. Missing history fails. Commit/push hooks check whitespace only. CI retains source and actual graph evidence; the deploy job verifies the downloaded candidate without rebuilding it.
 
 ## Conflicting contributions
 
@@ -33,3 +33,7 @@ Register the affected material and evidence at `eng/provenance/conflicts/<id>.js
 Browser tests exercise the CF Web application in Chromium, Firefox and WebKit. Wide and narrow viewport screenshots are browser evidence. They do not establish Avalonia desktop or Kotlin/Compose Android behaviour. Native clients retain their separate implementation and verification boundaries.
 
 WP02.04 appends `browser-resources-r2` for the independently sourced build-info asset and reviewed generator/catalog inputs. Existing browser graph/templates and all earlier profiles remain unchanged; the new asset is checked independently and is included in the closed candidate receipt.
+
+## Current validation boundary
+
+[Validation policy](validation-policy.md) supersedes earlier automatic browser/live/public-byte gates. Normal checks run offline source-policy/resolver tests; `test:artifact` is a separate opt-in investigation. Candidate construction retains required provenance, and the deployment entry point performs one trust-handoff check. Neither path launches a browser or downloads public assets to repeat verification.

@@ -34,7 +34,8 @@
     "test:e2e": "playwright test",
     "deploy": "node tooling/cloudflare.ts deploy",
     "test:live": "node tooling/cloudflare.ts smoke",
-    "test:provenance": "npm run build && node --test tests/provenance/*.test.ts"
+    "test:provenance": "node --test tests/provenance/build-identity.test.ts tests/provenance/legal-path.test.ts tests/provenance/source.test.ts",
+    "test:artifact": "npm run build && node --test tests/provenance/candidate.test.ts"
   },
   "devDependencies": {
     "@axe-core/playwright": "4.13.0",

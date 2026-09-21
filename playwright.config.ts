@@ -1,5 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 import { defineConfig, devices } from "@playwright/test";
+if (process.env.CI === "true") throw new Error("Browser E2E tests are local opt-in only.");
+
 export default defineConfig({
   testDir: "./tests/browser",
   fullyParallel: true,

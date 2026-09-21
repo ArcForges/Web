@@ -1,5 +1,7 @@
 # Cloud Hello preparation
 
+Historical implementation plan. Its former CI/runtime acceptance requirements are superseded by [the current validation policy](validation-policy.md). Retained results are historical, not instructions to repeat them.
+
 ## Boundary and findings
 
 The owner selected a future C# Native AOT service in Cloudflare Containers. The custom-domain site is already deployed and its real three-browser suite passes. The local ArcForges directory has no Cloud checkout and no Cloud service is available for integration yet.

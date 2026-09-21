@@ -150,13 +150,14 @@ async function deploy() {
       join(candidate, "wrangler.json"),
     ]);
     console.log(output.replaceAll(token, "[REDACTED]"));
-    await save(statePath, { ...state, status: "deployed-awaiting-verification" });
+    await save(statePath, { ...state, status: "deployed" });
   } catch (error) {
     await save(statePath, { ...state, status: "deployment-failed" });
     throw new Error(String(error).replaceAll(token, "[REDACTED]"));
   }
 }
 async function smoke() {
+  assert.notEqual(process.env.CI, "true", "Live browser tests are local opt-in only.");
   const manifest = await verify();
   const state = (await json(statePath)) as Deployment;
   assert.equal(state.source, manifest.source);

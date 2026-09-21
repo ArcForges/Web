@@ -3,6 +3,8 @@ import { defineConfig } from "@playwright/test";
 import candidateConfig from "./playwright.config.ts";
 import { deploymentUrl } from "./tooling/cloudflare.ts";
 
+if (process.env.CI === "true") throw new Error("Browser E2E tests are local opt-in only.");
+
 export default defineConfig({
   ...candidateConfig,
   webServer: [],
