@@ -61,8 +61,10 @@
     "eng/provenance/files.json",
     "eng/provenance/profiles/browser-resources-r1.json",
     "eng/provenance/profiles/browser-resources-r2.json",
+    "eng/provenance/profiles/browser-resources-r3.json",
     "eng/provenance/records/browser-resources-r1.json",
     "eng/provenance/records/browser-resources-r2.json",
+    "eng/provenance/records/browser-resources-r3.json",
     "eng/provenance/records/canonical-agpl-legal-r1.json",
     "eng/provenance/records/cloud-build-identity-r1.json",
     "eng/provenance/records/cloud-build-identity-r2.json",
@@ -126,5 +128,5 @@
     "tests/provenance/build-identity.test.ts": "cloud-build-identity-r2",
     "eng/version-sources.json": "cloud-build-identity-r2"
   },
-  "artifacts": ["browser-resources-r2"]
+  "artifacts": ["browser-resources-r3"]
 }
