@@ -20,7 +20,7 @@ The token stays in CI. The browser never receives Cloudflare management credenti
 
 ## Automatic sequence
 
-1. Linux and Windows restore the exact lock and validate source. Dependency auditing, history secret scanning and CodeQL run; dependency review additionally runs for PRs.
+1. Linux and Windows restore the exact lock; Linux validates source and Windows evaluates IDE declarations. Dependency auditing, history secret scanning and CodeQL run; dependency review additionally runs for PRs.
 2. Linux builds one static candidate, generates required CSP/notices/SBOM/provenance metadata and seals the candidate.
 3. `Verify` requires applicable checks. Main deployment consumes the workflow candidate by artifact ID; its entry point performs one promotion integrity/identity check without rebuilding.
 4. Deployment confirms the current main commit and intended domain mapping, then runs Wrangler. No DNS mapping is recreated.
