@@ -15,7 +15,7 @@ Install the exact Node version in `.node-version`, which includes npm 11.19.0. `
 | `npm run preview`          | Run the sealed static candidate using local Wrangler                                   |
 | `npm run test:e2e`         | Optional local browser checks using existing installations; never CI                   |
 
-Hooks check whitespace only. They never repeat builds/tests at commit or push. Git enables `extensions.worktreeConfig` so the hook path does not alter the main checkout's configuration. The `.githooks` shell files only dispatch the TypeScript/npm checks. On Windows they run through Git for Windows.
+Hooks check whitespace only. They never repeat builds/tests at commit or push. Git enables `extensions.worktreeConfig` so the hook path does not alter the main checkout's configuration. The `.githooks` shell files only dispatch the whitespace check. On Windows they run through Git for Windows.
 
 The protected `main` branch requires both `Verify` and the separate GitHub `CodeQL` scanning result. A successful CodeQL analysis job alone does not imply that it found no blocking security alerts.
 
