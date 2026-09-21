@@ -20,7 +20,7 @@ targets reject wrong effective values before build/pack. Source and evaluated
 reports include the exact commit, dirty state, inventory and findings under
 `artifacts/evidence/licence-*.json`; CI uploads the reports.
 
-The three npm scopes and the JavaScript IDE adapter are covered. Windows CI evaluates the IDE adapter using .NET SDK 10.0.401; normal npm development remains independent of that optional IDE toolchain. The existing final static candidate and three-browser tests remain required, followed by exact-byte Cloudflare delivery and live browser verification.
+The three npm scopes and the JavaScript IDE adapter are covered. Windows CI evaluates the IDE adapter using .NET SDK 10.0.401; normal npm development remains independent of that optional IDE toolchain. The final static candidate retains its licence/provenance checks. Browser and public-download verification are removed from CI under [validation policy](validation-policy.md).
 
 These source/build-policy results do not establish product functionality or close
 later commercial gates. Local candidate identity and fixture/runtime evidence are

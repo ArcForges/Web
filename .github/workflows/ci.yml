@@ -40,6 +40,7 @@ jobs:
           package-manager-cache: false
       - run: npm ci --ignore-scripts
       - run: npm run check
+        if: runner.os == 'Linux'
       - name: Set up the IDE project evaluation toolchain
         if: runner.os == 'Windows'
         uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6
@@ -48,9 +49,6 @@ jobs:
       - name: Verify effective IDE project declarations
         if: runner.os == 'Windows'
         run: node tooling/project.ts licence-evaluated
-      - name: Verify actual Windows solution dispatch
-        if: runner.os == 'Windows'
-        run: node tooling/ide.ts
       - name: Retain source licence and provenance evidence
         if: always()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
@@ -60,8 +58,6 @@ jobs:
             artifacts/evidence/licence-*.json
             artifacts/evidence/source-provenance.json
             artifacts/evidence/browser-graph.json
-            artifacts/evidence/ide-*.json
-            artifacts/evidence/ide-*.log
           if-no-files-found: error
           retention-days: 30
 
@@ -128,7 +124,7 @@ jobs:
           category: /language:${{ matrix.language }}
 
   candidate:
-    name: Build and test candidate
+    name: Build static candidate
     needs: [source, quality]
     runs-on: ubuntu-latest
     timeout-minutes: 20
@@ -145,9 +141,6 @@ jobs:
           cache: npm
       - run: npm ci --ignore-scripts
       - run: npm run build
-      - run: npx --no-install playwright install --with-deps chromium firefox webkit
-      - run: npm run test:e2e
-      - run: npm run verify:candidate
       - id: upload
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
@@ -155,15 +148,6 @@ jobs:
           path: artifacts/candidate
           if-no-files-found: error
           retention-days: 30
-      - name: Preserve browser evidence
-        if: always()
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
-        with:
-          name: browser-evidence-${{ github.run_id }}-${{ github.run_attempt }}
-          path: |
-            playwright-report
-            test-results
-          retention-days: 14
 
   verify:
     name: Verify
@@ -188,7 +172,7 @@ jobs:
           if [ "$EVENT" = pull_request ]; then test "$REVIEW" = success; else test "$REVIEW" = skipped; fi
 
   deploy:
-    name: Deploy and verify Cloudflare
+    name: Deploy Cloudflare
     if: >-
       !cancelled() && github.event_name == 'push' && github.ref == 'refs/heads/main'
       && needs.verify.result == 'success' && needs.candidate.result == 'success'
@@ -216,15 +200,12 @@ jobs:
           artifact-ids: ${{ needs.candidate.outputs.artifact-id }}
           path: artifacts/candidate
           merge-multiple: true
-      - run: npm run verify:candidate
-      - run: npx --no-install playwright install --with-deps chromium firefox webkit
       - run: npm run deploy
         env:
           CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           GH_TOKEN: ${{ github.token }}
-      - run: npm run test:live
-      - name: Create verified prerelease
+      - name: Create deployed prerelease
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
@@ -238,7 +219,5 @@ jobs:
           name: cloudflare-evidence-${{ github.run_id }}-${{ github.run_attempt }}
           path: |
             artifacts/deployment.json
-            playwright-live-report
-            test-results/live
           if-no-files-found: warn
           retention-days: 90

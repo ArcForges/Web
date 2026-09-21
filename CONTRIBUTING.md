@@ -2,7 +2,7 @@
 
 Work on a branch in a separate worktree. Read [development](docs/development.md) and the relevant product design before implementation. Keep changes bounded and describe observable behavior and acceptance criteria in the PR.
 
-Use English in source and documentation, exact dependency versions, the committed lockfile, and the pinned toolchain. Install the worktree-local hooks with `npm run hooks`. Run `npm run check`, then build and run the browser tests for application/delivery changes. Include any unverified external configuration in the PR description.
+Use English in source and documentation, exact dependency versions, the committed lockfile, and the pinned toolchain. Install the worktree-local hooks with `npm run hooks`. Run relevant offline checks once. Hosted CI builds the candidate; browser/runtime checks are explicit local opt-in under [validation policy](docs/validation-policy.md). Include any unverified external configuration in the PR description.
 
 Do not commit credentials, generated builds or private account data. Security issues use the [private reporting process](SECURITY.md). Dependency source and license notices must be retained; sibling repositories are consumed only through their published packages.
 

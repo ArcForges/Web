@@ -19,12 +19,10 @@ Open the local URL printed by React Router. Public pages are rendered at build t
 ```sh
 npm run check
 npm run build
-npx --no-install playwright install chromium firefox webkit
-npm run test:e2e
 npm run preview
 ```
 
-The preview serves the actual candidate through local Wrangler at `http://127.0.0.1:4173`. Stop it before running browser tests, which start their own instance. No Cloudflare login is required for these commands. On Linux, use `playwright install --with-deps` to install browser system dependencies.
+The preview serves the actual candidate through local Wrangler at `http://127.0.0.1:4173`. Browser checks are explicit local opt-in only when existing browser binaries support the affected behavior; do not install browsers to expand validation. No Cloudflare login is required for preview.
 
 ## Layout
 
@@ -42,7 +40,7 @@ Baseline: TypeScript **7.0.2**, React **19.3.0**, React Router **8.4.0**, Vite *
 
 ## Delivery
 
-PRs run source checks on Linux/Windows, dependency auditing/review, secret scanning, CodeQL, and three-browser tests of a single candidate. Every successful `main` push then deploys those exact candidate bytes to [arcforges.com](https://arcforges.com), verifies public files and browser behavior over HTTPS, and creates a GitHub prerelease with an automatically generated version. CI does not publish these private workspaces to npm. The default Workers subdomain and preview URLs are disabled by the deployment configuration.
+PRs run source/static/offline checks, Windows IDE declaration evaluation, security scans and one Linux static candidate build. Main deploys those same bytes and records provider completion in a GitHub prerelease. CI does not install browsers, run E2E, fetch public assets or call Cloud. See [validation policy](docs/validation-policy.md). Private workspaces are not published to npm; Workers subdomains and preview URLs remain disabled.
 
 The main-only GitHub `cloudflare` environment contains the account variable and deployment secret. The custom-domain binding is managed in Cloudflare; CI verifies that it belongs to this Worker before deploying. PR checks remain credential-free. See [deployment setup and recovery](docs/deploying.md) and [evidence](docs/validation.md).
 
@@ -59,4 +57,4 @@ Read [development](docs/development.md), [contributing](CONTRIBUTING.md), [secur
 
 The existing repository license is **AGPL-3.0-only**; see [LICENSE](LICENSE). Upstream Contracts and other dependencies retain their own licenses. The built site exposes the license, source link and generated third-party notices. See [third-party notices](THIRD_PARTY_NOTICES.md).
 
-The sealed [build identity](docs/build-identity.md) is available at `/__build-info.json` and verified by actual browsers.
+The sealed [build identity](docs/build-identity.md) is available at `/__build-info.json` for explicit support diagnostics; CI seals it from independent inputs without a browser runtime.

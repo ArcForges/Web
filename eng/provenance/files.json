@@ -54,6 +54,7 @@
     "docs/development.md",
     "docs/licence-boundary.md",
     "docs/provenance.md",
+    "docs/validation-policy.md",
     "docs/validation.md",
     "eng/policy/licence-boundary.json",
     "eng/provenance/NOTICE.txt",

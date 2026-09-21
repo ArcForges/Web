@@ -21,12 +21,12 @@ The token stays in CI. The browser never receives Cloudflare management credenti
 ## Automatic sequence
 
 1. Linux and Windows restore the exact lock and validate source. Dependency auditing, history secret scanning and CodeQL run; dependency review additionally runs for PRs.
-2. Linux builds one static candidate, generates CSP hashes from its actual inline scripts, adds upstream notices and full/runtime CycloneDX SBOMs, and seals the complete candidate file set with SHA-256.
-3. Chromium, Firefox and WebKit test that candidate served through local Wrangler, including accessibility, no-JavaScript behavior, local greeting, CSP/cache behavior and missing-path 404s.
-4. `Verify` requires all applicable checks. On a `push` to `main`, the deployment job downloads the exact candidate artifact by its ID and verifies source/hashes. It never rebuilds it. A skipped PR-only dependency review cannot skip deployment.
-5. Missing account/token configuration is an explicit failure. The job checks that the source is still current main and that `arcforges.com` belongs to `arcforges-web` in production, serializes deployment, and deploys with Wrangler. Checking the mapping only needs the existing Workers Scripts permission.
-6. Bounded, read-only HTTPS polling waits for the expected `https://arcforges.com/__build.json`; then every public candidate file is compared by hash, security/cache headers are checked, and missing routes must return the real 404. A shared two-minute deadline permits those responses to converge after the identity becomes available; permanent differences fail with the last diagnostic. HTML requests explicitly accept HTML. The existing Chromium, Firefox and WebKit suite then runs against the real domain to check browser-visible edge behavior. A failed check never automatically creates another deployment.
-7. Only successful file and browser verification creates a GitHub prerelease containing the original candidate archive and deployment evidence. Versions are `0.1.0-ci.<run_number>.<run_attempt>`; reruns are distinct. These are preview releases, not an assertion that the complete product is implemented.
+2. Linux builds one static candidate, generates required CSP/notices/SBOM/provenance metadata and seals the candidate.
+3. `Verify` requires applicable checks. Main deployment consumes the workflow candidate by artifact ID; its entry point performs one promotion integrity/identity check without rebuilding.
+4. Deployment confirms the current main commit and intended domain mapping, then runs Wrangler. No DNS mapping is recreated.
+5. Successful provider completion records `status: deployed` in `artifacts/deployment.json` and creates a prerelease with the original candidate archive and deployment record. It does not claim live HTTP or browser acceptance.
+
+There are no browser installations, local/live E2E, public-file hash downloads, readiness polling or real Cloud calls in CI. The optional local diagnostic commands reject CI execution. See [validation policy](validation-policy.md).
 
 PR, schedule and manually dispatched workflows validate but do not deploy. Main pushes deploy automatically once the credential is present. No second Cloudflare Git integration is required; enabling one would create an independent deployment path that bypasses this candidate process.
 
@@ -40,13 +40,13 @@ Use `https://arcforges.com`. The former Workers subdomain was another public ent
 
 ## Failure and recovery
 
-- **Source or browser failure:** fix the failing check in a PR. Nothing deploys.
+- **Source or build failure:** fix the failing check in a PR. Nothing deploys.
 - **Missing/invalid token:** configure the environment, then rerun. No successful release is created merely because the build passed.
 - **Missing custom-domain mapping:** restore `arcforges.com` on `arcforges-web` in Cloudflare before rerunning. CI checks ownership before deploying or disabling the default address.
 - **Superseded run:** do not rerun an old main commit. Use the newest tested main run; the guard prevents stale queued runs from rolling back production.
-- **Wrangler or live-check failure:** inspect `cloudflare-evidence-*`, the job log and the Workers dashboard. A deployment may have completed even when later validation failed. Retrying propagation only issues reads. Do not infer a successful release from upload completion.
+- **Wrangler failure:** inspect the deployment record, job log and provider status before a scoped retry. A failed confirmation can follow a successful upload. On a network failure, report the exact operation and stop; do not change proxies or blindly rerun.
 - **Rollback:** prefer reverting the offending source in a PR so current main produces a newly verified release. For an urgent operator rollback, select the prior known-good deployment/version in Cloudflare's deployment history, verify its public `__build.json` and pages, and promptly reconcile main. The automatic workflow deliberately cannot deploy stale source. Keep the previous verified candidate archive for recovery; do not reconstruct it from mutable dependencies.
 
-Candidate artifacts remain for 30 days, local browser evidence for 14 days and deployment evidence (including live browser reports) for 90 days. Verified GitHub prereleases preserve their candidate archive beyond those artifact windows. Each main deployment validates the actual domain mapping, remote propagation and public HTTP/browser behavior; local success cannot prove those account-specific conditions.
+Candidate artifacts remain for 30 days and deployment records for 90 days. Local browser evidence is not a CI artifact. Verified GitHub prereleases preserve their candidate archive beyond those artifact windows. Each main deployment confirms the intended domain mapping and provider operation. Public propagation and runtime/browser behavior are not tested by CI.
 
 References: [static assets](https://developers.cloudflare.com/workers/static-assets/get-started/), [headers](https://developers.cloudflare.com/workers/static-assets/headers/), [routing](https://developers.cloudflare.com/workers/static-assets/routing/advanced/html-handling/).
