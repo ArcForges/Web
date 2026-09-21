@@ -10,8 +10,8 @@
     "typecheck": "react-router typegen && tsc -p tsconfig.json"
   },
   "dependencies": {
-    "@arcforges/api-client": "1.0.0-ci.25.1",
-    "@arcforges/proto": "1.0.0-ci.25.1",
+    "@arcforges/api-client": "1.0.0-ci.44.1",
+    "@arcforges/proto": "1.0.0-ci.44.1",
     "@arcforges/web-ui": "0.0.0",
     "@bufbuild/protobuf": "2.15.0",
     "react": "19.3.0",

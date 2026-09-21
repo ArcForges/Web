@@ -36,7 +36,7 @@ The preview serves the actual candidate through local Wrangler at `http://127.0.
 | `artifacts/candidate`               | Ignored immutable delivery artifact, manifest and SBOMs               |
 | `win.slnx` / `ArcForges.Web.esproj` | Optional Visual Studio JavaScript project                             |
 
-Baseline: TypeScript **7.0.2**, React **19.3.0**, React Router **8.4.0**, Vite **8.3.0**, Tailwind **4.3.3**, Wrangler **4.135.0**. One committed npm lockfile covers the entire workspace. Contracts packages are pinned to **1.0.0-ci.25.1**; no submodules or adjacent source references are used.
+Baseline: TypeScript **7.0.2**, React **19.3.0**, React Router **8.4.0**, Vite **8.3.0**, Tailwind **4.3.3**, Wrangler **4.135.0**. One committed npm lockfile covers the entire workspace. Contracts packages are pinned to **1.0.0-ci.44.1**; no submodules or adjacent source references are used.
 
 ## Delivery
 

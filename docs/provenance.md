@@ -36,4 +36,6 @@ WP02.04 appends `browser-resources-r2` for the independently sourced build-info 
 
 ## Current validation boundary
 
+The active browser profile is `browser-resources-r5`. Revisions r3/r4 admit only reviewed development/deployment-tool lock changes. Revision r5 consumes Contracts `1.0.0-ci.44.1` and one protobuf `2.15.0` installation: the previously admitted implementations are unchanged, while duplicate module paths and emitted placements are removed. Its module/import graph was derived before compilation; one source-mapped compilation accounted for the three changed protobuf consumer/shared chunks, and the remaining fifteen normalized templates stayed unchanged. The same compiled files passed the final exact profile checks. Earlier profiles and their historical evidence remain immutable.
+
 [Validation policy](validation-policy.md) supersedes earlier automatic browser/live/public-byte gates. Normal checks run offline source-policy/resolver tests; `test:artifact` is a separate opt-in investigation. Candidate construction retains required provenance, and the deployment entry point performs one trust-handoff check. Neither path launches a browser or downloads public assets to repeat verification.

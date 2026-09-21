@@ -7,7 +7,7 @@ description = "Reviewed public source hashes in the immutable browser resource p
 condition = "AND"
 targetRules = ["generic-api-key"]
 regexTarget = "line"
-paths = ['''^eng/provenance/profiles/browser-resources-r[1234]\.json$''']
+paths = ['''^eng/provenance/profiles/browser-resources-r[12345]\.json$''']
 regexes = [
   '''^\s*"(?:apps/site/)?node_modules/@bufbuild/protobuf/dist/esm/wkt/gen/google/protobuf/api_pb\.js": "73e489001027c703bc0224ae73f78ecefe028e88284bd06952e8603c3d81472c",?$''',
   '''^\s*"node_modules/@connectrpc/connect-web/dist/esm/assert-fetch-api\.js": "bd56033776818aaa82959c12561dd084d3a730180e6e8f1e681f5d3d439b6474",?$''',
