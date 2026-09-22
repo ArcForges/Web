@@ -14,7 +14,7 @@ npm run hooks
 npm run dev
 ```
 
-Open the local URL printed by React Router. Public pages are rendered at build time; there is no request-time Node server in the deployed artifact.
+Open the local URL printed by React Router. Public pages are rendered at build time; there is no request-time Node server in the deployed artifact. A small Cloudflare Worker redirects `www.arcforges.com` to the canonical HTTPS apex before serving pages; other requests use the static asset binding.
 
 ```sh
 npm run check
@@ -31,6 +31,7 @@ The preview serves the actual candidate through local Wrangler at `http://127.0.
 | `apps/site`                         | Prerendered home, local greeting and server connection pages          |
 | `apps/app`                          | Documented boundary for the future Account/Chat profiles              |
 | `packages/ui`                       | Shared components and Tailwind/CSS styles                             |
+| `worker`                            | Private canonical-host redirect and static asset fallback             |
 | `tooling`                           | TypeScript build, provenance, policy and Cloudflare delivery commands |
 | `tests`                             | Unit, published SDK wire fixtures, browser and accessibility tests    |
 | `artifacts/candidate`               | Ignored immutable delivery artifact, manifest and SBOMs               |
@@ -40,11 +41,11 @@ Baseline: TypeScript **7.0.2**, React **19.3.0**, React Router **8.4.0**, Vite *
 
 ## Delivery
 
-PRs run source/static/offline checks, Windows IDE declaration evaluation, security scans and one Linux static candidate build. Main deploys those same bytes and records provider completion in a GitHub prerelease. CI does not install browsers, run E2E, fetch public assets or call Cloud. See [validation policy](docs/validation-policy.md). Private workspaces are not published to npm; Workers subdomains and preview URLs remain disabled.
+PRs run source/static/offline checks, Windows IDE declaration evaluation, security scans and one Linux candidate build containing the prerendered assets and redirect Worker. Main deploys those same bytes and records provider completion in a GitHub prerelease. CI does not install browsers, run E2E, fetch public assets or call Cloud. See [validation policy](docs/validation-policy.md). Private workspaces are not published to npm; Workers subdomains and preview URLs remain disabled.
 
-The main-only GitHub `cloudflare` environment contains the account variable and deployment secret. The custom-domain binding is managed in Cloudflare; CI verifies that it belongs to this Worker before deploying. PR checks remain credential-free. See [deployment setup and recovery](docs/deploying.md) and [evidence](docs/validation.md).
+The main-only GitHub `cloudflare` environment contains the account variable and deployment secret. Domain bindings are managed in Cloudflare; CI verifies that the apex custom domain belongs to this Worker before deploying. Preserve the existing `www.arcforges.com/*` Web route and its proxied DNS record. The redirect retains the path and query, so a new visit to the www connection page reaches the apex before its same-origin Cloud call. PR checks remain credential-free. See [deployment setup and recovery](docs/deploying.md) and [evidence](docs/validation.md).
 
-Workers Static Assets supports this static React build directly. Frameworks that need request-time server code require a Workers-compatible adapter/runtime. This setup does not host C# or provide an API proxy. The Cloud Worker owns the same-origin `/api/*` route and forwards to its Native AOT container; see the [Hello integration boundary and Cloud ownership](docs/cloud-hello.md). See also the [official React guide](https://developers.cloudflare.com/workers/framework-guides/web-apps/react/) and [static assets guide](https://developers.cloudflare.com/workers/static-assets/get-started/).
+Workers Static Assets serves the static React build behind the canonical-host redirect. Frameworks that need request-time rendering require a Workers-compatible adapter/runtime. This setup does not host C# or provide an API proxy. The Cloud Worker owns `arcforges.com/api/*` and forwards to its Native AOT container; see the [Hello integration boundary and Cloud ownership](docs/cloud-hello.md). See also the [official React guide](https://developers.cloudflare.com/workers/framework-guides/web-apps/react/) and [static assets guide](https://developers.cloudflare.com/workers/static-assets/get-started/).
 
 ## Contribute
 

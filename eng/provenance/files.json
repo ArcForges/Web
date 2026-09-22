@@ -58,6 +58,7 @@
     "docs/validation.md",
     "eng/policy/dependency-policy.json",
     "eng/policy/dependency-reviews/admission-r1.json",
+    "eng/policy/dependency-reviews/admission-r2.json",
     "eng/policy/licence-boundary.json",
     "eng/provenance/NOTICE.txt",
     "eng/provenance/files.json",
@@ -66,11 +67,13 @@
     "eng/provenance/profiles/browser-resources-r3.json",
     "eng/provenance/profiles/browser-resources-r4.json",
     "eng/provenance/profiles/browser-resources-r5.json",
+    "eng/provenance/profiles/browser-resources-r6.json",
     "eng/provenance/records/browser-resources-r1.json",
     "eng/provenance/records/browser-resources-r2.json",
     "eng/provenance/records/browser-resources-r3.json",
     "eng/provenance/records/browser-resources-r4.json",
     "eng/provenance/records/browser-resources-r5.json",
+    "eng/provenance/records/browser-resources-r6.json",
     "eng/provenance/records/canonical-agpl-legal-r1.json",
     "eng/provenance/records/cloud-build-identity-r1.json",
     "eng/provenance/records/cloud-build-identity-r2.json",
@@ -100,6 +103,7 @@
     "tests/fixtures/grpc-web.ts",
     "tests/provenance/candidate.test.ts",
     "tests/provenance/legal-path.test.ts",
+    "tests/unit/canonical-host.test.ts",
     "tests/unit/cloud-hello.test.ts",
     "tests/unit/contracts.test.ts",
     "tests/unit/delivery.test.ts",
@@ -115,6 +119,7 @@
     "tsconfig.json",
     "vitest.config.ts",
     "win.slnx",
+    "worker/index.js",
     "wrangler.json"
   ],
   "reused": {
@@ -139,5 +144,5 @@
     "tooling/dependency-policy.test.ts": "cloud-dependency-policy-r2",
     "docs/dependency-policy.md": "cloud-dependency-policy-r2"
   },
-  "artifacts": ["browser-resources-r5"]
+  "artifacts": ["browser-resources-r6"]
 }
