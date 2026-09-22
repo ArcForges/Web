@@ -7,3 +7,5 @@ Use English in source and documentation, exact dependency versions, the committe
 Do not commit credentials, generated builds or private account data. Security issues use the [private reporting process](SECURITY.md). Dependency source and license notices must be retained; sibling repositories are consumed only through their published packages.
 
 Contributions to first-party code are provided under the repository's AGPL-3.0-only license. Preserve third-party copyright and license terms. PRs are reviewed before merge; CI and deployment evidence do not replace product acceptance testing.
+
+Dependency additions and upgrades follow [the enforced admission policy](docs/dependency-policy.md); update its input-bound review and retain the existing class and provenance gates.
