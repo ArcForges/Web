@@ -23,7 +23,7 @@ export function requireCustomDomain(
         domain.service === "arcforges-web" &&
         domain.environment === "production",
     ),
-    "Attach arcforges.com to arcforges-web in Cloudflare Settings > Domains & Routes before deployment. No DNS changes were made.",
+    "Attach arcforges.com to arcforges-web in Cloudflare Workers & Pages > arcforges-web > Domains before deployment. No DNS changes were made.",
   );
 }
 export async function waitForIdentity(

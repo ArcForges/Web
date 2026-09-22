@@ -132,18 +132,25 @@ export async function verify(
   assert.deepEqual(Object.keys(config).sort(), [
     "assets",
     "compatibility_date",
+    "main",
     "name",
+    "no_bundle",
     "preview_urls",
     "workers_dev",
   ]);
   assert.equal(config.name, "arcforges-web");
+  assert.equal(config.main, "./worker/index.js");
+  assert.equal(config.no_bundle, true);
   assert.equal(config.preview_urls, false);
   assert.equal(config.workers_dev, false);
   assert.deepEqual(config.assets, {
     directory: "./assets",
+    binding: "ASSETS",
+    run_worker_first: true,
     html_handling: "auto-trailing-slash",
     not_found_handling: "404-page",
   });
+  await verifyWorkerScript(directory);
   const identity = await json(join(directory, "assets/__build.json"));
   assert.deepEqual(identity, { source: manifest.source, version: manifest.version });
   verifyIdentity(await json(join(directory, "assets/__build-info.json")), manifest.version);
@@ -169,6 +176,13 @@ export async function verify(
   expectedConfig.assets.directory = "./assets";
   assert.deepEqual(config, expectedConfig, "Deployment configuration changed");
   return manifest;
+}
+export async function verifyWorkerScript(directory: string) {
+  assert.equal(
+    await readFile(join(directory, "worker/index.js"), "utf8"),
+    (await readFile(join(root, "worker/index.js"), "utf8")).replaceAll("\r\n", "\n"),
+    "Worker script changed from the reviewed source",
+  );
 }
 async function notices() {
   const lock = await json(join(root, "package-lock.json"));
@@ -252,6 +266,11 @@ async function build() {
   const { $schema: _schema, ...config } = await json(join(root, "wrangler.json"));
   config.assets.directory = "./assets";
   await save(join(candidate, "wrangler.json"), config);
+  await mkdir(join(candidate, "worker"), { recursive: true });
+  await writeFile(
+    join(candidate, "worker/index.js"),
+    (await readFile(join(root, "worker/index.js"), "utf8")).replaceAll("\r\n", "\n"),
+  );
   for (const packageName of ["proto", "api-client"])
     for (const path of ["source.json", "LICENSE", "NOTICE", "sbom.cdx.json"]) {
       await mkdir(join(candidate, "contracts", packageName), { recursive: true });
