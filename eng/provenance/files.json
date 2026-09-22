@@ -50,7 +50,6 @@
     "docs/cloud-hello-plan.md",
     "docs/cloud-hello.md",
     "docs/custom-domain-plan.md",
-    "docs/dependency-policy.md",
     "docs/deploying.md",
     "docs/development.md",
     "docs/licence-boundary.md",
@@ -75,6 +74,7 @@
     "eng/provenance/records/canonical-agpl-legal-r1.json",
     "eng/provenance/records/cloud-build-identity-r1.json",
     "eng/provenance/records/cloud-build-identity-r2.json",
+    "eng/provenance/records/cloud-dependency-policy-r1.json",
     "eng/provenance/records/cloud-provenance-port-r1.json",
     "eng/provenance/records/cloud-provenance-port-r2.json",
     "eng/provenance/records/connect-es-legal-r1.json",
@@ -108,8 +108,6 @@
     "third-party/README.md",
     "tooling/browser-provenance.ts",
     "tooling/cloudflare.ts",
-    "tooling/dependency-policy.test.ts",
-    "tooling/dependency-policy.ts",
     "tooling/ide.ts",
     "tooling/licence-boundary.ts",
     "tooling/project.ts",
@@ -135,7 +133,10 @@
     "tooling/provenance.ts": "cloud-provenance-port-r2",
     "tooling/build-identity.ts": "cloud-build-identity-r2",
     "tests/provenance/build-identity.test.ts": "cloud-build-identity-r2",
-    "eng/version-sources.json": "cloud-build-identity-r2"
+    "eng/version-sources.json": "cloud-build-identity-r2",
+    "tooling/dependency-policy.ts": "cloud-dependency-policy-r1",
+    "tooling/dependency-policy.test.ts": "cloud-dependency-policy-r1",
+    "docs/dependency-policy.md": "cloud-dependency-policy-r1"
   },
   "artifacts": ["browser-resources-r5"]
 }
