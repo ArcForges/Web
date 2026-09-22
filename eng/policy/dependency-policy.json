@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "repository": "Web",
-  "sourceCommit": "0e1685fc550217c509661582350e47f6fd801bb5",
+  "sourceCommit": "8ebaddf069136b46887ba49cbff7b590c0564e32",
   "manifests": ["apps/site/package.json", "package.json", "packages/ui/package.json"],
   "inputs": {
     ".node-version": "73fb1b615e2043a933be1c0895cde4358036acc28d785692509b822aa53c761f",
@@ -11,17 +11,17 @@
     "package-lock.json": "e080ac00433dad1f18988812cf01921c7d9f08a86d04fb4cfeb8b8cc4188edf6",
     "package.json": "01bf20843d99bd6f4da21d07ddfbf4a0768dc94e0aaf2ad807930323160bb77b",
     "packages/ui/package.json": "d20240b20d4f2ff524d36d502b6f28b42f25c0ff54b91c8e416e8a49266342d6",
-    "wrangler.json": "e709a29fa557f4fc1b4d1193b4b300bf59376ebfd195d328ecfae6a4c2fb7f8b",
-    "eng/provenance/profiles/browser-resources-r5.json": "14a096878a98576d221dfc212235e33b570d60b33503d6d008554f80285fcf9e",
-    "eng/provenance/records/browser-resources-r5.json": "8cb156f520d3f71802eb8b70a1b04e3a976c7815aed4f85373e975523fe20ab4",
+    "wrangler.json": "1cf89efa8f3739354f68722ce27632dd38117a7d1504de176b5f8d257a9a0a36",
     "Directory.Build.targets": "66716168ad9b701833e0d750f27acf4962fc23bdac4c8f121ea57635d5116c35",
-    ".github/workflows/ci.yml": "f7c7c4a60e7005f65e737e01efee15ec947b26cbf163e3776ce2005df9fb69e3"
+    ".github/workflows/ci.yml": "f7c7c4a60e7005f65e737e01efee15ec947b26cbf163e3776ce2005df9fb69e3",
+    "eng/provenance/profiles/browser-resources-r6.json": "cc83ca8646ef1403f42404f0faf587992ed331f0c72e0ef8b9e8c4ffa0d17f3f",
+    "eng/provenance/records/browser-resources-r6.json": "eba2a18c3899b4b47b7decb44d5ab7cd53a662dc86ac51293eae05e8ba728e36"
   },
   "review": {
     "owner": "Web dependency maintainer",
-    "reviewer": "Codex, maintainer-authorized implementation review",
-    "date": "2026-09-21",
-    "rationale": "WP02.05 reconciles the unchanged current lock closure. Registry integrity and declared licence expressions identify build inputs; exact existing artifact profiles, file-level records and complete legal notices remain the redistribution authority. This admission creates no new native capability or broader source reuse permission.",
+    "reviewer": "Codex, maintainer-authorized implementation review with independent agent review",
+    "date": "2026-09-22",
+    "rationale": "WP03.00 canonical-host repair changes only Web hosting configuration and the reviewed artifact profile. An importless authored edge Worker redirects www to HTTPS apex before static assets; ASSETS fallback preserves apex behavior. Exact dependency declarations, lock closure, producer identities and package integrity remain unchanged. Browser resources r6 retains every r5 browser graph/template/legal/SBOM expectation and adds source-bound private Worker verification. This is not a dependency upgrade or broader source-reuse admission.",
     "inputs": {
       ".node-version": "73fb1b615e2043a933be1c0895cde4358036acc28d785692509b822aa53c761f",
       ".npmrc": "73814024102037fcc5a961119bcbf39f81e0a73af504735653d3a6086651cef1",
@@ -30,11 +30,11 @@
       "package-lock.json": "e080ac00433dad1f18988812cf01921c7d9f08a86d04fb4cfeb8b8cc4188edf6",
       "package.json": "01bf20843d99bd6f4da21d07ddfbf4a0768dc94e0aaf2ad807930323160bb77b",
       "packages/ui/package.json": "d20240b20d4f2ff524d36d502b6f28b42f25c0ff54b91c8e416e8a49266342d6",
-      "wrangler.json": "e709a29fa557f4fc1b4d1193b4b300bf59376ebfd195d328ecfae6a4c2fb7f8b",
-      "eng/provenance/profiles/browser-resources-r5.json": "14a096878a98576d221dfc212235e33b570d60b33503d6d008554f80285fcf9e",
-      "eng/provenance/records/browser-resources-r5.json": "8cb156f520d3f71802eb8b70a1b04e3a976c7815aed4f85373e975523fe20ab4",
+      "wrangler.json": "1cf89efa8f3739354f68722ce27632dd38117a7d1504de176b5f8d257a9a0a36",
       "Directory.Build.targets": "66716168ad9b701833e0d750f27acf4962fc23bdac4c8f121ea57635d5116c35",
-      ".github/workflows/ci.yml": "f7c7c4a60e7005f65e737e01efee15ec947b26cbf163e3776ce2005df9fb69e3"
+      ".github/workflows/ci.yml": "f7c7c4a60e7005f65e737e01efee15ec947b26cbf163e3776ce2005df9fb69e3",
+      "eng/provenance/profiles/browser-resources-r6.json": "cc83ca8646ef1403f42404f0faf587992ed331f0c72e0ef8b9e8c4ffa0d17f3f",
+      "eng/provenance/records/browser-resources-r6.json": "eba2a18c3899b4b47b7decb44d5ab7cd53a662dc86ac51293eae05e8ba728e36"
     },
     "checks": [
       "locked-restore",
@@ -45,9 +45,9 @@
       "sbom",
       "framework-posture"
     ],
-    "runtimeAssessment": "No framework version changed. Existing browser TypeScript/React static build posture is preserved. Future framework majors require explicit runtime, native, transport and migration assessment. Local runtime/performance coverage runs only for affected behavior supported by the existing environment; none is asserted here.",
+    "runtimeAssessment": "No framework or package version changed. Worker-first routing executes the small authored redirect before static assets and delegates other hosts unchanged. The same-origin browser client and apex Cloud route remain intact. Local Node Request/Response navigation and asset fallback passed without network; hosted pinned-toolchain checks validate the final candidate. No real Cloud/browser round trip or local workerd execution is asserted.",
     "maintenance": "Current exact producer and package locks remain unchanged; dependency review and the existing high-severity audit remain required. Lockfile licence labels are metadata, not replacement file-level redistribution grants. Updates must refresh this reviewed input-bound record and pass applicable existing class checks.",
-    "previous": null,
+    "previous": "eng/policy/dependency-reviews/admission-r1.json",
     "immutableHistory": "Admitted review records are retained in Git history. A dependency change requires a new reviewed source commit and updated input-bound rationale; never amend an already accepted provenance record."
   },
   "closure": {
@@ -2168,7 +2168,7 @@
   },
   "registry": "https://registry.npmjs.org/",
   "channel": "foundation-candidate",
-  "artifactRecords": ["browser-resources-r5"],
+  "artifactRecords": ["browser-resources-r6"],
   "native": {
     "mode": "existing-artifact-closure-only",
     "evidence": [
@@ -2182,7 +2182,7 @@
     "unenv": "2.0.0-rc.24",
     "youch": "4.1.0-beta.10"
   },
-  "reviewRecord": "eng/policy/dependency-reviews/admission-r1.json",
+  "reviewRecord": "eng/policy/dependency-reviews/admission-r2.json",
   "dependencyClasses": {
     "build-inputs": "Complete exact npm lock inventory; licence metadata is preserved, not inferred as a redistribution grant. Existing transitive development prereleases are named build-only migration inputs and cannot enter runtime/stable closures.",
     "runtime": "Only the independently enforced existing shipped artifact records admit runtime inputs and legal scopes.",
