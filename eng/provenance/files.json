@@ -75,6 +75,7 @@
     "eng/provenance/records/cloud-build-identity-r1.json",
     "eng/provenance/records/cloud-build-identity-r2.json",
     "eng/provenance/records/cloud-dependency-policy-r1.json",
+    "eng/provenance/records/cloud-dependency-policy-r2.json",
     "eng/provenance/records/cloud-provenance-port-r1.json",
     "eng/provenance/records/cloud-provenance-port-r2.json",
     "eng/provenance/records/connect-es-legal-r1.json",
@@ -134,9 +135,9 @@
     "tooling/build-identity.ts": "cloud-build-identity-r2",
     "tests/provenance/build-identity.test.ts": "cloud-build-identity-r2",
     "eng/version-sources.json": "cloud-build-identity-r2",
-    "tooling/dependency-policy.ts": "cloud-dependency-policy-r1",
-    "tooling/dependency-policy.test.ts": "cloud-dependency-policy-r1",
-    "docs/dependency-policy.md": "cloud-dependency-policy-r1"
+    "tooling/dependency-policy.ts": "cloud-dependency-policy-r2",
+    "tooling/dependency-policy.test.ts": "cloud-dependency-policy-r2",
+    "docs/dependency-policy.md": "cloud-dependency-policy-r2"
   },
   "artifacts": ["browser-resources-r5"]
 }
