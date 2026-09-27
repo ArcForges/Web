@@ -103,6 +103,48 @@ test("catalog rejects missing, unknown, aliased and unsafe sources", () => {
   }
 });
 
+test("published ContractSet preserves protobuf and JSON schema axes independently of package version", () => {
+  const f = fixture();
+  const receipt = JSON.parse(
+    readFileSync(
+      new URL("../../node_modules/@arcforges/api-client/build-identity.json", import.meta.url),
+      "utf8",
+    ),
+  );
+  f.sources["ContractSet.json"] = JSON.stringify(receipt);
+  const result = resolveAxes(f.catalog, f.read).ContractSet as {
+    values: { subject: string; version: string; descriptorSha256?: string }[];
+  };
+  assert.equal(result.values.length, 6);
+  assert(result.values.every((value) => value.version === "1"));
+  assert.equal(result.values.filter((value) => value.descriptorSha256).length, 4);
+  for (const mutate of [
+    (r: typeof receipt) => {
+      r.owner = "Web";
+    },
+    (r: typeof receipt) => {
+      r.build.dirty = true;
+    },
+    (r: typeof receipt) => {
+      r.axes.ContractSet.status = "not-produced";
+    },
+    (r: typeof receipt) => {
+      r.axes.ContractSet.values = [];
+    },
+    (r: typeof receipt) => {
+      r.axes.ContractSet.values[0].descriptorSha256 = "bad";
+    },
+    (r: typeof receipt) => {
+      r.axes.ContractSet.values.push(r.axes.ContractSet.values[0]);
+    },
+  ]) {
+    const changed = structuredClone(receipt);
+    mutate(changed);
+    f.sources["ContractSet.json"] = JSON.stringify(changed);
+    assert.throws(() => resolveAxes(f.catalog, f.read));
+  }
+});
+
 test("npm lock versions retain coordinate identity and exclude the workspace release", () => {
   const f = fixture();
   f.sources["PackageVersion.json"] = JSON.stringify({

@@ -335,6 +335,25 @@ export function verifyLockProvenance(packages: Record<string, LockEntry>) {
 }
 
 async function policy() {
+  const { auditRepository } = await import("../eng/policy/architecture.ts");
+  await save(join(root, "artifacts/evidence/architecture.json"), auditRepository(root));
+  const naming = await json(join(root, "eng/policy/naming-candidate.json"));
+  const namingRoot = join(root, "node_modules", naming.package);
+  assert.equal((await json(join(namingRoot, "package.json"))).version, naming.version);
+  assert.equal((await json(join(namingRoot, "source.json"))).commit, naming.sourceCommit);
+  for (const [asset, expected] of Object.entries(naming.assets))
+    assert.equal(
+      digest(await readFile(join(namingRoot, asset))),
+      expected,
+      `Naming asset changed: ${asset}`,
+    );
+  run("python", [
+    join(root, "node_modules/@arcforges/proto/tools/naming/eng/check_naming.py"),
+    "--repository",
+    `Web=${root}`,
+    "--report",
+    join(root, "artifacts/evidence/naming.json"),
+  ]);
   await save(join(root, "artifacts/evidence/licence-boundary.json"), auditLicences(root));
   await save(join(root, "artifacts/evidence/source-provenance.json"), auditProvenance(root));
   verifyBrowserInputs();

@@ -101,6 +101,25 @@ export function resolveAxes(catalog: unknown, read: (source: string) => string) 
       }
       const input = object(JSON.parse(content));
       if (kind === "contracts") {
+        if (input.schema === "arcforges.build-identity.v1") {
+          assert.equal(input.owner, "Contracts");
+          assert.equal(object(input.build).dirty, false);
+          const declared = object(object(input.axes).ContractSet);
+          assert.equal(declared.status, "present");
+          const entries = array(declared.values);
+          assert(entries.length > 0, "Missing published ContractSet values");
+          for (const entry of entries) {
+            const value = object(entry);
+            const descriptor = value.descriptorSha256;
+            if (descriptor !== undefined) assert.match(string(descriptor), /^[a-f0-9]{64}$/u);
+            add(
+              string(value.subject),
+              string(value.version),
+              descriptor === undefined ? undefined : string(descriptor),
+            );
+          }
+          continue;
+        }
         const schema = /^([a-zA-Z0-9_.]+)\.v([1-9][0-9]*)$/u.exec(string(input.schema));
         assert(schema?.[1] && schema[2]);
         assert.match(string(input.descriptorSha256), /^[a-f0-9]{64}$/u);
@@ -204,6 +223,11 @@ export function expectedIdentity(version: string) {
         path.join(root, "node_modules/@arcforges/api-client/source.json"),
         "utf8",
       );
+    if (name === "packages/contracts/build-identity.json")
+      return readFileSync(
+        path.join(root, "node_modules/@arcforges/api-client/build-identity.json"),
+        "utf8",
+      );
     return readFileSync(path.join(root, name), "utf8");
   };
   // The consumed producer receipt must match the independently pinned site package.
@@ -211,6 +235,26 @@ export function expectedIdentity(version: string) {
   const pinned = JSON.parse(readFileSync(path.join(root, "apps/site/package.json"), "utf8"))
     .dependencies["@arcforges/api-client"];
   assert.equal(contracts.version, pinned);
+  const identity = object(JSON.parse(read("packages/contracts/build-identity.json")));
+  assert.equal(object(identity.artifact).id, "@arcforges/api-client");
+  assert.equal(object(identity.artifact).version, pinned);
+  assert.equal(object(identity.build).sourceCommit, contracts.commit);
+  const contractSet = object(object(identity.axes).ContractSet);
+  const schemaSources = object(contracts.schemaSources);
+  const seen = new Set<string>();
+  for (const entry of array(contractSet.values)) {
+    const value = object(entry);
+    const source = object(value.source);
+    const sourcePath = string(source.path);
+    assert.match(string(source.sha256), /^[a-f0-9]{64}$/u);
+    assert.equal(schemaSources[sourcePath], source.sha256);
+    assert(!seen.has(sourcePath));
+    seen.add(sourcePath);
+    if (sourcePath.endsWith(".proto"))
+      assert.equal(value.descriptorSha256, contracts.descriptorSha256);
+    else assert.equal(value.descriptorSha256, undefined);
+  }
+  assert.deepEqual([...seen].sort(), Object.keys(schemaSources).sort());
   return {
     schema: "arcforges.build-identity.v1",
     owner: "Web",
