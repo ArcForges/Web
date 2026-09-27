@@ -14,7 +14,6 @@ function frame(payload: Uint8Array, flag: number) {
 test("published SDK sends protobuf gRPC-Web and decodes the framed response", async () => {
   const client = createHelloClient({
     baseUrl: "https://cloud.example.test",
-    useBinaryFormat: true,
     fetch: async (input, init) => {
       const request = new Request(input, init);
       expect(new URL(request.url).pathname).toBe("/arcforges.hello.v1.HelloService/SayHello");

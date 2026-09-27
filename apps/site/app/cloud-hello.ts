@@ -10,7 +10,6 @@ export async function checkServerConnection(
 ) {
   const client = createHelloClient({
     baseUrl: new URL("/api", origin).href,
-    useBinaryFormat: true,
     defaultTimeoutMs: 10000,
     fetch: (input, init) => fetcher(input, { ...init, credentials: "omit", redirect: "error" }),
   });

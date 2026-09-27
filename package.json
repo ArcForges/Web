@@ -41,6 +41,8 @@
   },
   "devDependencies": {
     "@axe-core/playwright": "4.13.0",
+    "@babel/parser": "7.29.8",
+    "@babel/types": "7.29.8",
     "@biomejs/biome": "2.5.14",
     "@playwright/test": "1.63.0",
     "@react-router/dev": "8.4.0",

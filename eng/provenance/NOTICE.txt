@@ -2,8 +2,8 @@ Web source provenance
 
 Original material retains its recorded licence and full legal text.
 
-browser-resources-r6
-https://github.com/ArcForges/Web @ 8ebaddf069136b46887ba49cbff7b590c0564e32
+browser-resources-r7
+https://github.com/ArcForges/Web @ b0a6d7e1552d0a28f6abc30978cc25b7da3a8461
 AGPL-3.0-only
 Web generated browser resources: AGPL-3.0-only owned code with permissive React/Router/Buf/Connect runtime and Vite/Rolldown/Tailwind helpers. Retain complete original legal texts, Router turbo-stream/devalue MIT attribution, original Google protobuf BSD schemas and Buf varint BSD notice. The companion punycode notice is retained for a parsed input, not a claim of emitted code. See the immutable profile for each exact source and package identity.
 
@@ -12,7 +12,7 @@ https://github.com/github/choosealicense.com @ 58267f8f2c5c0099810849cfd7677f52a
 AGPL-3.0-only
 Copyright (C) 2007 Free Software Foundation, Inc. Full AGPL legal text retained.
 
-cloud-build-identity-r2
+cloud-build-identity-r3
 https://github.com/ArcForges/Cloud @ 749de4b702a0de86859b8ae4a5f22ac90f856ffa
 AGPL-3.0-only
 Build identity tooling adapted from ArcForges Cloud, Copyright ArcForges contributors, AGPL-3.0-only.
