@@ -298,7 +298,12 @@ describe("public static-site inventory", () => {
       expect(html).toMatch(/hreflang="en"/iu);
       expect(html).toContain('name="robots" content="noindex, nofollow"');
     }
-    expect(home.replace(/<script\b[\s\S]*?<\/script>/giu, "")).toContain('href="/hello/"');
+    const helloAnchor = '<a class="button" href="/hello/">Make it your hello';
+    const helloAnchorIndex = home.indexOf(helloAnchor);
+    const firstScriptIndex = home.indexOf("<script");
+    expect(helloAnchorIndex).toBeGreaterThanOrEqual(0);
+    expect(firstScriptIndex).toBeGreaterThanOrEqual(0);
+    expect(helloAnchorIndex).toBeLessThan(firstScriptIndex);
     expect(notFound).toContain("Page not found.");
     expect(JSON.parse(emittedManifest)).toEqual(publicManifestDocument());
     expect(emittedSitemap).toBe(renderSitemapXml());

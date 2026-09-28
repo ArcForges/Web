@@ -38,6 +38,143 @@ test("the actual compiled candidate has the complete browser and legal closure",
   assert(!names.has("isbot") && !names.has("cookie-es"));
 });
 
+const r8ProfilePath = "eng/provenance/profiles/browser-resources-r8.json";
+const expectedR8SourcePaths = [
+  "node_modules/@bufbuild/protobuf/dist/esm/wkt/gen/google/protobuf/api_pb.js",
+  "node_modules/@connectrpc/connect-web/dist/esm/assert-fetch-api.js",
+  "packages/protobuf/src/wkt/gen/google/protobuf/api_pb.ts",
+  "packages/connect-web/src/assert-fetch-api.ts",
+  "packages/shared/ReactFlightPropertyAccess.js",
+];
+type DigestBinding = { path: string; digest: string };
+
+function literalArray(block: string, key: string) {
+  const start = block.indexOf(`${key} = [`);
+  assert.notEqual(start, -1, `Missing ${key} array in Gitleaks allowlist`);
+  const contentStart = start + `${key} = [`.length;
+  const firstLineEnd = block.indexOf("\n", contentStart);
+  const firstLine = block.slice(contentStart, firstLineEnd === -1 ? block.length : firstLineEnd);
+  const inlineClose = firstLine.lastIndexOf("]");
+  const end = inlineClose === -1 ? block.indexOf("\n]", contentStart) : contentStart + inlineClose;
+  assert.notEqual(end, -1, `Unterminated ${key} array in Gitleaks allowlist`);
+  return block
+    .slice(contentStart, end)
+    .split(/\r?\n/u)
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .map((line) => {
+      assert(line.startsWith("'''"), `Expected TOML literal string in ${key}`);
+      assert(line.endsWith("''',") || line.endsWith("'''"), `Malformed ${key} entry`);
+      return line.endsWith("''',") ? line.slice(3, -4) : line.slice(3, -3);
+    });
+}
+
+function isSha256(value: unknown): value is string {
+  return (
+    typeof value === "string" &&
+    value.length === 64 &&
+    [...value].every((character) => "0123456789abcdef".includes(character))
+  );
+}
+
+function profileBindings(value: unknown): DigestBinding[] {
+  if (Array.isArray(value)) return value.flatMap(profileBindings);
+  if (value === null || typeof value !== "object") return [];
+  return Object.entries(value).flatMap(([key, child]) => [
+    ...(expectedR8SourcePaths.includes(key) && isSha256(child)
+      ? [{ path: key, digest: child }]
+      : []),
+    ...profileBindings(child),
+  ]);
+}
+
+async function r8GitleaksFixture() {
+  const root = process.cwd();
+  const config = await readFile(path.join(root, ".gitleaks.toml"), "utf8");
+  const profile = await json(path.join(root, r8ProfilePath));
+  const blocks = config
+    .split(/(?=^\[\[allowlists\]\]\s*$)/mu)
+    .filter((block) => block.startsWith("[[allowlists]]"));
+  const applicable = blocks.filter((block) =>
+    literalArray(block, "paths").some((pattern) => new RegExp(pattern).test(r8ProfilePath)),
+  );
+  assert.equal(applicable.length, 1, "r8 must have exactly one applicable allowlist");
+
+  const [block] = applicable;
+  assert(block);
+  assert(block.split(/\r?\n/u).includes('condition = "AND"'));
+  assert(block.split(/\r?\n/u).includes('targetRules = ["generic-api-key"]'));
+  assert(block.split(/\r?\n/u).includes('regexTarget = "line"'));
+  assert.deepEqual(literalArray(block, "paths"), [
+    String.raw`^eng/provenance/profiles/browser-resources-r8\.json$`,
+  ]);
+
+  const observedRows = profileBindings(profile);
+  const uniqueBindings = [
+    ...new Map(
+      observedRows.map((binding) => [`${binding.path}\n${binding.digest}`, binding]),
+    ).values(),
+  ];
+  assert.equal(observedRows.length, 8, "The r8 profile must retain all eight observed rows");
+  assert.equal(
+    uniqueBindings.length,
+    6,
+    "The eight rows must contain exactly six unique path/digest bindings",
+  );
+  assert.deepEqual(
+    [...new Set(uniqueBindings.map(({ path: sourcePath }) => sourcePath))].sort(),
+    [...expectedR8SourcePaths].sort(),
+    "Only the five observed public source paths may be bound",
+  );
+
+  const expectedPatterns = uniqueBindings
+    .map(({ path: sourcePath, digest }) => {
+      const escapedPath = sourcePath.replace(/[.*+?^${}()|[\]\\]/gu, "\\$&");
+      return `^\\s*"${escapedPath}": "${digest}",?$`;
+    })
+    .sort();
+  const patterns = literalArray(block, "regexes");
+  assert.deepEqual(
+    [...patterns].sort(),
+    expectedPatterns,
+    "Only the six exact profile-backed bindings may be ignored",
+  );
+
+  const linePatterns = patterns.map((pattern) => new RegExp(pattern));
+  const pathPatterns = literalArray(block, "paths").map((pattern) => new RegExp(pattern));
+  const matches = (file: string, line: string) =>
+    pathPatterns.some((pattern) => pattern.test(file)) &&
+    linePatterns.some((pattern) => pattern.test(line));
+  const formatRow = (file: string, digest: string) => `"${file}": "${digest}",`;
+  for (const { path: sourcePath, digest } of observedRows)
+    assert(matches(r8ProfilePath, formatRow(sourcePath, digest)));
+
+  return { uniqueBindings, matches, formatRow };
+}
+
+test("the r8 Gitleaks exception exactly matches profile-backed digest bindings", async () => {
+  const { uniqueBindings, matches, formatRow } = await r8GitleaksFixture();
+  for (const { path: sourcePath, digest } of uniqueBindings)
+    assert(matches(r8ProfilePath, formatRow(sourcePath, digest)));
+});
+
+test("the r8 Gitleaks exception rejects digest, path and credential mutations", async () => {
+  const { uniqueBindings, matches, formatRow } = await r8GitleaksFixture();
+  const first = uniqueBindings[0];
+  assert(first);
+  const changedDigest = `${first.digest.slice(0, -1)}${first.digest.endsWith("0") ? "1" : "0"}`;
+  const differentSourcePath = `${first.path}.unreviewed`;
+  const otherProfilePath = "eng/provenance/profiles/browser-resources-r9.json";
+  const unrelatedDigest = "f".repeat(64);
+  const credentialLine = ['"api', '_key": "', "ghp", "_", "example", '"'].join("");
+
+  assert(!matches(r8ProfilePath, formatRow(first.path, changedDigest)));
+  assert(!matches(r8ProfilePath, formatRow(differentSourcePath, first.digest)));
+  assert(!matches(otherProfilePath, formatRow(first.path, first.digest)));
+  assert(!matches(r8ProfilePath, formatRow(first.path, unrelatedDigest)));
+  assert(!matches(r8ProfilePath, credentialLine));
+});
+
 async function reseal(root: string) {
   const receipt = await json(path.join(root, "provenance/receipt.json"));
   receipt.members = Object.fromEntries(
