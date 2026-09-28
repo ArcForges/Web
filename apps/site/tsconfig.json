@@ -4,6 +4,7 @@
   "include": [
     "app/**/*.ts",
     "app/**/*.tsx",
+    "tests/**/*.ts",
     ".react-router/types/**/*",
     "*.ts",
     "../../packages/ui/src/**/*"

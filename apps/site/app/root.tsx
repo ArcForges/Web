@@ -9,12 +9,15 @@ import {
   Outlet,
   Scripts,
   ScrollRestoration,
+  useLocation,
   useRouteError,
 } from "react-router";
+import { localeForPath } from "./site-manifest";
 
 export function Layout({ children }: { children: ReactNode }) {
+  const location = useLocation();
   return (
-    <html lang="en">
+    <html lang={localeForPath(location.pathname)}>
       <head>
         <meta charSet="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />

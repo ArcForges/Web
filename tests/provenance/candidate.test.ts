@@ -4,14 +4,23 @@ import { cp, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { test } from "node:test";
-import { candidate, digest, files, json, save, seal, verify } from "../../tooling/project.ts";
+import {
+  candidate,
+  contentSecurityPolicy,
+  digest,
+  files,
+  json,
+  save,
+  seal,
+  verify,
+} from "../../tooling/project.ts";
 
 // A positive case must consume a real built candidate. There is no synthetic positive shortcut.
 const baseline = await verify();
 test("the actual compiled candidate has the complete browser and legal closure", async () => {
   const receipt = await json(path.join(candidate, "provenance/receipt.json"));
-  assert.equal(receipt.parsedModules, 303);
-  assert.equal(receipt.emittedModules, 136);
+  assert.equal(receipt.parsedModules, 260);
+  assert.equal(receipt.emittedModules, 129);
   const bom = await json(path.join(candidate, "runtime-sbom.cdx.json"));
   const names = new Set(bom.components.map((component: { name: string }) => component.name));
   for (const name of [
@@ -81,7 +90,18 @@ rejects(
 rejects(
   "reject omitted compiled modules",
   async (root) => {
-    const file = (await files(root)).find((file) => /\/hello_pb-.*\.js$/u.test(file));
+    const profile = await json(path.join(root, "provenance/profile.json"));
+    const chunk = profile.graph.chunks.find(
+      (item: { modules: string[] }) => item.modules.length > 0,
+    );
+    assert(chunk);
+    const stem = path.posix.basename(chunk.name).replace(/\.js$/u, "");
+    const file = (await files(root)).find(
+      (file) =>
+        file.startsWith("assets/assets/") &&
+        file.endsWith(".js") &&
+        path.posix.basename(file).startsWith(`${stem}-`),
+    );
     assert(file);
     await rm(path.join(root, file));
   },
@@ -134,7 +154,10 @@ rejects(
 rejects(
   "reject a modified used record",
   async (root) => {
-    const file = "provenance/records/browser-resources-r2.json";
+    const receipt = await json(path.join(root, "provenance/receipt.json"));
+    const id = receipt.records.find((value: string) => value.startsWith("browser-resources-"));
+    assert(id);
+    const file = `provenance/records/${id}.json`;
     const value = await json(path.join(root, file));
     value.review.rationale = "forged";
     await save(path.join(root, file), value);
@@ -153,7 +176,10 @@ rejects(
 rejects(
   "reject reformatting of immutable candidate records",
   async (root) => {
-    await edit(root, "provenance/records/browser-resources-r2.json", (text) => `${text}\n`);
+    const receipt = await json(path.join(root, "provenance/receipt.json"));
+    const id = receipt.records.find((value: string) => value.startsWith("browser-resources-"));
+    assert(id);
+    await edit(root, `provenance/records/${id}.json`, (text) => `${text}\n`);
   },
   /Candidate record bytes changed/u,
 );
@@ -169,6 +195,21 @@ rejects(
   async (root) => {
     await edit(root, "assets/_headers", (text) =>
       text.replace("default-src 'self'", "default-src *"),
+    );
+  },
+  /Security\/cache headers changed/u,
+);
+rejects(
+  "reject CSP that omits exact scripts from localized prerenders",
+  async (root) => {
+    const pages = await Promise.all(
+      ["assets/index.html", "assets/hello/index.html", "assets/cloud-hello/index.html"].map(
+        (file) => readFile(path.join(root, file), "utf8"),
+      ),
+    );
+    const csp = contentSecurityPolicy(pages);
+    await edit(root, "assets/_headers", (text) =>
+      text.replace(/^ {2}Content-Security-Policy:.*$/mu, `  Content-Security-Policy: ${csp}`),
     );
   },
   /Security\/cache headers changed/u,
@@ -194,9 +235,11 @@ rejects(
 rejects(
   "reject changed Contracts source identity",
   async (root) => {
-    await edit(root, "contracts/proto/source.json", (text) =>
-      text.replace("1fb1dfaaaaa7a9f2f4c64a6e1c6a2b7de47d67b0", "a".repeat(40)),
-    );
+    const file = path.join(root, "contracts/proto/source.json");
+    const value = await json(file);
+    assert.match(value.commit, /^[a-f0-9]{40}$/u);
+    value.commit = `${value.commit[0] === "0" ? "1" : "0"}${value.commit.slice(1)}`;
+    await save(file, value);
   },
   /Published Contracts member changed/u,
 );

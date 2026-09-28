@@ -167,9 +167,9 @@ export async function verify(
   ])
     assert(manifest.files[path], `Missing required file: ${path}`);
   const html = await Promise.all(
-    ["index.html", "hello/index.html", "cloud-hello/index.html"].map((file) =>
-      readFile(join(directory, "assets", file), "utf8"),
-    ),
+    (await files(join(directory, "assets")))
+      .filter((file) => file.endsWith(".html"))
+      .map((file) => readFile(join(directory, "assets", file), "utf8")),
   );
   verifyBrowserCandidate(directory, manifest, await notices(), securityHeaders(html));
   const { $schema: _schema, ...expectedConfig } = await json(join(root, "wrangler.json"));

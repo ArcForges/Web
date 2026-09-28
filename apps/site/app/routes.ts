@@ -4,4 +4,5 @@ export default [
   index("routes/home.tsx"),
   route("hello", "routes/hello.tsx"),
   route("cloud-hello", "routes/cloud-hello.tsx"),
+  route("*", "routes/localized-site.tsx"),
 ] satisfies RouteConfig;
