@@ -9,6 +9,10 @@
       "kind": "msbuild"
     },
     {
+      "path": "apps/app/package.json",
+      "kind": "npm"
+    },
+    {
       "path": "apps/site/package.json",
       "kind": "npm"
     },

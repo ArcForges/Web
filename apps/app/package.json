@@ -1,19 +1,20 @@
 {
-  "name": "@arcforges/web-site",
+  "name": "@arcforges/web-app",
   "version": "0.0.0",
   "private": true,
   "type": "module",
   "license": "AGPL-3.0-only",
   "scripts": {
-    "dev": "react-router dev --host 127.0.0.1 --port 5173 --strictPort",
-    "build": "react-router build",
-    "typecheck": "react-router typegen && tsc -p tsconfig.json"
+    "build": "node scripts/profiles.ts build",
+    "typecheck": "tsc -p tsconfig.json",
+    "probe:local": "node scripts/local-run.ts"
   },
   "dependencies": {
     "@arcforges/api-client": "1.0.0-ci.287.1",
     "@arcforges/proto": "1.0.0-ci.287.1",
     "@arcforges/web-ui": "0.0.0",
     "@bufbuild/protobuf": "2.15.0",
+    "@connectrpc/connect": "2.2.0",
     "isbot": "5.2.2",
     "react": "19.3.0",
     "react-dom": "19.3.0",

@@ -11,6 +11,7 @@ Install the exact Node version in `.node-version`, which includes npm 11.19.0. `
 | `npm run format`           | Format source/docs/workflow files                                                      |
 | `npm run check`            | Toolchain/lock policy, formatting, Biome, strict TypeScript, unit/component/wire tests |
 | `npm run build`            | Build once, generate notices/SBOMs/CSP/provenance and seal a candidate                 |
+| `npm run build:profiles`   | Build, gate and measure the Account and Chat production profiles (not a candidate)     |
 | `npm run verify:candidate` | Verify source, complete file set, SHA-256 hashes and delivery configuration            |
 | `npm run preview`          | Run the sealed assets and redirect Worker using local Wrangler                         |
 | `npm run test:e2e`         | Optional local browser checks using existing installations; never CI                   |
@@ -40,7 +41,7 @@ F5 uses `.vscode/launch.json` and the same root `npm run dev` as the CLI, servin
 - Initial text and links work without JavaScript. Greeting controls remain disabled until hydration, cannot submit names as native form query parameters and are covered by `form-action 'none'`. Names are trimmed, limited to 80 Unicode code points and reject control characters. React renders the greeting as text.
 - The local example serializes real `@arcforges/proto` messages. The separate server connection page uses `@arcforges/api-client` against same-origin `/api`, with the published Hello contract and an explicitly unavailable state when the service cannot be reached. Browser protobuf fixtures are separate from live verification. The client's `redirect: "error"` remains intact; reload a www page opened before the canonical redirect deployment. See [Cloud Hello](cloud-hello.md) for the exact endpoint and evidence boundary.
 - No AI, database, analytics, service worker, privileged proxy or user-data storage is included. The production custom domain is `arcforges.com`. React Router's scroll restoration may store scroll positions in session storage.
-- Future Account/Chat/operator/status delivery profiles remain separate work. Shared components live in `packages/ui`; profiles must not import business source from adjacent repositories.
+- `apps/app` holds only the two minimal PRF.08 proof profiles (Account session and Chat greeting), built by `npm run build:profiles` and never deployed; see [the proof record](prf-08-profile-proof.md). Product Account/Chat/operator/status delivery profiles remain separate work. Shared components live in `packages/ui`; profiles must not import business source from adjacent repositories.
 
 ## Dependencies
 

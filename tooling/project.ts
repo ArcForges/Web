@@ -309,7 +309,7 @@ export function verifyLockProvenance(packages: Record<string, LockEntry>) {
     if (entry.link) {
       assert(!entry.inBundle, `Bundled dependency cannot be a workspace link: ${path}`);
       assert(
-        ["apps/site", "packages/ui"].includes(entry.resolved ?? ""),
+        ["apps/app", "apps/site", "packages/ui"].includes(entry.resolved ?? ""),
         "Unexpected workspace link",
       );
       continue;
@@ -362,7 +362,12 @@ async function policy() {
     `v${(await readFile(join(root, ".node-version"), "utf8")).trim()}`,
     "Select the pinned Node version",
   );
-  const packagePaths = ["package.json", "apps/site/package.json", "packages/ui/package.json"];
+  const packagePaths = [
+    "package.json",
+    "apps/app/package.json",
+    "apps/site/package.json",
+    "packages/ui/package.json",
+  ];
   for (const path of packagePaths) {
     const manifest = await json(join(root, path));
     assert.equal(manifest.private, true, `${path} must not be published to npm`);

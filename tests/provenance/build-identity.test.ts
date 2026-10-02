@@ -8,6 +8,7 @@ import {
   expectedIdentity,
   resolveAxes,
   sourceBuild,
+  verifyContractSources,
   verifyHealthIdentity,
   verifyIdentity,
 } from "../../tooling/build-identity.ts";
@@ -115,9 +116,18 @@ test("published ContractSet preserves protobuf and JSON schema axes independentl
   const result = resolveAxes(f.catalog, f.read).ContractSet as {
     values: { subject: string; version: string; descriptorSha256?: string }[];
   };
-  assert.equal(result.values.length, 6);
+  const declared = receipt.axes.ContractSet.values as { subject: string }[];
+  const protobuf = declared.filter((value) => !value.subject.startsWith("json:"));
+  assert(protobuf.length > 0 && protobuf.length < declared.length);
+  assert.equal(result.values.length, declared.length);
   assert(result.values.every((value) => value.version === "1"));
-  assert.equal(result.values.filter((value) => value.descriptorSha256).length, 4);
+  assert.deepEqual(
+    result.values
+      .filter((value) => value.descriptorSha256)
+      .map((value) => value.subject)
+      .sort(),
+    protobuf.map((value) => value.subject).sort(),
+  );
   for (const mutate of [
     (r: typeof receipt) => {
       r.owner = "Web";
@@ -220,4 +230,119 @@ test("deployment retry retains the original candidate attempt without accepting 
   assert.throws(() => candidateEnvironment("0.1.0-ci.13.1", env));
   assert.throws(() => candidateEnvironment("0.1.0-local.1", env));
   assert.equal(env.GITHUB_RUN_ATTEMPT, "2");
+});
+
+function contractSources() {
+  const descriptor = "d".repeat(64);
+  const digest = (character: string) => character.repeat(64);
+  const contracts = {
+    descriptorSha256: descriptor,
+    schemaSources: {
+      "public/proto/a/v1/a.proto": digest("1"),
+      "public/proto/b/v1/b1.proto": digest("2"),
+      "public/proto/b/v1/b2.proto": digest("3"),
+      "public/http/v1/c.schema.json": digest("4"),
+    },
+  };
+  const receipt = () => ({
+    values: [
+      {
+        subject: "a",
+        version: "1",
+        descriptorSha256: descriptor,
+        source: { path: "public/proto/a/v1/a.proto", sha256: digest("1") },
+      },
+      {
+        subject: "b",
+        version: "1",
+        descriptorSha256: descriptor,
+        sources: [
+          { path: "public/proto/b/v1/b1.proto", sha256: digest("2") },
+          { path: "public/proto/b/v1/b2.proto", sha256: digest("3") },
+        ],
+      },
+      {
+        subject: "json:c",
+        version: "1",
+        source: { path: "public/http/v1/c.schema.json", sha256: digest("4") },
+      },
+    ],
+  });
+  return { contracts, receipt };
+}
+
+test("a contract subject may span several schema sources and every source is accounted for once", () => {
+  const f = contractSources();
+  verifyContractSources(f.receipt(), f.contracts);
+  const refusals: [string, (value: ReturnType<typeof f.receipt>) => void][] = [
+    [
+      "names both source and sources",
+      (value) => {
+        Object.assign(value.values[0] as object, { sources: [] });
+      },
+    ],
+    [
+      "names neither source nor sources",
+      (value) => {
+        delete (value.values[0] as { source?: unknown }).source;
+      },
+    ],
+    [
+      "names an empty source list",
+      (value) => {
+        (value.values[1] as unknown as { sources: unknown[] }).sources = [];
+      },
+    ],
+    [
+      "mixes protobuf and JSON schema sources",
+      (value) => {
+        (value.values[1] as unknown as { sources: { path: string; sha256: string }[] }).sources[1] =
+          {
+            path: "public/http/v1/c.schema.json",
+            sha256: "4".repeat(64),
+          };
+      },
+    ],
+    [
+      "changes a multi-file source digest",
+      (value) => {
+        const [, second] = (value.values[1] as unknown as { sources: { sha256: string }[] })
+          .sources;
+        assert(second);
+        second.sha256 = "9".repeat(64);
+      },
+    ],
+    [
+      "names a source twice",
+      (value) => {
+        (value.values[1] as unknown as { sources: unknown[] }).sources.push({
+          path: "public/proto/b/v1/b1.proto",
+          sha256: "2".repeat(64),
+        });
+      },
+    ],
+    [
+      "omits a producer schema source",
+      (value) => {
+        (value.values[1] as unknown as { sources: unknown[] }).sources.pop();
+      },
+    ],
+    [
+      "changes a protobuf descriptor digest",
+      (value) => {
+        (value.values[1] as { descriptorSha256: string }).descriptorSha256 = "e".repeat(64);
+      },
+    ],
+    [
+      "gives a JSON schema a descriptor digest",
+      (value) => {
+        Object.assign(value.values[2] as object, { descriptorSha256: "d".repeat(64) });
+      },
+    ],
+  ];
+  for (const [name, mutate] of refusals) {
+    const changed = f.receipt();
+    mutate(changed);
+    assert.throws(() => verifyContractSources(changed, f.contracts), Error, name);
+  }
 });

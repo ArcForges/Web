@@ -56,6 +56,7 @@ const npmOwners = new Set([
   "@arcforges/ai",
   "@arcforges/cloud-workspace",
   "@arcforges/web-workspace",
+  "@arcforges/web-app",
   "@arcforges/web-site",
   "@arcforges/web-ui",
 ]);

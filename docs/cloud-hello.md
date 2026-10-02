@@ -10,7 +10,7 @@ The Cloud repository deploys the API Worker and Native AOT container independent
 
 | Item                                  | Value                                                                                                                                                          |
 | ------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Browser SDK                           | `@arcforges/api-client` and `@arcforges/proto`, both `1.0.0-ci.44.1`                                                                                           |
+| Browser SDK                           | `@arcforges/api-client` and `@arcforges/proto`, both `1.0.0-ci.287.1`                                                                                          |
 | Browser base URL                      | Same origin, `/api`                                                                                                                                            |
 | Public method                         | `POST https://arcforges.com/api/arcforges.hello.v1.HelloService/SayHello`                                                                                      |
 | Container method after prefix removal | `/arcforges.hello.v1.HelloService/SayHello`                                                                                                                    |
