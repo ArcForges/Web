@@ -182,6 +182,14 @@ test("the regression budget allows exactly ten percent growth per metric and cat
   expect(Object.keys(actual).sort()).toEqual(
     ["htmlBytes", "initialCssGzip", "initialJsGzip", "initialRequests", "totalGzip"].sort(),
   );
+  expect(actual).toEqual({
+    initialRequests: measured.initialRequests,
+    initialJsGzip: measured.initialJs.gzip,
+    initialCssGzip: measured.initialCss.gzip,
+    totalGzip: measured.totalJs.gzip + measured.totalCss.gzip,
+    htmlBytes: measured.htmlBytes,
+  });
+  expect(actual.htmlBytes).toBeGreaterThan(0);
   const exact: Budgets = { schema: 1, regressionPercent: 10, profiles: { chat: { ...actual } } };
   expect(checkBudgets(measured, exact)).toEqual([]);
   // A baseline whose ten percent ceiling equals the measurement passes; one byte lower fails.

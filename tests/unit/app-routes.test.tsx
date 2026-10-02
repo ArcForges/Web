@@ -83,6 +83,7 @@ test("sign out posts the CSRF token from this page's bootstrap and then shows th
   const logout = requestOf(1);
   expect(logout.method).toBe("POST");
   expect(logout.url).toBe(`${window.location.origin}/session/v1/logout`);
+  expect(logout.headers.get("x-af-csrf")).toBe(authenticated.csrfToken);
   expect(logout.headers.get(csrfHeader)).toBe(authenticated.csrfToken);
   expect(screen.queryByText("Ada Lovelace")).toBeNull();
 });
@@ -97,7 +98,7 @@ test("a session that ended on the server is shown as ended, not as a transient f
   expect(screen.queryByRole("alert")).toBeNull();
 });
 
-test("a refused or unconfirmed sign out keeps the session visible and says so", async () => {
+test("a refused or unconfirmed sign out is reported as a failure and offers a fresh read", async () => {
   for (const [answer, text] of [
     [() => new Response("{}", { status: 403 }), failureText.forbidden],
     [() => jsonResponse(receiptBody("didNotHappen")), failureText.rejected],
@@ -111,6 +112,9 @@ test("a refused or unconfirmed sign out keeps the session visible and says so", 
     fireEvent.click(await screen.findByRole("button", { name: "Sign out" }));
     expect(await screen.findByRole("alert")).toHaveTextContent(text);
     expect(screen.queryByText("You are signed out. Reload to check again.")).toBeNull();
+    // The page does not claim a sign-out; it offers a fresh read (a new session and token).
+    expect(screen.getByRole("button", { name: "Try again" })).toBeVisible();
+    expect(screen.queryByRole("button", { name: "Sign out" })).toBeNull();
   }
 });
 
@@ -142,6 +146,23 @@ test("leaving the page cancels the read that is still in flight", async () => {
   );
   const view = render(<Account />);
   await waitFor(() => expect(signal).toBeDefined());
+  view.unmount();
+  expect(signal?.aborted).toBe(true);
+});
+
+test("leaving the chat page cancels the message that is still pending", async () => {
+  let signal: AbortSignal | undefined;
+  fetcher.mockImplementation(
+    (_input, init) =>
+      new Promise<Response>((_resolve, reject) => {
+        signal = init?.signal ?? undefined;
+        init?.signal?.addEventListener("abort", () => reject(new DOMException("a", "AbortError")));
+      }),
+  );
+  const view = render(<Chat />);
+  fireEvent.click(screen.getByRole("button", { name: "Send" }));
+  await waitFor(() => expect(signal).toBeDefined());
+  expect(signal?.aborted).toBe(false);
   view.unmount();
   expect(signal?.aborted).toBe(true);
 });

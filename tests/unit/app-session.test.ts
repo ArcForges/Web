@@ -253,6 +253,30 @@ test("the body is bounded before it is parsed", async () => {
   ).toBe("malformed");
 });
 
+test("the stream bound is exact: one byte over it is the first byte refused", async () => {
+  for (const [bound, call] of [
+    [16384, (fetcher: typeof fetch) => readSession({ origin, signal: signal(), fetcher })],
+    [
+      4096,
+      (fetcher: typeof fetch) => endSession({ origin, signal: signal(), csrfToken: "t", fetcher }),
+    ],
+  ] as const) {
+    let pulled = 0;
+    const body = new ReadableStream<Uint8Array>(
+      {
+        pull(controller) {
+          pulled += 1;
+          controller.enqueue(Uint8Array.of(0x20));
+        },
+      },
+      { highWaterMark: 0 },
+    );
+    const answer = new Response(body, { headers: { "content-type": "application/json" } });
+    expect(await failureOf(call(async () => answer)), String(bound)).toBe("malformed");
+    expect(pulled, String(bound)).toBe(bound + 1);
+  }
+});
+
 test("a body split across chunks reads as one document; a failing stream is unavailable", async () => {
   const bytes = bootstrapBody(authenticated);
   const chunks = [bytes.slice(0, 7), bytes.slice(7, 90), bytes.slice(90)];
@@ -334,6 +358,9 @@ test("logout sends the CSRF token as the only credential header, with no body", 
   expect(seen?.method).toBe("POST");
   expect(seen?.credentials).toBe("same-origin");
   expect(seen?.redirect).toBe("error");
+  // The literal wire name is pinned here, independent of the module constant.
+  expect(seen?.headers.get("x-af-csrf")).toBe(authenticated.csrfToken);
+  expect(csrfHeader.toLowerCase()).toBe("x-af-csrf");
   expect(seen?.headers.get(csrfHeader)).toBe(authenticated.csrfToken);
   expect(seen?.headers.has("authorization")).toBe(false);
   expect(await seen?.text()).toBe("");

@@ -14,7 +14,7 @@ import assert from "node:assert/strict";
 import { type ChildProcess, spawn } from "node:child_process";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { createServer, request as httpRequest, type Server } from "node:http";
-import { dirname, extname, join, resolve } from "node:path";
+import { dirname, extname, join, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 import { chromium, type Page } from "@playwright/test";
 import {
@@ -66,7 +66,11 @@ function serve(profile: string): Promise<{ server: Server; origin: string }> {
     }
     const name = url.pathname === "/" ? "index.html" : url.pathname.slice(1);
     const file = resolve(client, name);
-    if (!file.startsWith(client) || !existsSync(file) || name === "__spa-fallback.html") {
+    if (
+      !(file === client || file.startsWith(`${client}${sep}`)) ||
+      !existsSync(file) ||
+      name === "__spa-fallback.html"
+    ) {
       outgoing.writeHead(404, { "content-type": "text/plain" }).end("Not found");
       return;
     }
