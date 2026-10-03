@@ -2,7 +2,7 @@
 
 React and TypeScript Web foundation for the ArcForges family. This first increment contains a public Hello World site, an interactive local greeting, shared UI, published Contracts consumption and an automated Cloudflare Workers Static Assets delivery pipeline.
 
-It does not implement the planned Account/Chat application, authentication, payments or a C# backend. The `/hello/` greeting runs locally and sends no name to a server. A separate `/cloud-hello/` page uses the published gRPC-Web client to call the deployed Cloud container after the user clicks **Check connection**. Business authority remains in ArcForges Cloud.
+It does not implement the planned Account/Chat application, authentication, payments or a C# backend; `apps/app` holds only two minimal production profiles that prove the build and the generated SDK usage ([record and limits](docs/prf-08-profile-proof.md)). The `/hello/` greeting runs locally and sends no name to a server. A separate `/cloud-hello/` page uses the published gRPC-Web client to call the deployed Cloud container after the user clicks **Check connection**. Business authority remains in ArcForges Cloud.
 
 ## Start locally
 
@@ -26,18 +26,18 @@ The preview serves the actual candidate through local Wrangler at `http://127.0.
 
 ## Layout
 
-| Path                                | Purpose                                                               |
-| ----------------------------------- | --------------------------------------------------------------------- |
-| `apps/site`                         | Prerendered home, local greeting and server connection pages          |
-| `apps/app`                          | Documented boundary for the future Account/Chat profiles              |
-| `packages/ui`                       | Shared components and Tailwind/CSS styles                             |
-| `worker`                            | Private canonical-host redirect and static asset fallback             |
-| `tooling`                           | TypeScript build, provenance, policy and Cloudflare delivery commands |
-| `tests`                             | Unit, published SDK wire fixtures, browser and accessibility tests    |
-| `artifacts/candidate`               | Ignored immutable delivery artifact, manifest and SBOMs               |
-| `win.slnx` / `ArcForges.Web.esproj` | Optional Visual Studio JavaScript project                             |
+| Path                                | Purpose                                                                  |
+| ----------------------------------- | ------------------------------------------------------------------------ |
+| `apps/site`                         | Prerendered home, local greeting and server connection pages             |
+| `apps/app`                          | Minimal Account and Chat production profiles (PRF.08 proof, not product) |
+| `packages/ui`                       | Shared components and Tailwind/CSS styles                                |
+| `worker`                            | Private canonical-host redirect and static asset fallback                |
+| `tooling`                           | TypeScript build, provenance, policy and Cloudflare delivery commands    |
+| `tests`                             | Unit, published SDK wire fixtures, browser and accessibility tests       |
+| `artifacts/candidate`               | Ignored immutable delivery artifact, manifest and SBOMs                  |
+| `win.slnx` / `ArcForges.Web.esproj` | Optional Visual Studio JavaScript project                                |
 
-Baseline: TypeScript **7.0.2**, React **19.3.0**, React Router **8.4.0**, Vite **8.3.0**, Tailwind **4.3.3**, Wrangler **4.135.0**. One committed npm lockfile covers the entire workspace. Contracts packages are pinned to **1.0.0-ci.44.1**; no submodules or adjacent source references are used.
+Baseline: TypeScript **7.0.2**, React **19.3.0**, React Router **8.4.0**, Vite **8.3.0**, Tailwind **4.3.3**, Wrangler **4.143.1**. One committed npm lockfile covers the entire workspace. Contracts packages are pinned to **1.0.0-ci.287.1**; no submodules or adjacent source references are used.
 
 ## Delivery
 

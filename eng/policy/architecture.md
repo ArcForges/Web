@@ -47,3 +47,8 @@ records 254 parsed and 123 emitted modules. Only `wire.js` newly emits and only
 the Cloud Hello template changes; the other 17 normalized templates remain exact.
 Original r1-r6 profiles and receipts remain unchanged. The final hosted build must
 reproduce the reviewed graph and templates with all strict guards enabled.
+
+The Contracts pin is now 1.0.0-ci.287.1 (PRF.08). The declared BrowserSession HTTP exception is consumed by
+`apps/app` through the generated `browserSessionRoutes` catalogue and strict generated codecs, with an injected
+fetcher exactly as the existing Hello page, so the direct-fetch and JSON rules above are unchanged. The policy still
+has no explicit HTTP-exception admission; that remains future work and is not implied by this change.

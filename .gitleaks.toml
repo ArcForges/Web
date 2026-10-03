@@ -7,11 +7,17 @@ description = "Reviewed public source hashes in the immutable browser resource p
 condition = "AND"
 targetRules = ["generic-api-key"]
 regexTarget = "line"
-paths = ['''^eng/provenance/profiles/browser-resources-r[1234567]\.json$''']
+paths = ['''^eng/provenance/profiles/browser-resources-r[12345678]\.json$''']
 regexes = [
   '''^\s*"(?:apps/site/)?node_modules/@bufbuild/protobuf/dist/esm/wkt/gen/google/protobuf/api_pb\.js": "73e489001027c703bc0224ae73f78ecefe028e88284bd06952e8603c3d81472c",?$''',
   '''^\s*"node_modules/@connectrpc/connect-web/dist/esm/assert-fetch-api\.js": "bd56033776818aaa82959c12561dd084d3a730180e6e8f1e681f5d3d439b6474",?$''',
   '''^\s*"packages/protobuf/src/wkt/gen/google/protobuf/api_pb\.ts": "(?:538052ccd9a02c464702000dfc92a5e7cc01b7b5f55970b14af39662c7b46ae5|440d9371d9b04a8025e6f89d0041c2a54c7c926abedfbd24cef1432ec3fc38a4)",?$''',
   '''^\s*"packages/connect-web/src/assert-fetch-api\.ts": "b577e990dcf088f942a1dcf66405aab52c7d6f72bed2757c64e213e32ce91dac",?$''',
   '''^\s*"packages/shared/ReactFlightPropertyAccess\.js": "b80258eb57aa5de9d4386788424c10b259b87b76f84498605bf10f0b0dd7c793",?$''',
+  '''^\s*"node_modules/@arcforges/api-client/dist/shapes/gen/BrowserAuthChallenge\.js": "891b19e99fa03497ff68f403fd3832ac067697120bc954da63032dc1d252e0b9",?$''',
+  '''^\s*"node_modules/@arcforges/api-client/dist/shapes/gen/BrowserBeginAuthenticationRequest\.js": "fce555772bab8329f8a02534d9b8e8858e08655b520bd233b1e68b2f7b602af7",?$''',
+  '''^\s*"node_modules/@arcforges/api-client/dist/shapes/gen/BrowserCompleteAuthenticationRequest\.js": "de3cf6790a96043bb48e889961a37e271078abbbff144d1288f26e93c56f315b",?$''',
+  '''^\s*"node_modules/@arcforges/api-client/dist/shapes/gen/NativeAuthRoutes\.js": "0b89a2c69f172696b89f32421ba609f6d857f00f597e8a5ae5415ce742291dfd",?$''',
+  '''^\s*"node_modules/@arcforges/api-client/dist/shapes/gen/NativeTokenRequest\.js": "79d75ee79a5b6d52433e6425de6eefdaa1e829fd58ee2dcda204cf391e3517df",?$''',
+  '''^\s*"node_modules/@arcforges/api-client/dist/shapes/gen/NativeTokenResponse\.js": "725cac5a5ceeba78f775804a26b8b5de99a7eeaf250d37335fc59bdd5ec58ce1",?$''',
 ]

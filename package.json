@@ -15,6 +15,7 @@
   },
   "packageManager": "npm@11.19.0",
   "workspaces": [
+    "apps/app",
     "apps/site",
     "packages/ui"
   ],
@@ -25,10 +26,11 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "lint": "biome lint --error-on-warnings .",
-    "typecheck": "npm run typecheck --workspace @arcforges/web-site && tsc -p tsconfig.json",
+    "typecheck": "npm run typecheck --workspace @arcforges/web-site && npm run typecheck --workspace @arcforges/web-app && tsc -p tsconfig.json",
     "test": "vitest run",
     "check": "npm run test:dependencies && npm run policy && npm run format:check && npm run lint && npm run typecheck && npm test && npm run test:provenance",
     "build": "node tooling/project.ts build",
+    "build:profiles": "npm run build --workspace @arcforges/web-app",
     "verify:candidate": "node tooling/project.ts verify",
     "preview": "wrangler dev --config artifacts/candidate/wrangler.json --local --persist-to .wrangler/state --ip 127.0.0.1 --port 4173",
     "test:e2e": "playwright test",
@@ -60,7 +62,7 @@
     "typescript": "7.0.2",
     "vite": "8.3.0",
     "vitest": "5.0.1",
-    "wrangler": "4.135.0"
+    "wrangler": "4.143.1"
   },
   "arcforges": {
     "licenceBoundary": "AGPL"

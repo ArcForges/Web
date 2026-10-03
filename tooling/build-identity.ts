@@ -198,6 +198,42 @@ export function candidateEnvironment(version: string, environment: NodeJS.Proces
   return producer;
 }
 
+// The published receipt must account for every schema source of the producer's source receipt, once.
+export function verifyContractSources(
+  contractSetValue: unknown,
+  contracts: Record<string, unknown>,
+) {
+  const contractSet = object(contractSetValue);
+  const schemaSources = object(contracts.schemaSources);
+  const seen = new Set<string>();
+  for (const entry of array(contractSet.values)) {
+    const value = object(entry);
+    // A subject names one source file, or a closed list when its schema spans several files.
+    assert(
+      (value.source === undefined) !== (value.sources === undefined),
+      "A contract subject names exactly one of source or sources",
+    );
+    const declared =
+      value.source === undefined ? array(value.sources).map(object) : [object(value.source)];
+    assert(declared.length > 0, "A contract subject names no source");
+    const protos = declared.map((source) => string(source.path).endsWith(".proto"));
+    assert(
+      protos.every((proto) => proto === protos[0]),
+      "A contract subject mixes protobuf and JSON schema sources",
+    );
+    for (const source of declared) {
+      const sourcePath = string(source.path);
+      assert.match(string(source.sha256), /^[a-f0-9]{64}$/u);
+      assert.equal(schemaSources[sourcePath], source.sha256);
+      assert(!seen.has(sourcePath), "A schema source is named by two subjects");
+      seen.add(sourcePath);
+    }
+    if (protos[0]) assert.equal(value.descriptorSha256, contracts.descriptorSha256);
+    else assert.equal(value.descriptorSha256, undefined);
+  }
+  assert.deepEqual([...seen].sort(), Object.keys(schemaSources).sort());
+}
+
 export function expectedIdentity(version: string) {
   const git = (...args: string[]) =>
     execFileSync("git", args, {
@@ -239,22 +275,7 @@ export function expectedIdentity(version: string) {
   assert.equal(object(identity.artifact).id, "@arcforges/api-client");
   assert.equal(object(identity.artifact).version, pinned);
   assert.equal(object(identity.build).sourceCommit, contracts.commit);
-  const contractSet = object(object(identity.axes).ContractSet);
-  const schemaSources = object(contracts.schemaSources);
-  const seen = new Set<string>();
-  for (const entry of array(contractSet.values)) {
-    const value = object(entry);
-    const source = object(value.source);
-    const sourcePath = string(source.path);
-    assert.match(string(source.sha256), /^[a-f0-9]{64}$/u);
-    assert.equal(schemaSources[sourcePath], source.sha256);
-    assert(!seen.has(sourcePath));
-    seen.add(sourcePath);
-    if (sourcePath.endsWith(".proto"))
-      assert.equal(value.descriptorSha256, contracts.descriptorSha256);
-    else assert.equal(value.descriptorSha256, undefined);
-  }
-  assert.deepEqual([...seen].sort(), Object.keys(schemaSources).sort());
+  verifyContractSources(object(identity.axes).ContractSet, contracts);
   return {
     schema: "arcforges.build-identity.v1",
     owner: "Web",
