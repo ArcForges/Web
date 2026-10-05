@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.VisualStudio.JavaScript.Sdk/1.0.6578810">
   <PropertyGroup>
     <StartupCommand>npm run dev</StartupCommand>
-    <BuildCommand>npm run build</BuildCommand>
+    <BuildCommand>npm run build &amp;&amp; npm run build:profiles</BuildCommand>
     <ShouldRunNpmInstall>false</ShouldRunNpmInstall>
     <ShouldRunBuildScript>true</ShouldRunBuildScript>
     <BuildOutputFolder>$(MSBuildProjectDirectory)\artifacts\candidate</BuildOutputFolder>
