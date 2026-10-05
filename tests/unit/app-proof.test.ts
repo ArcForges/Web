@@ -2,7 +2,10 @@
 import { createHash, generateKeyPairSync, verify } from "node:crypto";
 import { expect, test } from "vitest";
 import {
+  assertProofOrigin,
   checkInteractionBudgets,
+  forwardTarget,
+  isOwnLoopbackRequest,
   forwardedHeaders,
   type InteractionBudgets,
   nextCookie,
@@ -131,4 +134,70 @@ test("interaction budgets pass at the ceiling and fail one millisecond above it"
   expect(checkInteractionBudgets({ ...ok, b: ok.a }, budgets)).toEqual([
     "b: measured but has no budget",
   ]);
+});
+
+test("only the three exact routes are forwarded, to fixed targets", () => {
+  expect(forwardTarget("/session/v1/bootstrap")).toBe("/session/v1/bootstrap");
+  expect(forwardTarget("/session/v1/logout")).toBe("/session/v1/logout");
+  expect(forwardTarget("/api/arcforges.hello.v1.HelloService/SayHello")).toBe(
+    "/api/arcforges.hello.v1.HelloService/SayHello",
+  );
+  for (const other of [
+    "/api/",
+    "/api/healthz",
+    "/api/arcforges.hello.v1.HelloService/SayHello/",
+    "/api/arcforges.hello.v1.HelloService/SayHello2",
+    "/session/v1/",
+    "/session/v1/bootstrap/",
+    "/session/v1/bootstrap/../logout",
+    "/proof/v1/session/issue",
+    "/assets",
+    "/",
+    "",
+  ])
+    expect(forwardTarget(other)).toBeUndefined();
+});
+
+test("a live run targets the proof origin unless another https origin is opted in", () => {
+  expect(assertProofOrigin(undefined, undefined)).toBe("https://proof.arcforges.com");
+  expect(assertProofOrigin("https://proof.arcforges.com", undefined)).toBe(
+    "https://proof.arcforges.com",
+  );
+  expect(() => assertProofOrigin("https://arcforges.com", undefined)).toThrow(
+    /unless PROOF_ALLOW_OTHER_ORIGIN=1/u,
+  );
+  expect(() => assertProofOrigin("https://arcforges.com", "yes")).toThrow();
+  expect(assertProofOrigin("https://other.example.test", "1")).toBe("https://other.example.test");
+  expect(() => assertProofOrigin("http://proof.arcforges.com", "1")).toThrow(/https origin/u);
+  expect(() => assertProofOrigin("https://proof.arcforges.com/x", "1")).toThrow(/https origin/u);
+});
+
+test("the loopback server answers only its own Host and own Origin", () => {
+  expect(isOwnLoopbackRequest({ host: "127.0.0.1:5000" }, 5000)).toBe(true);
+  expect(
+    isOwnLoopbackRequest({ host: "127.0.0.1:5000", origin: "http://127.0.0.1:5000" }, 5000),
+  ).toBe(true);
+  expect(
+    isOwnLoopbackRequest({ host: "127.0.0.1:5000", origin: "https://evil.example" }, 5000),
+  ).toBe(false);
+  expect(isOwnLoopbackRequest({ host: "rebound.example:5000" }, 5000)).toBe(false);
+  expect(isOwnLoopbackRequest({ host: "127.0.0.1:5001" }, 5000)).toBe(false);
+  expect(isOwnLoopbackRequest({}, 5000)).toBe(false);
+});
+
+test("every allow-listed header is forwarded, including the gRPC-Web deadline", () => {
+  const headers = forwardedHeaders(
+    { "grpc-timeout": "10000m", "x-user-agent": "ua" },
+    "https://p.test",
+    undefined,
+  );
+  expect(headers["grpc-timeout"]).toBe("10000m");
+  expect(headers["x-user-agent"]).toBe("ua");
+});
+
+test("an empty value or Max-Age=0 clears the cookie on its own", () => {
+  expect(nextCookie("abc", ["__Host-af_session=; Path=/"])).toBeUndefined();
+  expect(nextCookie("abc", ["__Host-af_session=zzz; Path=/; Max-Age=0"])).toBeUndefined();
+  expect(nextCookie("abc", ["__Host-af_session=zzz; Path=/; max-age=0; Secure"])).toBeUndefined();
+  expect(nextCookie("abc", ["__Host-af_session=zzz; Path=/; Max-Age=01"])).toBe("zzz");
 });

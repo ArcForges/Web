@@ -19,7 +19,7 @@
 // same-origin ingress, and the evidence says so. Nothing secret is recorded in the evidence file.
 import assert from "node:assert/strict";
 import { createPrivateKey, type KeyObject } from "node:crypto";
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import { createServer, type Server } from "node:http";
 import { homedir } from "node:os";
 import { dirname, extname, join, resolve, sep } from "node:path";
@@ -34,6 +34,9 @@ import {
   checkInteractionBudgets,
   forwardedHeaders,
   type InteractionBudgets,
+  assertProofOrigin,
+  forwardTarget,
+  isOwnLoopbackRequest,
   nextCookie,
   sessionCookieName,
   signOperatorRequest,
@@ -41,16 +44,9 @@ import {
   type Summary,
 } from "./proof-lib.ts";
 
+const isFile = (file: string) => existsSync(file) && statSync(file).isFile();
 const app = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const repetitions = 5;
-/** The fixed deployed route for one of the three exact page routes; nothing the page sends chooses a URL. */
-function forwardTarget(pathname: string): string | undefined {
-  if (pathname === "/session/v1/bootstrap") return "/session/v1/bootstrap";
-  if (pathname === "/session/v1/logout") return "/session/v1/logout";
-  if (pathname === "/api/arcforges.hello.v1.HelloService/SayHello")
-    return "/api/arcforges.hello.v1.HelloService/SayHello";
-  return undefined;
-}
 const types: Record<string, string> = {
   ".html": "text/html; charset=utf-8",
   ".js": "text/javascript; charset=utf-8",
@@ -167,6 +163,13 @@ function serve(profile: string, proof: Proof) {
   };
   const server = createServer((incoming, outgoing) => {
     void (async () => {
+      const address = server.address();
+      const port = address && typeof address === "object" ? address.port : 0;
+      // A page or a DNS-rebound name must not drive the session jar of a run: loopback Host and own Origin only.
+      if (!isOwnLoopbackRequest(incoming.headers, port)) {
+        outgoing.writeHead(403, { "content-type": "text/plain" }).end("Forbidden");
+        return;
+      }
       const url = new URL(incoming.url ?? "/", "http://local");
       // Only these exact routes are forwarded, to fixed targets: nothing the page sends chooses a URL.
       const target = forwardTarget(url.pathname);
@@ -215,7 +218,7 @@ function serve(profile: string, proof: Proof) {
       const file = resolve(client, name);
       if (
         !(file === client || file.startsWith(`${client}${sep}`)) ||
-        !existsSync(file) ||
+        !isFile(file) ||
         name === "__spa-fallback.html"
       ) {
         outgoing.writeHead(404, { "content-type": "text/plain" }).end("Not found");
@@ -326,10 +329,10 @@ async function nodeScenarios(proof: Proof, observations: Observation[]) {
   const issued = await proof.issue();
   const session = await readSession(options(issued.handle));
   assert.equal(session.state, "authenticated");
-  assert.equal(
-    session.csrfToken,
-    issued.csrfToken,
-    "the bootstrap token must equal the issued one",
+  // Compared without printing either value: a failed assert.equal would show both tokens.
+  assert(
+    session.csrfToken === issued.csrfToken,
+    "the bootstrap token must equal the issued one (values withheld)",
   );
   assert.equal(session.state === "authenticated" && session.workspaces, 1);
   assert.equal(session.state === "authenticated" && session.recoveryGeneration, "0");
@@ -584,11 +587,9 @@ async function account(
 
 async function main() {
   assert.notEqual(process.env.CI, "true", "The live run is local opt-in, never CI.");
-  const origin = process.env.PROOF_BASE_URL ?? "https://proof.arcforges.com";
-  assert.match(
-    origin,
-    /^https:\/\/[a-z0-9.-]+$/u,
-    "Set PROOF_BASE_URL to an https origin without a path.",
+  const origin = assertProofOrigin(
+    process.env.PROOF_BASE_URL,
+    process.env.PROOF_ALLOW_OTHER_ORIGIN,
   );
   const proof = new Proof(origin, loadKey());
   const observations: Observation[] = [];
@@ -616,7 +617,18 @@ async function main() {
     console.log(`${observation.path.toUpperCase()} ${observation.scenario}: ${observation.result}`);
   for (const [name, summary] of Object.entries(measured))
     console.log(`${name}: ${JSON.stringify(summary)}`);
-  assert.deepEqual(budgetProblems, [], "Interaction budget problems");
+  if (!budgets) {
+    console.log(
+      "PARTIAL: every scenario passed and the measurements are written, but apps/app/interaction-budgets.json does not exist, so no interaction budget was checked. The run is not a pass.",
+    );
+    process.exitCode = 3;
+    return;
+  }
+  if (budgetProblems.length > 0) {
+    console.log(`FAILED interaction budgets:\n${budgetProblems.join("\n")}`);
+    process.exitCode = 1;
+    return;
+  }
   console.log("Live profile run passed.");
 }
 

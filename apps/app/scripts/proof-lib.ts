@@ -133,3 +133,39 @@ export function checkInteractionBudgets(
     if (!(name in budgets.interactions)) problems.push(`${name}: measured but has no budget`);
   return problems;
 }
+
+/** The fixed deployed route for one of the three exact page routes; nothing the page sends chooses a URL. */
+export function forwardTarget(pathname: string): string | undefined {
+  if (pathname === "/session/v1/bootstrap") return "/session/v1/bootstrap";
+  if (pathname === "/session/v1/logout") return "/session/v1/logout";
+  if (pathname === "/api/arcforges.hello.v1.HelloService/SayHello")
+    return "/api/arcforges.hello.v1.HelloService/SayHello";
+  return undefined;
+}
+
+/** The only origin a live run may target unless the caller opts in explicitly. */
+export const proofOrigin = "https://proof.arcforges.com";
+
+/** The origin of a run: the proof origin by default; any other https origin only with an explicit opt-in. */
+export function assertProofOrigin(
+  requested: string | undefined,
+  optIn: string | undefined,
+): string {
+  const origin = requested ?? proofOrigin;
+  if (!/^https:\/\/[a-z0-9.-]+$/u.test(origin))
+    throw new Error("PROOF_BASE_URL must be an https origin without a path.");
+  if (origin !== proofOrigin && optIn !== "1")
+    throw new Error(`PROOF_BASE_URL must be ${proofOrigin} unless PROOF_ALLOW_OTHER_ORIGIN=1.`);
+  return origin;
+}
+
+/** True only for a request addressed to the harness's own loopback listener and not initiated by another origin. */
+export function isOwnLoopbackRequest(
+  headers: Record<string, string | string[] | undefined>,
+  port: number,
+): boolean {
+  const own = `127.0.0.1:${port}`;
+  if (headers.host !== own) return false;
+  const origin = headers.origin;
+  return origin === undefined || origin === `http://${own}`;
+}

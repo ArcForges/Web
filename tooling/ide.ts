@@ -33,7 +33,7 @@ const properties = JSON.parse(
 );
 assert.deepEqual(properties.Items.ProjectReference, []);
 assert.equal(properties.Properties.StartupCommand, "npm run dev");
-assert.equal(properties.Properties.BuildCommand, "npm run build");
+assert.equal(properties.Properties.BuildCommand, "npm run build && npm run build:profiles");
 assert.equal(properties.Properties.ShouldRunNpmInstall, "false");
 assert.equal(properties.Properties.ShouldRunBuildScript, "true");
 assert.equal(properties.Properties.PublishAot, "");
@@ -64,6 +64,10 @@ assert(
 assert.equal((await stat(installedLock)).mtimeMs, installed.mtimeMs);
 const build = await msbuild("build", ["win.slnx", "-t:Build", "-p:Configuration=Release"]);
 assert(build.includes("Verified candidate "), "Solution build skipped the npm candidate build.");
+assert(
+  build.includes("account: ") && build.includes("chat: "),
+  "Solution build skipped the production profile builds.",
+);
 assert(
   !build.includes("ArcForges explicit locked npm restore"),
   "Build unexpectedly restored npm.",
