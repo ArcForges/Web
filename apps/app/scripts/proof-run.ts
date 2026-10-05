@@ -43,6 +43,14 @@ import {
 
 const app = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const repetitions = 5;
+/** The fixed deployed route for one of the three exact page routes; nothing the page sends chooses a URL. */
+function forwardTarget(pathname: string): string | undefined {
+  if (pathname === "/session/v1/bootstrap") return "/session/v1/bootstrap";
+  if (pathname === "/session/v1/logout") return "/session/v1/logout";
+  if (pathname === "/api/arcforges.hello.v1.HelloService/SayHello")
+    return "/api/arcforges.hello.v1.HelloService/SayHello";
+  return undefined;
+}
 const types: Record<string, string> = {
   ".html": "text/html; charset=utf-8",
   ".js": "text/javascript; charset=utf-8",
@@ -160,7 +168,9 @@ function serve(profile: string, proof: Proof) {
   const server = createServer((incoming, outgoing) => {
     void (async () => {
       const url = new URL(incoming.url ?? "/", "http://local");
-      const forwarded = url.pathname.startsWith("/api/") || url.pathname.startsWith("/session/v1/");
+      // Only these exact routes are forwarded, to fixed targets: nothing the page sends chooses a URL.
+      const target = forwardTarget(url.pathname);
+      const forwarded = target !== undefined;
       if (forwarded) {
         const chunks: Buffer[] = [];
         for await (const chunk of incoming) chunks.push(chunk as Buffer);
@@ -170,7 +180,7 @@ function serve(profile: string, proof: Proof) {
         });
         let reply: Response;
         try {
-          reply = await fetch(new URL(url.pathname + url.search, proof.origin), {
+          reply = await fetch(new URL(target ?? "/", proof.origin), {
             method: incoming.method ?? "GET",
             headers: forwardedHeaders(incoming.headers, proof.origin, state.cookie),
             ...(chunks.length > 0 ? { body: Buffer.concat(chunks) } : {}),
