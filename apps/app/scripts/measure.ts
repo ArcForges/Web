@@ -48,8 +48,22 @@ const add = (a: Weight, b: Weight): Weight => ({
 });
 const empty = (): Weight => ({ bytes: 0, gzip: 0 });
 
+/**
+ * Each profile is built with its own router base (`/<profile>/`, apps/app/react-router.config.ts), so its prerendered
+ * page is `<profile>/index.html`. The root `index.html` the build also writes is the single-page-app fallback shell:
+ * it is not a page of either profile and is never served.
+ */
+export const pageFile = (profile: string) => `${profile}/index.html`;
+
 /** Build-tool files that are not part of what is served. */
-const notServed = (file: string) => file.startsWith(".vite/") || file === "__spa-fallback.html";
+export const notServed = (file: string) =>
+  file.startsWith(".vite/") || file === "__spa-fallback.html" || file === "index.html";
+
+/** The file of a request path on a profile build, or undefined for a path that is not served (the root is not a page). */
+export function servedFile(pathname: string): string | undefined {
+  const name = pathname.endsWith("/") ? `${pathname.slice(1)}index.html` : pathname.slice(1);
+  return name === "" || notServed(name) ? undefined : name;
+}
 
 export function listFiles(directory: string, prefix = ""): string[] {
   const found: string[] = [];
@@ -91,8 +105,8 @@ export function initialResources(html: string): {
 export function measureProfile(client: string, profile: string): Measurement {
   const all = listFiles(client).filter((file) => !notServed(file));
   const bytes = new Map(all.map((file) => [file, readFileSync(join(client, file))]));
-  const index = bytes.get("index.html");
-  assert(index, `Profile ${profile} has no prerendered index.html`);
+  const index = bytes.get(pageFile(profile));
+  assert(index, `Profile ${profile} has no prerendered ${pageFile(profile)}`);
   const initial = initialResources(new TextDecoder("utf-8", { fatal: true }).decode(index));
   const resolve = (reference: string) => {
     assert(
@@ -148,8 +162,10 @@ export function verifyProfile(client: string, profile: string): string[] {
     if (/(?:^|\/)(?:\.env|\.dev\.vars|node_modules)(?:\/|$)/u.test(file))
       problems.push(`Private file shipped: ${file}`);
   }
-  const html = all.includes("index.html") ? readFileSync(join(client, "index.html"), "utf8") : "";
-  if (!html) problems.push("No prerendered index.html");
+  const html = all.includes(pageFile(profile))
+    ? readFileSync(join(client, pageFile(profile)), "utf8")
+    : "";
+  if (!html) problems.push(`No prerendered ${pageFile(profile)}`);
   else
     for (const reference of initialResources(html).references)
       if (!reference.startsWith("/") || reference.startsWith("//"))

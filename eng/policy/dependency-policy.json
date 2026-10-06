@@ -18,16 +18,16 @@
     "packages/ui/package.json": "d20240b20d4f2ff524d36d502b6f28b42f25c0ff54b91c8e416e8a49266342d6",
     "wrangler.json": "1cf89efa8f3739354f68722ce27632dd38117a7d1504de176b5f8d257a9a0a36",
     "Directory.Build.targets": "66716168ad9b701833e0d750f27acf4962fc23bdac4c8f121ea57635d5116c35",
-    ".github/workflows/ci.yml": "f679f4df6f425e076e197fb8d85e16ba1866d4f17858683b6de0c8dddfb789bd",
+    ".github/workflows/ci.yml": "bd8facf68d4758b846db01d87e0cda803d9387ef9e3db66c6e860e0896d01fb5",
     "apps/app/package.json": "0634d5208be3edd24ff0f2f70f230d3069b16810ba0317295f9eb79d35bdc4b5",
     "eng/provenance/profiles/browser-resources-r8.json": "8b357c2c3eb4f49973c1176fa3bb997cf8842ccb709e397ba7e0e117781598f5",
     "eng/provenance/records/browser-resources-r8.json": "b478c1b896c234856eae0bd4ea58b85ed531f094f1270987a338b8d4f4adf368"
   },
   "review": {
     "owner": "Web dependency maintainer",
-    "reviewer": "Claude Sonnet 5.5 implementation worker w-c20261005-prf08c; independent exact-head review pending on the pull request",
-    "date": "2026-10-05",
-    "rationale": "PRF.08 completion follow-up: the only input change is ArcForges.Web.esproj, whose BuildCommand now also runs npm run build:profiles after npm run build so the esproj entry point builds the two production profiles. No package, lock, version, owner or class changes; every other input hash is unchanged from the previous receipt.",
+    "reviewer": "Claude Sonnet 5.5 implementation worker w-c20261006-cloud71; independent exact-head review pending on the pull request",
+    "date": "2026-10-06",
+    "rationale": "CLOUD.71 (Web half): the only input change is .github/workflows/ci.yml, which gains a main-push-only upload step for the profile bundle in the candidate job, a download step in the deployment job and one more asset on the existing release step. No package, lock, version, owner or class changes; every other input hash is unchanged from the previous receipt.",
     "inputs": {
       ".node-version": "73fb1b615e2043a933be1c0895cde4358036acc28d785692509b822aa53c761f",
       ".npmrc": "73814024102037fcc5a961119bcbf39f81e0a73af504735653d3a6086651cef1",
@@ -38,7 +38,7 @@
       "packages/ui/package.json": "d20240b20d4f2ff524d36d502b6f28b42f25c0ff54b91c8e416e8a49266342d6",
       "wrangler.json": "1cf89efa8f3739354f68722ce27632dd38117a7d1504de176b5f8d257a9a0a36",
       "Directory.Build.targets": "66716168ad9b701833e0d750f27acf4962fc23bdac4c8f121ea57635d5116c35",
-      ".github/workflows/ci.yml": "f679f4df6f425e076e197fb8d85e16ba1866d4f17858683b6de0c8dddfb789bd",
+      ".github/workflows/ci.yml": "bd8facf68d4758b846db01d87e0cda803d9387ef9e3db66c6e860e0896d01fb5",
       "apps/app/package.json": "0634d5208be3edd24ff0f2f70f230d3069b16810ba0317295f9eb79d35bdc4b5",
       "eng/provenance/profiles/browser-resources-r8.json": "8b357c2c3eb4f49973c1176fa3bb997cf8842ccb709e397ba7e0e117781598f5",
       "eng/provenance/records/browser-resources-r8.json": "b478c1b896c234856eae0bd4ea58b85ed531f094f1270987a338b8d4f4adf368"
@@ -52,9 +52,9 @@
       "sbom",
       "framework-posture"
     ],
-    "runtimeAssessment": "Offline gates only. The esproj was built once with the Visual Studio MSBuild (direct project build) on the pinned Node 24.21.0; it built the site candidate and both profiles. No live or installed-consumer result is claimed.",
+    "runtimeAssessment": "Offline gates only. The profile bundle was built and read back locally; no live or installed-consumer result is claimed.",
     "maintenance": "Current exact producer and package locks remain unchanged; dependency review and the existing high-severity audit remain required. Lockfile licence labels are metadata, not replacement file-level redistribution grants. Updates must refresh this reviewed input-bound record and pass applicable existing class checks.",
-    "previous": "eng/policy/dependency-reviews/prf08-admission-r1.json",
+    "previous": "eng/policy/dependency-reviews/prf08-admission-r2.json",
     "immutableHistory": "Admitted review records are retained in Git history. A dependency change requires a new reviewed source commit and updated input-bound rationale; never amend an already accepted provenance record."
   },
   "closure": {
@@ -2189,7 +2189,7 @@
     "unenv": "2.0.0-rc.24",
     "youch": "4.1.0-beta.10"
   },
-  "reviewRecord": "eng/policy/dependency-reviews/prf08-admission-r2.json",
+  "reviewRecord": "eng/policy/dependency-reviews/cloud71-admission-r1.json",
   "dependencyClasses": {
     "build-inputs": "Complete exact npm lock inventory; licence metadata is preserved, not inferred as a redistribution grant. Existing transitive development prereleases are named build-only migration inputs and cannot enter runtime/stable closures.",
     "runtime": "Only the independently enforced existing shipped artifact records admit runtime inputs and legal scopes.",

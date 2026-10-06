@@ -27,11 +27,14 @@ function build(
   roots.push(root);
   const own = profile === "account" ? "/session/v1/bootstrap" : "application/grpc-web";
   const files: Record<string, string> = {
-    "index.html": `<!DOCTYPE html><html><head><link rel="icon" href="/favicon.svg"/><link rel="modulepreload" href="/assets/entry.js"/><link rel="modulepreload" href="/assets/route.js"/><link rel="stylesheet" href="/assets/root.css"/></head><body><a href="https://example.test/outside">source</a><script src="/assets/entry.js" type="module"></script></body></html>`,
+    [`${profile}/index.html`]: `<!DOCTYPE html><html><head><link rel="icon" href="/favicon.svg"/><link rel="modulepreload" href="/assets/entry.js"/><link rel="modulepreload" href="/assets/route.js"/><link rel="stylesheet" href="/assets/root.css"/></head><body><a href="https://example.test/outside">source</a><script src="/assets/entry.js" type="module"></script></body></html>`,
     "favicon.svg": "<svg/>",
     "assets/entry.js": `export const entry = "${"e".repeat(500)}";`,
     "assets/route.js": `export const route = "${own}${"r".repeat(800)}";`,
     "assets/root.css": `body{color:red}${"/*x*/".repeat(100)}`,
+    // The build also writes the single-page-app fallback shell at the root; it is not a page of either profile.
+    "index.html":
+      "<html><head><link rel='modulepreload' href='/assets/unserved.js'/></head></html>",
     "__spa-fallback.html": "<html></html>",
     ".vite/manifest.json": "{}",
     ...extra,
@@ -56,7 +59,7 @@ test("only the two named profiles exist and a build must name one", () => {
 });
 
 test("initial resources are the preloaded modules, script sources and stylesheets, not anchors", () => {
-  const found = initialResources(readFileSync(join(build("chat"), "index.html"), "utf8"));
+  const found = initialResources(readFileSync(join(build("chat"), "chat/index.html"), "utf8"));
   expect(found.js).toEqual(["/assets/entry.js", "/assets/route.js"]);
   expect(found.css).toEqual(["/assets/root.css"]);
   expect(found.references).not.toContain("https://example.test/outside");
@@ -76,7 +79,7 @@ test("measurement counts only served files and requests, weighs gzip and fingerp
   expect(measured.initialJs.gzip).toBeGreaterThan(0);
   expect(measured.initialCss.bytes).toBe(readFileSync(join(root, "assets/root.css")).length);
   expect(measured.totalJs).toEqual(measured.initialJs);
-  expect(measured.htmlBytes).toBe(readFileSync(join(root, "index.html")).length);
+  expect(measured.htmlBytes).toBe(readFileSync(join(root, "chat/index.html")).length);
   const same = measureProfile(build("chat"), "chat");
   expect(same.digest).toBe(measured.digest);
   writeFileSync(
@@ -94,16 +97,16 @@ test("a build with a missing initial resource, no entry page or a foreign refere
   expect(() => measureProfile(build("chat", {}, ["assets/route.js"]), "chat")).toThrow(
     /missing from the build/,
   );
-  expect(() => measureProfile(build("chat", {}, ["index.html"]), "chat")).toThrow(
-    /no prerendered index/,
+  expect(() => measureProfile(build("chat", {}, ["chat/index.html"]), "chat")).toThrow(
+    /no prerendered chat\/index.html/,
   );
   const absolute = build("chat", {
-    "index.html":
+    "chat/index.html":
       '<html><head><link rel="modulepreload" href="https://cdn.example.test/a.js"/></head></html>',
   });
   expect(() => measureProfile(absolute, "chat")).toThrow(/Not same-origin/);
   const protocolRelative = build("chat", {
-    "index.html": '<html><head><script src="//cdn.example.test/a.js"></script></head></html>',
+    "chat/index.html": '<html><head><script src="//cdn.example.test/a.js"></script></head></html>',
   });
   expect(() => measureProfile(protocolRelative, "chat")).toThrow(/Not same-origin/);
 });
@@ -121,13 +124,13 @@ test("the structural gates pass a clean profile and name every violation otherwi
   expect(verifyProfile(build("chat", { ".env": "A=1" }), "chat")).toEqual([
     "Private file shipped: .env",
   ]);
-  expect(verifyProfile(build("chat", {}, ["index.html"]), "chat")).toEqual([
-    "No prerendered index.html",
+  expect(verifyProfile(build("chat", {}, ["chat/index.html"]), "chat")).toEqual([
+    "No prerendered chat/index.html",
   ]);
   expect(
     verifyProfile(
       build("chat", {
-        "index.html":
+        "chat/index.html":
           '<html><head><link rel="modulepreload" href="assets/route.js"/></head></html>',
       }),
       "chat",
@@ -136,7 +139,8 @@ test("the structural gates pass a clean profile and name every violation otherwi
   expect(
     verifyProfile(
       build("chat", {
-        "index.html": '<html><head><script src="//cdn.example.test/a.js"></script></head></html>',
+        "chat/index.html":
+          '<html><head><script src="//cdn.example.test/a.js"></script></head></html>',
       }),
       "chat",
     ),
