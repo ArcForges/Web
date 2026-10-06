@@ -130,6 +130,7 @@ jobs:
     timeout-minutes: 20
     outputs:
       artifact-id: ${{ steps.upload.outputs.artifact-id }}
+      profiles-artifact-id: ${{ steps.upload-profiles.outputs.artifact-id }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
@@ -148,6 +149,16 @@ jobs:
         with:
           name: web-candidate-${{ github.run_id }}-${{ github.run_attempt }}
           path: artifacts/candidate
+          if-no-files-found: error
+          retention-days: 30
+      # CLOUD.71: the profile bundle written by build:profiles above (one deterministic, digest-named archive of the
+      # two profile builds), carried to the deployment job unchanged. It stays outside the sealed candidate directory.
+      - id: upload-profiles
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: web-profiles-${{ github.run_id }}-${{ github.run_attempt }}
+          path: artifacts/profiles
           if-no-files-found: error
           retention-days: 30
 
@@ -202,6 +213,11 @@ jobs:
           artifact-ids: ${{ needs.candidate.outputs.artifact-id }}
           path: artifacts/candidate
           merge-multiple: true
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
+        with:
+          artifact-ids: ${{ needs.candidate.outputs.profiles-artifact-id }}
+          path: artifacts/profiles
+          merge-multiple: true
       - run: npm run deploy
         env:
           CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
@@ -213,7 +229,7 @@ jobs:
         run: |
           VERSION=$(node --input-type=module -e 'import fs from "node:fs"; console.log(JSON.parse(fs.readFileSync("artifacts/candidate/manifest.json")).version)')
           tar -czf "artifacts/web-${VERSION}.tar.gz" -C artifacts/candidate .
-          gh release create "web-${VERSION}" "artifacts/web-${VERSION}.tar.gz" artifacts/deployment.json --target "$GITHUB_SHA" --title "Web ${VERSION}" --prerelease --generate-notes
+          gh release create "web-${VERSION}" "artifacts/web-${VERSION}.tar.gz" artifacts/deployment.json artifacts/profiles/web-profiles-*.tar --target "$GITHUB_SHA" --title "Web ${VERSION}" --prerelease --generate-notes
       - name: Preserve deployment evidence
         if: always()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7

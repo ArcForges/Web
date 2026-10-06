@@ -11,25 +11,30 @@
 // proof-only operator operation `session/issue`, signed by the local operator key (read and used only here, never
 // printed or written; only the public key is trusted by the Worker).
 //
-// What is not: the proof Worker serves no static assets, so the profiles cannot be served from the deployed
-// origin. A local server serves them and forwards `/api/*` and `/session/v1/*` to the deployed origin, with the
-// page's `Origin` replaced by the deployed one (the Worker checks the exact value) and the session cookie kept in
-// a harness jar that applies the server's own Set-Cookie (a page on another origin can neither send nor store a
-// `__Host-` cookie of the deployed host). That is a substitute for same-origin routing, not the deployed
-// same-origin ingress, and the evidence says so. Nothing secret is recorded in the evidence file.
+// Where the pages come from (PROOF_PAGES):
+//   served (default)  the browser loads `https://proof.arcforges.com/account/` and `/chat/` from the deployed proof
+//                     Worker itself (CLOUD.71): page, /api and /session/v1 share one origin, cookie and CSRF boundary.
+//                     The harness only issues the session (operator-signed) and puts its cookie in the browser
+//                     context, as a login would; the page's own requests go straight to the deployed origin.
+//   forwarded         the earlier substitute: a local server serves the local builds and forwards three exact routes
+//                     to the deployed origin, with the page's `Origin` replaced by the deployed one and the session
+//                     cookie kept in a harness jar. It is a substitute for same-origin routing, not the deployed
+//                     same-origin ingress, and the evidence says so.
+// Nothing secret is recorded in the evidence file.
 import assert from "node:assert/strict";
-import { createPrivateKey, type KeyObject } from "node:crypto";
+import { createHash, createPrivateKey, type KeyObject } from "node:crypto";
 import { existsSync, mkdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import { createServer, type Server } from "node:http";
 import { homedir } from "node:os";
 import { dirname, extname, join, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
-import { chromium, type Page } from "@playwright/test";
-import { contentSecurityPolicy } from "../../../tooling/project.ts";
+import { type BrowserContext, chromium, type Page } from "@playwright/test";
 import { failureText, isProbeFailure } from "../app/probe/failure.ts";
 import { sayHello } from "../app/probe/hello.ts";
 import { endSession, readSession } from "../app/probe/session.ts";
-import { listFiles } from "./measure.ts";
+import { profileCsp } from "./bundle.ts";
+import { initialResources, pageFile, servedFile } from "./measure.ts";
+import type { Profile } from "../profile.ts";
 import {
   checkInteractionBudgets,
   forwardedHeaders,
@@ -146,14 +151,11 @@ class Proof {
   }
 }
 
-/** Serves one built profile and forwards its same-origin calls to the deployed origin. */
-function serve(profile: string, proof: Proof) {
+/** The earlier substitute: serves one local build and forwards its three exact routes to the deployed origin. */
+function forwardedServer(profile: Profile, proof: Proof) {
   const client = join(app, "build", profile, "client");
-  assert(existsSync(join(client, "index.html")), `Build the ${profile} profile first`);
-  const pages = listFiles(client)
-    .filter((file) => file.endsWith(".html") && file !== "__spa-fallback.html")
-    .map((file) => readFileSync(join(client, file), "utf8"));
-  const policy = contentSecurityPolicy(pages);
+  assert(existsSync(join(client, pageFile(profile))), `Build the ${profile} profile first`);
+  const policy = profileCsp(readFileSync(join(client, pageFile(profile)), "utf8"));
   const state = {
     cookie: undefined as string | undefined,
     /** Holds the answer of the next forwarded `/api` call, after the deployed host has answered it. */
@@ -214,13 +216,9 @@ function serve(profile: string, proof: Proof) {
         outgoing.writeHead(reply.status, headers).end(bytes);
         return;
       }
-      const name = url.pathname === "/" ? "index.html" : url.pathname.slice(1);
-      const file = resolve(client, name);
-      if (
-        !(file === client || file.startsWith(`${client}${sep}`)) ||
-        !isFile(file) ||
-        name === "__spa-fallback.html"
-      ) {
+      const name = servedFile(url.pathname);
+      const file = resolve(client, name ?? "");
+      if (name === undefined || !file.startsWith(`${client}${sep}`) || !isFile(file)) {
         outgoing.writeHead(404, { "content-type": "text/plain" }).end("Not found");
         return;
       }
@@ -240,6 +238,173 @@ function serve(profile: string, proof: Proof) {
       done({ server, origin: `http://127.0.0.1:${address.port}`, state });
     }),
   );
+}
+
+/** What a stage needs of the place a profile page comes from; the stages are the same in both modes. */
+interface Site {
+  /** The URL of the profile page. */
+  url: string;
+  state: { hops: Hop[]; forwardedApi: number };
+  /** Called once with the browser context and page the stage drives. */
+  attach(context: BrowserContext, page: Page): void;
+  /** Gives the browser the session cookie, as a login would, or removes it. */
+  setSession(handle: string | undefined): Promise<void>;
+  hasSession(): Promise<boolean>;
+  /** Holds every `/api` answer back from the page for this long, after the deployed host has answered it. */
+  delayApi(milliseconds: number): Promise<void>;
+  close(): void;
+}
+
+async function forwardedSite(profile: Profile, proof: Proof): Promise<Site> {
+  const served = await forwardedServer(profile, proof);
+  return {
+    url: `${served.origin}/${profile}/`,
+    state: served.state,
+    attach: () => undefined,
+    setSession: async (handle) => {
+      served.state.cookie = handle;
+    },
+    hasSession: async () => served.state.cookie !== undefined,
+    delayApi: async (milliseconds) => {
+      served.state.delayApiResponseMs = milliseconds;
+    },
+    close: () => {
+      served.server.close();
+    },
+  };
+}
+
+const kindOfPath = (pathname: string): string | undefined =>
+  pathname === "/session/v1/bootstrap" || pathname === "/session/v1/logout"
+    ? pathname
+    : pathname.startsWith("/api/")
+      ? "/api/<service>/<method>"
+      : undefined;
+
+/** The deployed origin serves the page: the browser's own requests go straight to it, nothing is forwarded. */
+function servedSite(profile: Profile, proof: Proof): Site {
+  const state = { hops: [] as Hop[], forwardedApi: 0 };
+  const held = new WeakSet<object>();
+  let context: BrowserContext | undefined;
+  let page: Page | undefined;
+  const note = (method: string, pathname: string, status: number) => {
+    const path = kindOfPath(pathname);
+    if (path === undefined) return;
+    state.hops.push({ method, path, status });
+    if (path.startsWith("/api/")) state.forwardedApi += 1;
+  };
+  return {
+    url: `${proof.origin}/${profile}/`,
+    state,
+    attach(browserContext, browserPage) {
+      context = browserContext;
+      page = browserPage;
+      browserPage.on("response", (response) => {
+        const url = new URL(response.url());
+        if (url.origin !== proof.origin || held.has(response.request())) return;
+        note(response.request().method(), url.pathname, response.status());
+      });
+    },
+    async setSession(handle) {
+      assert(context, "attach first");
+      await context.clearCookies({ name: sessionCookieName });
+      if (handle !== undefined)
+        await context.addCookies([
+          {
+            name: sessionCookieName,
+            value: handle,
+            url: proof.origin,
+            httpOnly: true,
+            secure: true,
+          },
+        ]);
+    },
+    async hasSession() {
+      assert(context, "attach first");
+      return (await context.cookies(proof.origin)).some(
+        (cookie) => cookie.name === sessionCookieName,
+      );
+    },
+    async delayApi(milliseconds) {
+      assert(page, "attach first");
+      await page.unroute("**/api/**");
+      if (milliseconds === 0) return;
+      await page.route("**/api/**", async (route) => {
+        held.add(route.request());
+        // The deployed host answers for real; only the answer's arrival at the page is held back.
+        const response = await route.fetch();
+        note(route.request().method(), new URL(route.request().url()).pathname, response.status());
+        await sleep(milliseconds);
+        await route.fulfill({ response }).catch(() => undefined);
+      });
+    },
+    close: () => undefined,
+  };
+}
+
+const pageMode = (): "served" | "forwarded" => {
+  const mode = process.env.PROOF_PAGES ?? "served";
+  assert(["served", "forwarded"].includes(mode), "PROOF_PAGES must be served or forwarded.");
+  return mode as "served" | "forwarded";
+};
+
+async function openSite(profile: Profile, proof: Proof): Promise<Site> {
+  return pageMode() === "served" ? servedSite(profile, proof) : forwardedSite(profile, proof);
+}
+
+const sha256 = (value: Uint8Array) => createHash("sha256").update(value).digest("hex");
+
+/**
+ * Opens the profile page. In served mode the page's own response is part of the observation: the profile's
+ * Content-Security-Policy and security headers must arrive with it from the deployed origin, and, when this
+ * checkout holds the local build, the served page and the resources it loads first must be that build's bytes.
+ */
+async function openPage(page: Page, site: Site, profile: Profile, observations: Observation[]) {
+  const response = await page.goto(site.url);
+  assert(response, `no navigation response from ${site.url}`);
+  assert.equal(response.status(), 200, `${site.url} answered ${response.status()}`);
+  if (pageMode() !== "served") return;
+  const headers = response.headers();
+  const policy = headers["content-security-policy"] ?? "";
+  assert(policy.includes("connect-src 'self'"), "the page arrived without its profile policy");
+  assert(!policy.includes("unsafe-inline"), "the profile policy allows unsafe inline content");
+  assert.equal(headers["x-content-type-options"], "nosniff");
+  assert.equal(headers["x-frame-options"], "DENY");
+  const client = join(app, "build", profile, "client");
+  const local = join(client, pageFile(profile));
+  let comparison = "no local build in this checkout, so the bytes were not compared";
+  if (isFile(local)) {
+    const html = readFileSync(local, "utf8").replaceAll("\r\n", "\n");
+    assert.equal(
+      policy,
+      profileCsp(html),
+      "the served policy is not the one derived from the build",
+    );
+    assert.equal(
+      sha256(await response.body()),
+      sha256(Buffer.from(html)),
+      "the served page is not the build's page",
+    );
+    const initial = initialResources(html);
+    const origin = new URL(site.url).origin;
+    for (const reference of [...initial.js, ...initial.css]) {
+      const reply = await fetch(new URL(reference, origin), {
+        signal: AbortSignal.timeout(30_000),
+      });
+      assert.equal(reply.status, 200, `${reference} answered ${reply.status}`);
+      assert.equal(
+        sha256(new Uint8Array(await reply.arrayBuffer())),
+        sha256(readFileSync(join(client, reference.slice(1)))),
+        `${reference} is not the build's file`,
+      );
+    }
+    comparison = `the page and its ${initial.js.length + initial.css.length} initial resources equal the local build's bytes`;
+  }
+  observations.push({
+    scenario: `${profile} (browser): page served by the deployed origin itself with its profile policy`,
+    path: "deployed",
+    result: `HTTP 200 on ${new URL(site.url).pathname}; policy with connect-src 'self' and no unsafe-inline, nosniff, frame denied; ${comparison}`,
+  });
 }
 
 function watchPage(page: Page) {
@@ -409,12 +574,14 @@ async function nodeScenarios(proof: Proof, observations: Observation[]) {
 }
 
 async function chat(proof: Proof, samples: Record<string, number[]>, observations: Observation[]) {
-  const served = await serve("chat", proof);
+  const served = await openSite("chat", proof);
   const browser = await chromium.launch();
-  const page = await browser.newPage();
+  const context = await browser.newContext();
+  const page = await context.newPage();
+  served.attach(context, page);
   const problems = watchPage(page);
   try {
-    await page.goto(served.origin);
+    await openPage(page, served, "chat", observations);
     await page.getByRole("button", { name: "Send" }).waitFor();
     assert.equal(served.state.forwardedApi, 0, "The page must send nothing before the user acts");
     const send = async (name: string, expected: string) => {
@@ -446,14 +613,14 @@ async function chat(proof: Proof, samples: Record<string, number[]>, observation
       result: `${repetitions} greetings, Unicode, rejected, limit; every gRPC-Web call answered HTTP 200`,
     });
     // Cancellation on the real path: the deployed host answers, the page's user cancels first and shows nothing.
-    served.state.delayApiResponseMs = 2000;
+    await served.delayApi(2000);
     const before = served.state.forwardedApi;
     await page.getByLabel("Name").fill("slow");
     await page.getByRole("button", { name: "Send" }).click();
     await page.getByRole("button", { name: "Cancel" }).click();
     await page.getByRole("listitem").filter({ hasText: failureText.cancelled }).waitFor();
     await sleep(3000);
-    served.state.delayApiResponseMs = 0;
+    await served.delayApi(0);
     assert.equal(await page.getByRole("listitem").filter({ hasText: "Hello, slow!" }).count(), 0);
     assert.equal(
       served.state.forwardedApi,
@@ -469,7 +636,7 @@ async function chat(proof: Proof, samples: Record<string, number[]>, observation
     assert.deepEqual(problems, [], "Console errors or CSP violations");
   } finally {
     await browser.close();
-    served.server.close();
+    served.close();
   }
 }
 
@@ -478,14 +645,16 @@ async function account(
   samples: Record<string, number[]>,
   observations: Observation[],
 ) {
-  const served = await serve("account", proof);
+  const served = await openSite("account", proof);
   const browser = await chromium.launch();
-  const page = await browser.newPage();
+  const context = await browser.newContext();
+  const page = await context.newPage();
+  served.attach(context, page);
   const problems = watchPage(page);
   const signedOut = "You are signed out. Reload to check again.";
   try {
-    served.state.cookie = undefined;
-    await page.goto(served.origin);
+    await served.setSession(undefined);
+    await openPage(page, served, "account", observations);
     try {
       await page.getByText("You are not signed in.").waitFor({ timeout: 15_000 });
     } catch (error) {
@@ -505,12 +674,12 @@ async function account(
 
     for (let index = 0; index < repetitions; index++) {
       const issued = await proof.issue();
-      served.state.cookie = issued.handle;
+      await served.setSession(issued.handle);
       record(
         samples,
         "account.read",
         await timed(async () => {
-          await page.goto(served.origin);
+          await page.goto(served.url);
           await page.getByText("Recovery generation").waitFor({ timeout: 15_000 });
         }),
       );
@@ -535,7 +704,7 @@ async function account(
         .slice(hopsBefore)
         .find((hop) => hop.path === "/session/v1/logout");
       assert.equal(logout?.status, 200);
-      assert.equal(served.state.cookie, undefined, "the server must clear the session cookie");
+      assert.equal(await served.hasSession(), false, "the server must clear the session cookie");
       assert.equal(
         (
           await readSession({
@@ -558,8 +727,8 @@ async function account(
     // Session expiry on the real path: an idle session that is not used ends; its sign-out is a 401.
     const idleSeconds = 8;
     const short = await proof.issue({ idleSeconds, absoluteSeconds: 120 });
-    served.state.cookie = short.handle;
-    await page.goto(served.origin);
+    await served.setSession(short.handle);
+    await page.goto(served.url);
     await page.getByText("Recovery generation").waitFor();
     await sleep((idleSeconds + 3) * 1000);
     const hopsBefore = served.state.hops.length;
@@ -581,8 +750,37 @@ async function account(
     );
   } finally {
     await browser.close();
-    served.server.close();
+    served.close();
   }
+}
+
+/**
+ * Served mode: the Worker still answers its own route families first, and the assets answer only their own
+ * paths. Status and content type only; nothing here carries a credential.
+ */
+async function routeChecks(proof: Proof, observations: Observation[]) {
+  const status = async (pathname: string) => {
+    const reply = await fetch(new URL(pathname, proof.origin), {
+      redirect: "manual",
+      signal: AbortSignal.timeout(30_000),
+    });
+    await reply.arrayBuffer();
+    return { status: reply.status, type: reply.headers.get("content-type") ?? "" };
+  };
+  const root = await status("/");
+  assert.notEqual(root.status, 200, "the origin root is not a profile page");
+  const unsigned = await status("/proof/v1/readiness");
+  assert(
+    unsigned.status >= 400 && unsigned.status < 500 && !unsigned.type.startsWith("text/html"),
+    "an unsigned proof request must be refused by the Worker, not answered by an asset",
+  );
+  const missing = await status("/chat/not-a-file.js");
+  assert.notEqual(missing.status, 200);
+  observations.push({
+    scenario: "origin routes: the root, an unsigned /proof/v1 request and an unknown profile path",
+    path: "deployed",
+    result: `root ${root.status}, unsigned proof request ${unsigned.status} (${unsigned.type || "no type"}), unknown path ${missing.status}`,
+  });
 }
 
 async function main() {
@@ -595,6 +793,7 @@ async function main() {
   const observations: Observation[] = [];
   const samples: Record<string, number[]> = {};
   const startedAt = new Date().toISOString();
+  if (pageMode() === "served") await routeChecks(proof, observations);
   await nodeScenarios(proof, observations);
   await account(proof, samples, observations);
   await chat(proof, samples, observations);
@@ -611,7 +810,7 @@ async function main() {
   mkdirSync(dirname(output), { recursive: true });
   writeFileSync(
     output,
-    `${JSON.stringify({ startedAt, finishedAt: new Date().toISOString(), host: new URL(origin).host, observations, measured, budgetProblems }, null, 2)}\n`,
+    `${JSON.stringify({ startedAt, finishedAt: new Date().toISOString(), host: new URL(origin).host, pages: pageMode(), observations, measured, budgetProblems }, null, 2)}\n`,
   );
   for (const observation of observations)
     console.log(`${observation.path.toUpperCase()} ${observation.scenario}: ${observation.result}`);

@@ -21,9 +21,9 @@ import {
   serializeBrowserBootstrapResponseJson,
   serializeBrowserReceiptJson,
 } from "@arcforges/api-client";
-import { contentSecurityPolicy } from "../../../tooling/project.ts";
+import { profileCsp } from "./bundle.ts";
 import { failureText } from "../app/probe/failure.ts";
-import { listFiles } from "./measure.ts";
+import { pageFile, servedFile } from "./measure.ts";
 
 const app = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const hostPort = 8080;
@@ -37,11 +37,8 @@ const types: Record<string, string> = {
 
 function serve(profile: string): Promise<{ server: Server; origin: string }> {
   const client = join(app, "build", profile, "client");
-  assert(existsSync(join(client, "index.html")), `Build the ${profile} profile first`);
-  const pages = listFiles(client)
-    .filter((file) => file.endsWith(".html") && file !== "__spa-fallback.html")
-    .map((file) => readFileSync(join(client, file), "utf8"));
-  const policy = contentSecurityPolicy(pages);
+  assert(existsSync(join(client, pageFile(profile))), `Build the ${profile} profile first`);
+  const policy = profileCsp(readFileSync(join(client, pageFile(profile)), "utf8"));
   const server = createServer((incoming, outgoing) => {
     const url = new URL(incoming.url ?? "/", "http://local");
     if (url.pathname.startsWith("/api/")) {
@@ -64,13 +61,9 @@ function serve(profile: string): Promise<{ server: Server; origin: string }> {
       incoming.pipe(forwarded);
       return;
     }
-    const name = url.pathname === "/" ? "index.html" : url.pathname.slice(1);
-    const file = resolve(client, name);
-    if (
-      !(file === client || file.startsWith(`${client}${sep}`)) ||
-      !existsSync(file) ||
-      name === "__spa-fallback.html"
-    ) {
+    const name = servedFile(url.pathname);
+    const file = resolve(client, name ?? "");
+    if (name === undefined || !file.startsWith(`${client}${sep}`) || !existsSync(file)) {
       outgoing.writeHead(404, { "content-type": "text/plain" }).end("Not found");
       return;
     }
@@ -86,7 +79,8 @@ function serve(profile: string): Promise<{ server: Server; origin: string }> {
     server.listen(0, "127.0.0.1", () => {
       const address = server.address();
       assert(address && typeof address === "object");
-      done({ server, origin: `http://127.0.0.1:${address.port}` });
+      // The page URL: each profile runs on its own path of the origin.
+      done({ server, origin: `http://127.0.0.1:${address.port}/${profile}/` });
     }),
   );
 }
