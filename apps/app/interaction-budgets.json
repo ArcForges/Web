@@ -1,0 +1,10 @@
+{
+  "schema": 1,
+  "basis": "Regression guards derived from one observation, not product budgets: Design defines no interaction ceiling and the product budgets belong to the WEB tasks. Each ceiling is the value measured by the CLOUD.71 served-profile live run of 2026-10-06 08:11Z (five samples per interaction after the warm-up; Windows 11 workstation over the public internet to https://proof.arcforges.com; proof Worker version 6951f4d7, Cloud main c59f91c) plus 10 percent, the TH-01 regression line, rounded up to the next millisecond: the median ceiling from the measured median, the maximum ceiling from the measured maximum. Record: docs/prf-08-profile-proof.md.",
+  "minimumSamples": 5,
+  "interactions": {
+    "account.read": { "medianCeilingMs": 1138, "maxCeilingMs": 1148 },
+    "account.signout": { "medianCeilingMs": 931, "maxCeilingMs": 943 },
+    "chat.greeting": { "medianCeilingMs": 950, "maxCeilingMs": 1504 }
+  }
+}
