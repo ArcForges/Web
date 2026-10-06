@@ -2,8 +2,8 @@ Web source provenance
 
 Original material retains its recorded licence and full legal text.
 
-browser-resources-r8
-https://github.com/ArcForges/Web @ cd65b035c85532cd4c0467d31ac90e1006d8fa9a
+browser-resources-r9
+https://github.com/ArcForges/Web @ 1667b75d6a5b5bf60f86c9519139ad3464cbca64
 AGPL-3.0-only
 Web generated browser resources: AGPL-3.0-only owned code with permissive React/Router/Buf/Connect runtime and Vite/Rolldown/Tailwind helpers. Retain complete original legal texts, Router turbo-stream/devalue MIT attribution, original Google protobuf BSD schemas and Buf varint BSD notice. The companion punycode notice is retained for a parsed input, not a claim of emitted code. See the immutable profile for each exact source and package identity.
 
