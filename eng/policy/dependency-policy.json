@@ -45,15 +45,15 @@
     "tests/ArcForges.Web.Ui.Tests/packages.lock.json": "3f771663e09c5920ebaa927d74e1cb3c5d4803d3f6d1cf753933867ee103f467",
     "tests/browser/ArcForges.Web.Browser.Tests/ArcForges.Web.Browser.Tests.csproj": "86aff01e8a6376feb3d0eeba1ffddf6a5252f00a5b09eb5368c3fbae98f7137e",
     "tests/browser/ArcForges.Web.Browser.Tests/packages.lock.json": "aa12e838198e5e764c1e8552044a27d22275b797566bc128dd2c6d9e314bc28a",
-    "tools/ArcForges.Web.Tooling/ArcForges.Web.Tooling.csproj": "8414f9ee72d10cd960a9cebe1de8ab2b8b0ee91fdc8be646378be25e1bc360e8",
-    "tools/ArcForges.Web.Tooling/packages.lock.json": "7019b7a06d181c6252a1db00bf8d3ffd9de7ea066a5c0151917de92e2470fe33",
+    "tools/ArcForges.Web.Tooling/ArcForges.Web.Tooling.csproj": "91bf31b448f0d9b06fe73d4daebb5971e09d727fc1a0541db5047734df3f9fe4",
+    "tools/ArcForges.Web.Tooling/packages.lock.json": "38ef63915a4befa1c79f77a0ee31e2d8e54adb7be4fc67c4c6903c74deb99ef0",
     "wrangler.json": "1cf89efa8f3739354f68722ce27632dd38117a7d1504de176b5f8d257a9a0a36"
   },
   "review": {
     "owner": "Web dependency maintainer",
     "reviewer": "w-deku-20261008-rev-web-40",
     "date": "2026-10-08",
-    "rationale": "WEB.40 successor of web-40-admission-r3 for the browser provenance chain. The browser profile and its record move from r10 to r11 because worker/index.js is converted to worker/index.ts (the emitted worker bytes are unchanged in behaviour) and the emitter in tooling/project.ts changes. No package, lock, manifest or class changes: the nuget closure, npm closure and package-lock are the r3 values. Every other input digest is rebound unchanged from r3.",
+    "rationale": "WEB.40 successor of web-40-admission-r4 for the C# build tooling. tools/ArcForges.Web.Tooling gains a project reference to src/ArcForges.Web.Site so that the ported command 'site build' can write the static public Site to a new directory for CI. The tooling lock file records that project reference and the Contracts and gRPC packages it already needs, all of them in the admitted closure (ArcForges.Contracts.PublicApi and ArcForges.Contracts.Foundation 1.0.0-ci.287.1, Google.Protobuf 3.36.1, Grpc.Core.Api 2.84.0). No package, version, class, licence or closure row changes. Every other input digest is rebound unchanged from r4.",
     "inputs": {
       ".github/workflows/ci.yml": "bd8facf68d4758b846db01d87e0cda803d9387ef9e3db66c6e860e0896d01fb5",
       ".node-version": "73fb1b615e2043a933be1c0895cde4358036acc28d785692509b822aa53c761f",
@@ -91,8 +91,8 @@
       "tests/ArcForges.Web.Ui.Tests/packages.lock.json": "3f771663e09c5920ebaa927d74e1cb3c5d4803d3f6d1cf753933867ee103f467",
       "tests/browser/ArcForges.Web.Browser.Tests/ArcForges.Web.Browser.Tests.csproj": "86aff01e8a6376feb3d0eeba1ffddf6a5252f00a5b09eb5368c3fbae98f7137e",
       "tests/browser/ArcForges.Web.Browser.Tests/packages.lock.json": "aa12e838198e5e764c1e8552044a27d22275b797566bc128dd2c6d9e314bc28a",
-      "tools/ArcForges.Web.Tooling/ArcForges.Web.Tooling.csproj": "8414f9ee72d10cd960a9cebe1de8ab2b8b0ee91fdc8be646378be25e1bc360e8",
-      "tools/ArcForges.Web.Tooling/packages.lock.json": "7019b7a06d181c6252a1db00bf8d3ffd9de7ea066a5c0151917de92e2470fe33",
+      "tools/ArcForges.Web.Tooling/ArcForges.Web.Tooling.csproj": "91bf31b448f0d9b06fe73d4daebb5971e09d727fc1a0541db5047734df3f9fe4",
+      "tools/ArcForges.Web.Tooling/packages.lock.json": "38ef63915a4befa1c79f77a0ee31e2d8e54adb7be4fc67c4c6903c74deb99ef0",
       "wrangler.json": "1cf89efa8f3739354f68722ce27632dd38117a7d1504de176b5f8d257a9a0a36"
     },
     "checks": [
@@ -104,9 +104,9 @@
       "sbom",
       "framework-posture"
     ],
-    "runtimeAssessment": "Step 2 restores and compiles the Razor class library, the static Site generator and their xUnit and bUnit test projects against the admitted closure. No browser-wasm build, publish, AOT compilation, browser run or deployment is performed by this admission. The browser-wasm packs are admitted for the later Blazor profile steps and are not executed here.",
+    "runtimeAssessment": "The Tooling project builds and runs the static Site generator in CI (site build, twice, with a byte comparison). No browser-wasm build, publish, browser run or deployment is performed by this admission.",
     "maintenance": "Each NuGet coordinate is exact and content-hashed. The Contracts packages move only by a reviewed successor that re-verifies the CON.07 or later candidate identity from the publication record. The browser-wasm packs must stay at the SDK bundled runtime version (10.0.12 for SDK 10.0.401); any change needs a new reviewed receipt that names this file as its predecessor. Historical receipts remain immutable.",
-    "previous": "eng/policy/dependency-reviews/web-40-admission-r3.json",
+    "previous": "eng/policy/dependency-reviews/web-40-admission-r4.json",
     "immutableHistory": "Admitted review records are retained in Git history. A dependency change requires a new reviewed source commit and updated input-bound rationale; never amend an already accepted provenance record."
   },
   "closure": {
@@ -2243,7 +2243,7 @@
     "unenv": "2.0.0-rc.24",
     "youch": "4.1.0-beta.10"
   },
-  "reviewRecord": "eng/policy/dependency-reviews/web-40-admission-r4.json",
+  "reviewRecord": "eng/policy/dependency-reviews/web-40-admission-r5.json",
   "dependencyClasses": {
     "build-inputs": "Complete exact npm lock inventory; licence metadata is preserved, not inferred as a redistribution grant. Existing transitive development prereleases are named build-only migration inputs and cannot enter runtime/stable closures.",
     "runtime": "Only the independently enforced existing shipped artifact records admit runtime inputs and legal scopes.",
