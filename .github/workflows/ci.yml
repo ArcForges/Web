@@ -17,6 +17,28 @@ concurrency:
 env:
   CI: "true"
   WRANGLER_SEND_METRICS: "false"
+  DOTNET_CLI_TELEMETRY_OPTOUT: "1"
+  DOTNET_NOLOGO: "1"
+  DOTNET_SKIP_FIRST_TIME_EXPERIENCE: "1"
+  # The C# product projects. The browser test project (tests/browser) is local opt-in tooling and is never restored
+  # or built in CI (validation policy). win.slnx is not used here because it carries the retiring esproj entry.
+  CSHARP_PROJECTS: >-
+    src/ArcForges.Web.Ui/ArcForges.Web.Ui.csproj
+    src/ArcForges.Web.Site/ArcForges.Web.Site.csproj
+    src/ArcForges.Web.App/ArcForges.Web.App.csproj
+    src/ArcForges.Web.Operations/ArcForges.Web.Operations.csproj
+    tools/ArcForges.Web.Tooling/ArcForges.Web.Tooling.csproj
+    tests/ArcForges.Web.Site.Tests/ArcForges.Web.Site.Tests.csproj
+    tests/ArcForges.Web.Ui.Tests/ArcForges.Web.Ui.Tests.csproj
+    tests/ArcForges.Web.App.Tests/ArcForges.Web.App.Tests.csproj
+    tests/ArcForges.Web.Operations.Tests/ArcForges.Web.Operations.Tests.csproj
+    tests/ArcForges.Web.Policy.Tests/ArcForges.Web.Policy.Tests.csproj
+  CSHARP_TEST_PROJECTS: >-
+    tests/ArcForges.Web.Site.Tests/ArcForges.Web.Site.Tests.csproj
+    tests/ArcForges.Web.Ui.Tests/ArcForges.Web.Ui.Tests.csproj
+    tests/ArcForges.Web.App.Tests/ArcForges.Web.App.Tests.csproj
+    tests/ArcForges.Web.Operations.Tests/ArcForges.Web.Operations.Tests.csproj
+    tests/ArcForges.Web.Policy.Tests/ArcForges.Web.Policy.Tests.csproj
 
 jobs:
   source:
@@ -58,6 +80,71 @@ jobs:
             artifacts/evidence/licence-*.json
             artifacts/evidence/source-provenance.json
             artifacts/evidence/browser-graph.json
+          if-no-files-found: error
+          retention-days: 30
+
+  csharp:
+    name: C# restore, build, test and publish (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 45
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Set up the pinned .NET SDK
+        uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6
+        with:
+          dotnet-version: "10.0.401"
+      - name: Restore with the locked NuGet closure
+        run: |
+          set -euo pipefail
+          for project in $CSHARP_PROJECTS; do
+            dotnet restore "$project" --locked-mode
+          done
+      - name: Build
+        run: |
+          set -euo pipefail
+          for project in $CSHARP_PROJECTS; do
+            dotnet build "$project" --no-restore -c Release
+          done
+      - name: Test (no browser E2E; the Playwright project is not built here)
+        run: |
+          set -euo pipefail
+          for project in $CSHARP_TEST_PROJECTS; do
+            dotnet test "$project" --no-build -c Release
+          done
+      - name: Publish the Account and Chat profiles
+        run: |
+          set -euo pipefail
+          dotnet publish src/ArcForges.Web.App/ArcForges.Web.App.csproj --no-restore -c Release -o artifacts/profiles/app
+      - name: Publish the Operations profile skeleton
+        run: |
+          set -euo pipefail
+          dotnet publish src/ArcForges.Web.Operations/ArcForges.Web.Operations.csproj --no-restore -c Release -o artifacts/profiles/operations
+      - name: Build the static Site twice and compare the bytes
+        run: |
+          set -euo pipefail
+          tool=tools/ArcForges.Web.Tooling/bin/Release/net10.0/ArcForges.Web.Tooling.dll
+          dotnet "$tool" site build --out artifacts/site --source-ref "$GITHUB_SHA"
+          dotnet "$tool" site build --out artifacts/site-repeat --source-ref "$GITHUB_SHA"
+          diff -r artifacts/site artifacts/site-repeat
+          rm -rf artifacts/site-repeat
+      - name: Retain the C# candidate outputs
+        if: runner.os == 'Linux'
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: web-csharp-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            artifacts/site
+            artifacts/profiles
           if-no-files-found: error
           retention-days: 30
 
@@ -109,16 +196,32 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        language: [javascript-typescript, actions]
+        language: [javascript-typescript, actions, csharp]
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           fetch-depth: 0
           persist-credentials: false
+      - name: Set up the pinned .NET SDK for CodeQL
+        if: matrix.language == 'csharp'
+        uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6
+        with:
+          dotnet-version: "10.0.401"
       - uses: github/codeql-action/init@1c5b675653bb5c22dbe9b12b556ec555138e09fd # v4
         with:
           languages: ${{ matrix.language }}
-          build-mode: none
+          # C# is built explicitly with the locked restore below, so CodeQL observes the real compilation.
+          build-mode: ${{ matrix.language == 'csharp' && 'manual' || 'none' }}
+      - name: Restore and build the C# projects for CodeQL
+        if: matrix.language == 'csharp'
+        run: |
+          set -euo pipefail
+          for project in $CSHARP_PROJECTS; do
+            dotnet restore "$project" --locked-mode
+          done
+          for project in $CSHARP_PROJECTS; do
+            dotnet build "$project" --no-restore -c Release
+          done
       - uses: github/codeql-action/analyze@1c5b675653bb5c22dbe9b12b556ec555138e09fd # v4
         with:
           category: /language:${{ matrix.language }}
@@ -165,13 +268,14 @@ jobs:
   verify:
     name: Verify
     if: always()
-    needs: [source, quality, dependency-review, codeql, candidate]
+    needs: [source, csharp, quality, dependency-review, codeql, candidate]
     runs-on: ubuntu-latest
     timeout-minutes: 2
     steps:
       - name: Require every applicable check
         env:
           SOURCE: ${{ needs.source.result }}
+          CSHARP: ${{ needs.csharp.result }}
           QUALITY: ${{ needs.quality.result }}
           REVIEW: ${{ needs.dependency-review.result }}
           CODEQL: ${{ needs.codeql.result }}
@@ -179,11 +283,14 @@ jobs:
           EVENT: ${{ github.event_name }}
         run: |
           test "$SOURCE" = success
+          test "$CSHARP" = success
           test "$QUALITY" = success
           test "$CODEQL" = success
           test "$CANDIDATE" = success
           if [ "$EVENT" = pull_request ]; then test "$REVIEW" = success; else test "$REVIEW" = skipped; fi
 
+  # Deployment step, outside validation (brief section 10). It still ships the sealed React candidate from the candidate
+  # job; the C# Site and profile outputs are built, tested and retained above and are not yet promoted by this job.
   deploy:
     name: Deploy Cloudflare
     if: >-
