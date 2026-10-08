@@ -1,0 +1,173 @@
+@page "/account"
+@implements IDisposable
+@inject SessionProbe Session
+
+<PageTitle>Account session — ArcForges</PageTitle>
+
+<section class="example">
+    <p class="eyebrow">Account profile</p>
+    <h1>Your session, <em>as the server sees it.</em></h1>
+    <noscript>
+        <p class="no-script">Enable JavaScript to read your session.</p>
+    </noscript>
+    <div class="panel" role="status" aria-live="polite" aria-atomic="true">
+        @if (_phase == Phase.Loading)
+        {
+            <p>Checking your session…</p>
+        }
+        @if (_phase == Phase.Ended)
+        {
+            <p>You are signed out. Reload to check again.</p>
+        }
+        @if (_phase == Phase.Failed)
+        {
+            <p role="alert">@FailureText.For(_failure)</p>
+        }
+        @if (_session is AnonymousSession)
+        {
+            <p>You are not signed in.</p>
+        }
+        @if (_session is AuthenticatedSession session)
+        {
+            <dl class="facts">
+                <dt>Signed in as</dt>
+                <dd>@(session.DisplayName ?? "(no display name)")</dd>
+                <dt>Locale</dt>
+                <dd>@(session.Locale ?? "—")</dd>
+                <dt>Time zone</dt>
+                <dd>@(session.Timezone ?? "—")</dd>
+                <dt>Workspaces</dt>
+                <dd>@session.Workspaces</dd>
+                <dt>Session ends</dt>
+                <dd>@session.ExpiresAt</dd>
+                <dt>Idle expiry</dt>
+                <dd>@(session.IdleExpiresAt ?? "—")</dd>
+                <dt>Recovery generation</dt>
+                <dd class="exact">@session.RecoveryGeneration</dd>
+            </dl>
+        }
+    </div>
+    <div class="field">
+        @if (_session is AuthenticatedSession signedIn)
+        {
+            <Button type="button" disabled="@_working" @onclick="() => SignOutAsync(signedIn.CsrfToken)">@(_working ? "Signing out…" : "Sign out")</Button>
+        }
+        @if (_phase == Phase.Failed)
+        {
+            <Button type="button" @onclick="CheckAsync">Try again</Button>
+        }
+    </div>
+</section>
+
+@code {
+    private enum Phase
+    {
+        Loading,
+        Ready,
+        Failed,
+        Ended,
+    }
+
+    private Phase _phase = Phase.Loading;
+    private SessionSnapshot? _session;
+    private FailureKind _failure;
+    private bool _working;
+    private bool _disposed;
+    private CancellationTokenSource? _active;
+
+    /// <summary>The session is read once when the page opens.</summary>
+    protected override async Task OnInitializedAsync()
+    {
+        await CheckAsync();
+    }
+
+    /// <summary>Reads the session again. A new read replaces a read that is still in flight.</summary>
+    private async Task CheckAsync()
+    {
+        _phase = Phase.Loading;
+        _session = null;
+        SessionSnapshot? session = null;
+        var completed = await RunAsync(async token =>
+        {
+            session = await Session.ReadSessionAsync(token);
+        });
+        if (completed && session is not null)
+        {
+            _session = session;
+            _phase = Phase.Ready;
+        }
+        Refresh();
+    }
+
+    private async Task SignOutAsync(string csrfToken)
+    {
+        _working = true;
+        var completed = await RunAsync(token => Session.EndSessionAsync(csrfToken, token));
+        _working = false;
+        if (completed)
+        {
+            _session = null;
+            _phase = Phase.Ended;
+        }
+        Refresh();
+    }
+
+    /// <summary>
+    /// Runs one call and reports whether it completed. A cancelled call changes nothing. A typed failure shows the page's
+    /// failure state; an ended session is reported as ended, never as a transient fault. Any other exception is an
+    /// unexpected failure, so no exception leaves the page.
+    /// </summary>
+    private async Task<bool> RunAsync(Func<CancellationToken, Task> task)
+    {
+        _active?.Cancel();
+        var controller = new CancellationTokenSource();
+        _active = controller;
+        try
+        {
+            await task(controller.Token);
+            return !controller.IsCancellationRequested;
+        }
+        catch (Exception exception)
+        {
+            if (!controller.IsCancellationRequested)
+            {
+                _session = null;
+                var kind = exception is ProbeFailureException failure ? failure.Kind : FailureKind.Unexpected;
+                if (kind == FailureKind.Unauthenticated)
+                {
+                    _phase = Phase.Ended;
+                }
+                else
+                {
+                    _phase = Phase.Failed;
+                    _failure = kind;
+                }
+            }
+            return false;
+        }
+        finally
+        {
+            if (ReferenceEquals(_active, controller))
+            {
+                _active = null;
+            }
+            controller.Dispose();
+        }
+    }
+
+    /// <summary>Re-renders unless the page has left; a call that ends after the unmount changes nothing on screen.</summary>
+    private void Refresh()
+    {
+        if (!_disposed)
+        {
+            StateHasChanged();
+        }
+    }
+
+    /// <summary>Leaving the page cancels the call that is still in flight.</summary>
+    public void Dispose()
+    {
+        _disposed = true;
+        _active?.Cancel();
+    }
+}

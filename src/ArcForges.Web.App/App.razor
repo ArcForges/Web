@@ -1,0 +1,13 @@
+<Router AppAssembly="typeof(ArcForges.Web.App.App).Assembly">
+    <Found Context="routeData">
+        <RouteView RouteData="routeData" DefaultLayout="typeof(ArcForges.Web.App.Layout.ProfileLayout)" />
+    </Found>
+    <NotFound>
+        <LayoutView Layout="typeof(ArcForges.Web.App.Layout.ProfileLayout)">
+            <section class="example">
+                <h1>Page not found.</h1>
+                <p class="hero-copy">This profile has a single page.</p>
+            </section>
+        </LayoutView>
+    </NotFound>
+</Router>
