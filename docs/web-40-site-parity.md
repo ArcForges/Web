@@ -46,11 +46,12 @@ Those differences change rendering, so the C# Site now embeds the React build's 
   their CSP `script-src` listed one SHA-256 for each inline script body (seven hashes in total). The C# pages carry no
   script element, so the CSP is `script-src 'self'`. Every other CSP directive and every other header line is identical.
   The public pages contain no JavaScript (TB-01, P2-021 item 2).
-- **Interactive controls.** On the React pages the `/hello` input and button, and the `/cloud-hello` check button, were
-  rendered disabled and enabled only after hydration. The static Site keeps the same disabled initial markup and cannot
-  enable it. The live greeting and connection checks have no static-page equivalent. Where they move is an open decision
-  recorded in the WEB.40 unit report; the coordinator must decide between a Blazor route in `ArcForges.Web.App` and
-  retirement. The public pages do not regress in content.
+- **Interactive controls (retired).** On the React pages the `/hello` input and button, and the `/cloud-hello` check
+  button, were rendered disabled and enabled only after hydration. The static Site keeps the same disabled initial
+  markup and cannot enable it, so no live control exists on the public pages. The coordinator adjudication of
+  2026-10-09 (brief section 10) retires the live greeting and connection checks rather than moving them to a Blazor route
+  on the Site: no Blazor route is added to the Site, and `ArcForges.Web.App` is the only interactive browser application
+  (it already carries the Hello probe). The public pages do not regress in content.
 - **Output files not published.** The React build also emitted `__spa-fallback.html`, which the candidate never published.
   It has no C# counterpart.
 
