@@ -3,4 +3,20 @@
     <Build />
     <Deploy />
   </Project>
+  <Folder Name="/src/">
+    <Project Path="src/ArcForges.Web.Site/ArcForges.Web.Site.csproj" />
+    <Project Path="src/ArcForges.Web.Ui/ArcForges.Web.Ui.csproj" />
+    <Project Path="src/ArcForges.Web.App/ArcForges.Web.App.csproj" />
+    <Project Path="src/ArcForges.Web.Operations/ArcForges.Web.Operations.csproj" />
+  </Folder>
+  <Folder Name="/tools/">
+    <Project Path="tools/ArcForges.Web.Tooling/ArcForges.Web.Tooling.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/ArcForges.Web.Site.Tests/ArcForges.Web.Site.Tests.csproj" />
+    <Project Path="tests/ArcForges.Web.App.Tests/ArcForges.Web.App.Tests.csproj" />
+    <Project Path="tests/ArcForges.Web.Ui.Tests/ArcForges.Web.Ui.Tests.csproj" />
+    <Project Path="tests/ArcForges.Web.Policy.Tests/ArcForges.Web.Policy.Tests.csproj" />
+    <Project Path="tests/ArcForges.Web.Operations.Tests/ArcForges.Web.Operations.Tests.csproj" />
+  </Folder>
 </Solution>

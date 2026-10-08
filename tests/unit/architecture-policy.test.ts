@@ -172,7 +172,8 @@ describe("GOV.11 architecture refusal fixtures", () => {
     [
       "obsolete-target",
       (s) => {
-        s["obsolete.csproj"] = '<Project Sdk="Microsoft.NET.Sdk.BlazorWebAssembly" />';
+        s["obsolete.csproj"] =
+          '<Project Sdk="Microsoft.NET.Sdk.Web"><ItemGroup><PackageReference Include="Microsoft.AspNetCore.Components.Server" /></ItemGroup></Project>';
       },
     ],
     [

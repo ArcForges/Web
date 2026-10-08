@@ -182,9 +182,15 @@ export function auditArchitecture(sources: Sources): Finding[] {
       report("portable-reference", file, "Managed graph references esproj");
     if (
       /\.(?:csproj|esproj|props|targets|slnx)$/u.test(file) &&
-      /Blazor|Microsoft\.AspNetCore\.Components\.WebAssembly/iu.test(source)
+      /AddInteractiveServer|InteractiveServer|Microsoft\.AspNetCore\.Components\.Server|AddRazorComponents|Circuit/iu.test(
+        source,
+      )
     )
-      report("obsolete-target", file, "Obsolete target");
+      report(
+        "obsolete-target",
+        file,
+        "Blazor Server render modes and circuits are forbidden; Blazor WebAssembly standalone is the only Blazor target",
+      );
     if (!code.test(file)) continue;
     const ast = parse(source, {
       sourceType: "unambiguous",
