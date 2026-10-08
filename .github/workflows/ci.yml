@@ -28,12 +28,14 @@ env:
     src/ArcForges.Web.App/ArcForges.Web.App.csproj
     src/ArcForges.Web.Operations/ArcForges.Web.Operations.csproj
     tools/ArcForges.Web.Tooling/ArcForges.Web.Tooling.csproj
+    tests/ArcForges.Web.Tooling.Tests/ArcForges.Web.Tooling.Tests.csproj
     tests/ArcForges.Web.Site.Tests/ArcForges.Web.Site.Tests.csproj
     tests/ArcForges.Web.Ui.Tests/ArcForges.Web.Ui.Tests.csproj
     tests/ArcForges.Web.App.Tests/ArcForges.Web.App.Tests.csproj
     tests/ArcForges.Web.Operations.Tests/ArcForges.Web.Operations.Tests.csproj
     tests/ArcForges.Web.Policy.Tests/ArcForges.Web.Policy.Tests.csproj
   CSHARP_TEST_PROJECTS: >-
+    tests/ArcForges.Web.Tooling.Tests/ArcForges.Web.Tooling.Tests.csproj
     tests/ArcForges.Web.Site.Tests/ArcForges.Web.Site.Tests.csproj
     tests/ArcForges.Web.Ui.Tests/ArcForges.Web.Ui.Tests.csproj
     tests/ArcForges.Web.App.Tests/ArcForges.Web.App.Tests.csproj
@@ -265,6 +267,12 @@ jobs:
           dotnet build tools/ArcForges.Web.Tooling/ArcForges.Web.Tooling.csproj --no-restore -c Release
           dotnet restore src/ArcForges.Web.App/ArcForges.Web.App.csproj --locked-mode
           dotnet publish src/ArcForges.Web.App/ArcForges.Web.App.csproj --no-restore -c Release -o artifacts/publish/app
+      # The Blazor profile budgets (eng/policy/profile-budgets.json): every initial resource of the published application
+      # stays within its reviewed baseline plus the allowed regression. A breach fails the candidate before any bundle.
+      - name: Enforce the Blazor profile budgets
+        run: |
+          set -euo pipefail
+          dotnet tools/ArcForges.Web.Tooling/bin/Release/net10.0/ArcForges.Web.Tooling.dll profiles budget --publish artifacts/publish/app --budgets eng/policy/profile-budgets.json
       - name: Emit the Worker and the build identity from the reviewed sources
         run: |
           set -euo pipefail

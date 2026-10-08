@@ -1,0 +1,31 @@
+{
+  "schema": 1,
+  "regressionPercent": 10,
+  "profiles": {
+    "account": {
+      "initialRequests": 57,
+      "htmlBytes": 719,
+      "initialCssGzip": 2245,
+      "initialJsGzip": 125944,
+      "initialWasmGzip": 3227235,
+      "initialDataGzip": 848189,
+      "initialOtherGzip": 238,
+      "totalGzip": 4203851
+    },
+    "chat": {
+      "initialRequests": 57,
+      "htmlBytes": 719,
+      "initialCssGzip": 2245,
+      "initialJsGzip": 125944,
+      "initialWasmGzip": 3227235,
+      "initialDataGzip": 848189,
+      "initialOtherGzip": 238,
+      "totalGzip": 4203851
+    }
+  },
+  "interactionBudgets": {
+    "status": "re-baseline-pending",
+    "owner": "PRF.11",
+    "source": "apps/app/interaction-budgets.json at 80900a1 (React Router probe measurements, not comparable with Blazor)"
+  }
+}

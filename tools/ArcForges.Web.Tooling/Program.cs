@@ -17,8 +17,9 @@ public static class Program
     private const string CandidateVerifyUsage = "usage: candidate verify --dir <candidate> [--repo <root>] [--expected-source <40-hex>]";
     private const string ProfilesBundleUsage = "usage: profiles bundle --publish <publish-directory> --out <new-or-existing-directory>";
     private const string ProfilesVerifyUsage = "usage: profiles verify --bundle <file> [--expected-digest <sha256>]";
+    private const string ProfilesBudgetUsage = "usage: profiles budget --publish <publish-directory> --budgets <file>";
 
-    /// <summary>Runs a ported command: <c>site build</c>, <c>candidate build|verify</c> and <c>profiles bundle|verify</c>.</summary>
+    /// <summary>Runs a ported command: <c>site build</c>, <c>candidate build|verify</c> and <c>profiles bundle|verify|budget</c>.</summary>
     public static async Task<int> Main(string[] args)
     {
         try
@@ -33,6 +34,8 @@ public static class Program
                 return ProfilesBundle(bundle);
             if (args is ["profiles", "verify", .. var check])
                 return ProfilesVerify(check);
+            if (args is ["profiles", "budget", .. var budget])
+                return ProfilesBudget(budget);
         }
         catch (InvalidOperationException error)
         {
@@ -170,6 +173,21 @@ public static class Program
         values.TryGetValue("--expected-digest", out var expectedDigest);
         var summary = ProfileBundle.Verify(File.ReadAllBytes(values["--bundle"]), expectedDigest);
         Console.WriteLine($"Profile bundle verified: {summary.Name} ({summary.Members} members)");
+        return 0;
+    }
+
+    /// <summary>Measures the published application and enforces the reviewed profile budgets. A breach exits with code 1.</summary>
+    private static int ProfilesBudget(string[] options)
+    {
+        if (!TryParse(options, ["--publish", "--budgets"], out var values) || !Has(values, "--publish", "--budgets"))
+        {
+            Console.Error.WriteLine(ProfilesBudgetUsage);
+            return 2;
+        }
+        var budgets = ProfileBudgets.Parse(File.ReadAllBytes(values["--budgets"]));
+        var measure = ProfileBudget.Measure(values["--publish"]);
+        Console.Write(ProfileBudget.Check(measure, budgets));
+        Console.WriteLine("Profile budgets passed.");
         return 0;
     }
 

@@ -43,6 +43,19 @@ public static partial class ProfileBundle
     /// <summary>The Cloudflare header line budget each profile policy must fit within.</summary>
     public const int HeaderLineBudget = 1800;
 
+    /// <summary>
+    /// The two framework loader scripts whose names carry no content fingerprint. They are revalidated on every load
+    /// (no-cache); every other framework file must carry a fingerprint and is cached as immutable.
+    /// </summary>
+    public static readonly string[] UnfingerprintedFrameworkLoaders =
+    [
+        "_framework/blazor.webassembly.js",
+        "_framework/dotnet.js",
+    ];
+
+    /// <summary>The framework path prefix served from the bundle root (Blazor's base href is "/").</summary>
+    public const string FrameworkPrefix = "_framework/";
+
     /// <summary>The bundle file name for a digest.</summary>
     public static string BundleName(string digest) => "web-profiles-" + digest + ".tar";
 
@@ -56,6 +69,7 @@ public static partial class ProfileBundle
         var tree = CandidateCore.ReadTree(wwwroot);
         if (!tree.TryGetValue(ShellPath, out var shell))
             throw new InvalidOperationException("The publish output has no application shell.");
+        RequireFingerprintedFramework(tree.Keys);
         VerifyStaticGraph(publish, tree);
 
         var page = CandidateCore.Lf(shell);
@@ -102,6 +116,31 @@ public static partial class ProfileBundle
         var digest = CandidateCore.Sha256(archive);
         return new ProfileBundleResult(BundleName(digest), digest, archive, entries.Count);
     }
+
+    /// <summary>
+    /// Every framework file is either one of the named loaders or carries a content fingerprint (ten lower-case
+    /// characters before its extension, as the SDK writes them). Its precompressed siblings (.br, .gz) follow the same rule.
+    /// Anything else fails the build, so the immutable cache rule can only ever cover fingerprinted content.
+    /// </summary>
+    public static void RequireFingerprintedFramework(IEnumerable<string> paths)
+    {
+        foreach (var path in paths)
+        {
+            if (!path.StartsWith(FrameworkPrefix, StringComparison.Ordinal))
+                continue;
+            var core = PrecompressedSuffix().Replace(path, string.Empty);
+            if (UnfingerprintedFrameworkLoaders.Contains(core, StringComparer.Ordinal))
+                continue;
+            if (!FingerprintedFile().IsMatch(core))
+                throw new InvalidOperationException("Unfingerprinted framework file: " + path);
+        }
+    }
+
+    [GeneratedRegex(@"\.(?:br|gz)$", RegexOptions.CultureInvariant)]
+    private static partial Regex PrecompressedSuffix();
+
+    [GeneratedRegex(@"^_framework/[^/]+\.[a-z0-9]{10}\.(?:js|wasm|dat)$", RegexOptions.CultureInvariant)]
+    private static partial Regex FingerprintedFile();
 
     /// <summary>
     /// Writes the bundle into a directory. Earlier bundles of this name pattern are removed first, so the directory holds
@@ -190,6 +229,16 @@ public static partial class ProfileBundle
         lines.Add("/assets/*");
         lines.Add("  ! Cache-Control");
         lines.Add("  Cache-Control: public, max-age=31536000, immutable, no-transform");
+        // Fingerprinted framework files are immutable; the two unfingerprinted loaders are revalidated on every load.
+        lines.Add("/" + FrameworkPrefix + "*");
+        lines.Add("  ! Cache-Control");
+        lines.Add("  Cache-Control: public, max-age=31536000, immutable, no-transform");
+        foreach (var loader in UnfingerprintedFrameworkLoaders)
+        {
+            lines.Add("/" + loader);
+            lines.Add("  ! Cache-Control");
+            lines.Add("  Cache-Control: public, no-cache, no-transform");
+        }
         return string.Join('\n', lines) + "\n";
     }
 
