@@ -227,7 +227,7 @@ jobs:
           category: /language:${{ matrix.language }}
 
   candidate:
-    name: Build static candidate
+    name: Build and verify the C# static candidate and profile bundle
     needs: [source, quality]
     runs-on: ubuntu-latest
     timeout-minutes: 20
@@ -244,9 +244,38 @@ jobs:
           node-version-file: .node-version
           cache: npm
       - run: npm ci --ignore-scripts
-      - run: npm run build
-      - name: Build, measure and gate the Account and Chat production profiles
-        run: npm run build:profiles
+      - name: Set up the pinned .NET SDK
+        uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6
+        with:
+          dotnet-version: "10.0.401"
+      # WEB.40 deploy switch: the candidate is the C# static Site (tools/ArcForges.Web.Tooling, candidate build), sealed and
+      # verified before upload. The Worker JavaScript and the build identity are emitted by Node from the reviewed sources,
+      # because only Node can type-strip worker/index.ts and derive the identity from git.
+      - name: Restore the locked tooling and the Blazor profile application
+        run: |
+          set -euo pipefail
+          dotnet restore tools/ArcForges.Web.Tooling/ArcForges.Web.Tooling.csproj --locked-mode
+          dotnet build tools/ArcForges.Web.Tooling/ArcForges.Web.Tooling.csproj --no-restore -c Release
+          dotnet restore src/ArcForges.Web.App/ArcForges.Web.App.csproj --locked-mode
+          dotnet publish src/ArcForges.Web.App/ArcForges.Web.App.csproj --no-restore -c Release -o artifacts/publish/app
+      - name: Emit the Worker and the build identity from the reviewed sources
+        run: |
+          set -euo pipefail
+          mkdir -p artifacts/inputs
+          node tooling/candidate.ts worker artifacts/inputs/index.js
+          node tooling/candidate.ts identity "0.1.0-ci.${GITHUB_RUN_NUMBER}.${GITHUB_RUN_ATTEMPT}" artifacts/inputs/build-info.json
+      - name: Build the sealed candidate twice and compare the bytes
+        run: |
+          set -euo pipefail
+          tool=tools/ArcForges.Web.Tooling/bin/Release/net10.0/ArcForges.Web.Tooling.dll
+          version="0.1.0-ci.${GITHUB_RUN_NUMBER}.${GITHUB_RUN_ATTEMPT}"
+          for out in artifacts/candidate artifacts/candidate-repeat; do
+            dotnet "$tool" candidate build --out "$out" --repo "$GITHUB_WORKSPACE" --source-ref "$GITHUB_SHA" --version "$version" --identity artifacts/inputs/build-info.json --worker artifacts/inputs/index.js --dirty false
+          done
+          diff -r artifacts/candidate artifacts/candidate-repeat
+          rm -rf artifacts/candidate-repeat
+      - name: Verify the sealed candidate before upload
+        run: node tooling/candidate.ts verify artifacts/candidate
       - id: upload
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
@@ -254,8 +283,13 @@ jobs:
           path: artifacts/candidate
           if-no-files-found: error
           retention-days: 30
-      # CLOUD.71: the profile bundle written by build:profiles above (one deterministic, digest-named archive of the
-      # two profile builds), carried to the deployment job unchanged. It stays outside the sealed candidate directory.
+      # CLOUD.71: the profile bundle (one deterministic, digest-named archive of the Blazor application's publish), carried
+      # to the deployment job unchanged. It stays outside the sealed candidate directory.
+      - name: Build the Account and Chat profile bundle
+        run: |
+          set -euo pipefail
+          dotnet tools/ArcForges.Web.Tooling/bin/Release/net10.0/ArcForges.Web.Tooling.dll profiles bundle --publish artifacts/publish/app --out artifacts/profiles
+          dotnet tools/ArcForges.Web.Tooling/bin/Release/net10.0/ArcForges.Web.Tooling.dll profiles verify --bundle "$(ls artifacts/profiles/web-profiles-*.tar)"
       - id: upload-profiles
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
@@ -289,8 +323,8 @@ jobs:
           test "$CANDIDATE" = success
           if [ "$EVENT" = pull_request ]; then test "$REVIEW" = success; else test "$REVIEW" = skipped; fi
 
-  # Deployment step, outside validation (brief section 10). It still ships the sealed React candidate from the candidate
-  # job; the C# Site and profile outputs are built, tested and retained above and are not yet promoted by this job.
+  # Deployment step, outside validation (brief section 10). It ships the same sealed C# candidate that the candidate job
+  # built and verified, after verifying it again here; the Cloudflare upload guards are unchanged (main push only).
   deploy:
     name: Deploy Cloudflare
     if: >-
@@ -315,6 +349,15 @@ jobs:
           node-version-file: .node-version
           cache: npm
       - run: npm ci --ignore-scripts
+      - name: Set up the pinned .NET SDK
+        uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6
+        with:
+          dotnet-version: "10.0.401"
+      - name: Build the candidate verifier
+        run: |
+          set -euo pipefail
+          dotnet restore tools/ArcForges.Web.Tooling/ArcForges.Web.Tooling.csproj --locked-mode
+          dotnet build tools/ArcForges.Web.Tooling/ArcForges.Web.Tooling.csproj --no-restore -c Release
       - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
         with:
           artifact-ids: ${{ needs.candidate.outputs.artifact-id }}
