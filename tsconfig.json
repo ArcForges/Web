@@ -1,11 +1,10 @@
 {
   "compilerOptions": {
     "target": "ES2023",
-    "lib": ["ES2023", "DOM", "DOM.Iterable"],
+    "lib": ["ES2023", "DOM"],
     "module": "ESNext",
     "moduleResolution": "Bundler",
-    "jsx": "react-jsx",
-    "types": ["node", "vite/client"],
+    "types": ["node"],
     "strict": true,
     "noUncheckedIndexedAccess": true,
     "exactOptionalPropertyTypes": true,
@@ -13,8 +12,6 @@
     "noUnusedParameters": true,
     "verbatimModuleSyntax": true,
     "allowImportingTsExtensions": true,
-    "allowJs": true,
-    "checkJs": true,
     "erasableSyntaxOnly": true,
     "resolveJsonModule": true,
     "noEmit": true,
@@ -23,9 +20,6 @@
   "include": [
     "tooling/**/*.ts",
     "tests/**/*.ts",
-    "tests/**/*.tsx",
-    "packages/ui/**/*.ts",
-    "packages/ui/**/*.tsx",
     "worker/**/*.ts",
     "*.ts"
   ]

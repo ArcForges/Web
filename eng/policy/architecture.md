@@ -2,7 +2,7 @@
 
 `tooling/project.ts policy`, already part of the required PR source check, runs
 `architecture.ts` against the tracked and nonignored source inventory, then runs
-the exact published Contracts naming scanner. Biome remains the repository linter.
+the byte copy of the published Contracts naming scanner under `eng/naming`. Prettier and Biome are retired (WEB.40 unit U5); the formatting gates are `dotnet format --verify-no-changes` in CI and the text rules of the policy suite.
 No additional lint framework, browser test or service call is introduced.
 
 The AST parser and types are the existing locked Babel 7.29.8 build inputs, now

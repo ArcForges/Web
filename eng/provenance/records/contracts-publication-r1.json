@@ -1,0 +1,99 @@
+{
+  "schemaVersion": 1,
+  "id": "contracts-publication-r1",
+  "kind": "source",
+  "sourceRepository": "https://github.com/ArcForges/Contracts",
+  "sourceCommit": "ca45f36cccbdd31380f76b8f6cdecc958fdcb430",
+  "sourcePaths": [
+    "tools/naming/eng/check_naming.py",
+    "tools/naming/eng/policy/product-names.json",
+    "build-identity.json",
+    "source.json"
+  ],
+  "licence": {
+    "spdx": "Apache-2.0",
+    "category": "permissive",
+    "evidence": [
+      {
+        "path": "eng/naming/tools/naming/eng/check_naming.py",
+        "sha256": "7c4cd7041b8b53e1bfb6fc0016befcd50259ffaca512d389456e00d3c26d5eaf",
+        "finding": "Exact bytes of the published NuGet package content (Contracts naming scanner (tools/naming/eng/check_naming.py, ArcForges.Contracts.Validation 1.0.0-ci.287.1)); the Apache-2.0 terms of the publisher apply and are carried by eng/provenance/NOTICE.txt."
+      },
+      {
+        "path": "eng/naming/tools/naming/eng/policy/product-names.json",
+        "sha256": "f5d596298ec50e3b116abc6df1b34efef93045ed52f6235b0a2aaaf97a1f4df5",
+        "finding": "Exact bytes of the published NuGet package content (Contracts naming policy (tools/naming/eng/policy/product-names.json, ArcForges.Contracts.Validation 1.0.0-ci.287.1)); the Apache-2.0 terms of the publisher apply and are carried by eng/provenance/NOTICE.txt."
+      },
+      {
+        "path": "eng/contracts/ArcForges.Contracts.PublicApi/1.0.0-ci.287.1/build-identity.json",
+        "sha256": "a05fe27f282b91d2a1fe4ec482dcd777b152666b9896c96581e4fa53824a6402",
+        "finding": "Exact bytes of the published NuGet package content (Contracts build identity of ArcForges.Contracts.PublicApi 1.0.0-ci.287.1 (CON.07 publication record)); the Apache-2.0 terms of the publisher apply and are carried by eng/provenance/NOTICE.txt."
+      },
+      {
+        "path": "eng/contracts/ArcForges.Contracts.PublicApi/1.0.0-ci.287.1/source.json",
+        "sha256": "98d5cee1f34b9a528c1f686d79c3672506ff1a92e5b6ad710e119e2181c09ec1",
+        "finding": "Exact bytes of the published NuGet package content (Contracts source record of ArcForges.Contracts.PublicApi 1.0.0-ci.287.1 (CON.07 publication record)); the Apache-2.0 terms of the publisher apply and are carried by eng/provenance/NOTICE.txt."
+      }
+    ],
+    "scope": "Byte copies of published ArcForges Contracts artifacts for the Web naming authority and the CON.07 identity source. No Web-authored change is made to any copied byte; each target's digest is pinned here and in eng/policy/naming-candidate.json or eng/version-sources.json.",
+    "copyingPermission": null
+  },
+  "attribution": [
+    "ArcForges Contracts, Copyright ArcForges contributors, Apache-2.0"
+  ],
+  "targets": [
+    {
+      "path": "eng/naming/tools/naming/eng/check_naming.py",
+      "sha256": "7c4cd7041b8b53e1bfb6fc0016befcd50259ffaca512d389456e00d3c26d5eaf",
+      "normalization": "lf"
+    },
+    {
+      "path": "eng/naming/tools/naming/eng/policy/product-names.json",
+      "sha256": "f5d596298ec50e3b116abc6df1b34efef93045ed52f6235b0a2aaaf97a1f4df5",
+      "normalization": "lf"
+    },
+    {
+      "path": "eng/contracts/ArcForges.Contracts.PublicApi/1.0.0-ci.287.1/build-identity.json",
+      "sha256": "a05fe27f282b91d2a1fe4ec482dcd777b152666b9896c96581e4fa53824a6402",
+      "normalization": "lf"
+    },
+    {
+      "path": "eng/contracts/ArcForges.Contracts.PublicApi/1.0.0-ci.287.1/source.json",
+      "sha256": "98d5cee1f34b9a528c1f686d79c3672506ff1a92e5b6ad710e119e2181c09ec1",
+      "normalization": "lf"
+    }
+  ],
+  "artifactTargets": [],
+  "disposition": "Copy",
+  "verification": {
+    "kind": "immutable-package-byte-review",
+    "command": "Compare each target with the same-named file of the cached NuGet package ArcForges.Contracts.Validation 1.0.0-ci.287.1 (tools/naming) and ArcForges.Contracts.PublicApi 1.0.0-ci.287.1 (build-identity.json, source.json), then npm run policy.",
+    "expected": "Every target hash equals the published package file hash recorded in eng/policy/naming-candidate.json and eng/version-sources.json; the naming asset digests match the pinned values.",
+    "artifacts": []
+  },
+  "notice": {
+    "required": true,
+    "text": "ArcForges Contracts publication files, Copyright ArcForges contributors, Apache-2.0.",
+    "files": [
+      "eng/provenance/NOTICE.txt"
+    ],
+    "distribution": "source-and-applicable-artifacts",
+    "reason": "Apache-2.0 publisher files copied byte for byte from the same publisher's published Contracts package."
+  },
+  "lifetime": {
+    "status": "permanent",
+    "owner": "Web Licensing and Provenance Owner",
+    "removalTrigger": null
+  },
+  "generation": null,
+  "review": {
+    "owner": "Licensing and Provenance Owner",
+    "reviewer": "w-deku-20261008-rev-web-40",
+    "reviewedOn": "2026-10-09",
+    "decision": "approved",
+    "rationale": "New record for WEB.40 unit U5: the Contracts npm packages are retired, so their two Contracts-origin inputs move to the NuGet publication bytes. The naming authority (eng/naming) and the CON.07 identity (eng/contracts) are byte copies of ArcForges.Contracts.Validation and ArcForges.Contracts.PublicApi 1.0.0-ci.287.1; their hashes are pinned.",
+    "baselineCommit": "a469064ffe0c497d4dd611d58bfaa1ac158656ff",
+    "reconciliation": false
+  },
+  "supersedes": null
+}

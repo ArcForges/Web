@@ -1,6 +1,6 @@
 # Bootstrap validation
 
-Historical verification evidence. Current execution follows [validation policy](validation-policy.md); these recorded runs are not repeated CI or post-merge requirements.
+Historical verification evidence. Superseded in part on 2026-10-08 by WEB.40 (P2-021): the Biome, Vitest and Playwright gates named below are retired; the C# suites and the local opt-in browser checks replace them. Current execution follows [validation policy](validation-policy.md); these recorded runs are not repeated CI or post-merge requirements.
 
 Evidence is recorded separately for source checks, local production assets, hosted CI and real delivery. The bootstrap plan is in `bootstrap-plan.md`.
 

@@ -1,61 +1,35 @@
 # ArcForges Web
 
-React and TypeScript Web foundation for the ArcForges family. This first increment contains a public Hello World site, an interactive local greeting, shared UI, published Contracts consumption and an automated Cloudflare Workers Static Assets delivery pipeline.
+C#-first Web foundation for the ArcForges family (P2-021). The public Site is a static C# generator and publishes no JavaScript. The Account and Chat profiles are Blazor WebAssembly standalone applications. The Cloudflare Worker that serves the static assets is a thin TypeScript adapter.
 
-It does not implement the planned Account/Chat application, authentication, payments or a C# backend; `apps/app` holds only two minimal production profiles that prove the build and the generated SDK usage ([record and limits](docs/prf-08-profile-proof.md)). The `/hello/` greeting runs locally and sends no name to a server. A separate `/cloud-hello/` page uses the published gRPC-Web client to call the deployed Cloud container after the user clicks **Check connection**. Business authority remains in ArcForges Cloud.
+The public Site serves `/`, `/hello/` and `/cloud-hello/`. Its pages, texts, element structure, stylesheet bytes and security headers match the React prerender they replace, as recorded in [the parity record](docs/web-40-site-parity.md). Its interactive greeting and server-connection checks have no static equivalent; their placement is an open decision recorded there.
 
-## Start locally
+The Account and Chat profiles are not a product yet. They prove the cookie-session, CSRF, Origin and binary gRPC-Web paths, and are delivered as a digest-named profile bundle ([layout and rules](docs/profile-bundle.md)). The Operations profile is a skeleton on its own origin.
 
-Use **Node 24.21.0 / npm 11.19.0**, matching `.node-version` and `packageManager`.
+## Toolchain
 
-```sh
-npm ci --ignore-scripts
-npm run hooks
-npm run dev
-```
+- .NET SDK **10.0.401** (`global.json`), with central NuGet package management and locked restores.
+- Node.js **24.21.0** and npm **11.19.0** (`.node-version`, `packageManager`), for the Worker adapter, wrangler and the reviewed policy checks.
+- Exact versions throughout: Blazor WebAssembly standalone with `RunAOTCompilation=false`, Contracts packages at **1.0.0-ci.287.1**, wrangler **4.143.1**, TypeScript **7.0.2**.
 
-Open the local URL printed by React Router. Public pages are rendered at build time; there is no request-time Node server in the deployed artifact. A small Cloudflare Worker redirects `www.arcforges.com` to the canonical HTTPS apex before serving pages; other requests use the static asset binding.
-
-```sh
-npm run check
-npm run build
-npm run preview
-```
-
-The preview serves the actual candidate through local Wrangler at `http://127.0.0.1:4173`. Browser checks are explicit local opt-in only when existing browser binaries support the affected behavior; do not install browsers to expand validation. No Cloudflare login is required for preview.
+Start with [development](docs/development.md) for the commands and the solution layout.
 
 ## Layout
 
-| Path                                | Purpose                                                                  |
-| ----------------------------------- | ------------------------------------------------------------------------ |
-| `apps/site`                         | Prerendered home, local greeting and server connection pages             |
-| `apps/app`                          | Minimal Account and Chat production profiles (PRF.08 proof, not product) |
-| `packages/ui`                       | Shared components and Tailwind/CSS styles                                |
-| `worker`                            | Private canonical-host redirect and static asset fallback                |
-| `tooling`                           | TypeScript build, provenance, policy and Cloudflare delivery commands    |
-| `tests`                             | Unit, published SDK wire fixtures, browser and accessibility tests       |
-| `artifacts/candidate`               | Ignored immutable delivery artifact, manifest and SBOMs                  |
-| `win.slnx` / `ArcForges.Web.esproj` | Optional Visual Studio JavaScript project                                |
-
-Baseline: TypeScript **7.0.2**, React **19.3.0**, React Router **8.4.0**, Vite **8.3.0**, Tailwind **4.3.3**, Wrangler **4.143.1**. One committed npm lockfile covers the entire workspace. Contracts packages are pinned to **1.0.0-ci.287.1**; no submodules or adjacent source references are used.
+| Path | Role |
+| --- | --- |
+| `src/ArcForges.Web.Site` | Static public Site generator (first-party Razor `HtmlRenderer`) |
+| `src/ArcForges.Web.Ui` | Razor class library: shared components and the profile CSP helper |
+| `src/ArcForges.Web.App` | Blazor WebAssembly Account and Chat profiles |
+| `src/ArcForges.Web.Operations` | Operations profile skeleton |
+| `tools/ArcForges.Web.Tooling` | C# candidate, Site, profile bundle and budget tool |
+| `tests/` | xUnit, bUnit and policy suites; local opt-in browser checks |
+| `worker/index.ts` | Canonical-host Worker adapter (`www` to apex redirect, otherwise `env.ASSETS`) |
+| `tooling/` | Node tooling: Worker emission, identity, the Cloudflare deployment wrapper and the policy checks |
+| `eng/` | Reviewed policy, dependency receipts and provenance records |
 
 ## Delivery
 
-PRs run source/static/offline checks, Windows IDE declaration evaluation, security scans and one Linux candidate build containing the prerendered assets and redirect Worker. Main deploys those same bytes and records provider completion in a GitHub prerelease. CI does not install browsers, run E2E, fetch public assets or call Cloud. See [validation policy](docs/validation-policy.md). Private workspaces are not published to npm; Workers subdomains and preview URLs remain disabled.
+CI builds the C# static Site and the profiles once, seals the Site as a candidate and verifies it before upload. Main pushes deploy those same bytes to Cloudflare Workers Static Assets through the same guarded deployment step. Previews and `workers.dev` are disabled. Local runs of the candidate use `npm run preview` with the local Wrangler.
 
-The main-only GitHub `cloudflare` environment contains the account variable and deployment secret. Domain bindings are managed in Cloudflare; CI verifies that the apex custom domain belongs to this Worker before deploying. Preserve the existing `www.arcforges.com/*` Web route and its proxied DNS record. The redirect retains the path and query, so a new visit to the www connection page reaches the apex before its same-origin Cloud call. PR checks remain credential-free. See [deployment setup and recovery](docs/deploying.md) and [evidence](docs/validation.md).
-
-Workers Static Assets serves the static React build behind the canonical-host redirect. Frameworks that need request-time rendering require a Workers-compatible adapter/runtime. This setup does not host C# or provide an API proxy. The Cloud Worker owns `arcforges.com/api/*` and forwards to its Native AOT container; see the [Hello integration boundary and Cloud ownership](docs/cloud-hello.md). See also the [official React guide](https://developers.cloudflare.com/workers/framework-guides/web-apps/react/) and [static assets guide](https://developers.cloudflare.com/workers/static-assets/get-started/).
-
-## Contribute
-
-The build and CI enforce the [project licence declarations](docs/licence-boundary.md)
-across every npm workspace and the JavaScript IDE adapter.
-They also enforce [source and actual browser artifact provenance](docs/provenance.md),
-including complete legal notices, immutable reuse records and the emitted browser SBOM.
-
-Read [development](docs/development.md), [contributing](CONTRIBUTING.md), [security](SECURITY.md), [validation](docs/validation.md), and the [bootstrap plan](docs/bootstrap-plan.md).
-
-The existing repository license is **AGPL-3.0-only**; see [LICENSE](LICENSE). Upstream Contracts and other dependencies retain their own licenses. The built site exposes the license, source link and generated third-party notices. See [third-party notices](THIRD_PARTY_NOTICES.md).
-
-The sealed [build identity](docs/build-identity.md) is available at `/__build-info.json` for explicit support diagnostics; CI seals it from independent inputs without a browser runtime.
+Browser checks, live-service checks, device and macOS checks are local opt-in only. Hosted CI runs no browser, device, live-service or inference job.

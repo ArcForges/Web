@@ -1,11 +1,12 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
+import { spawnSync } from "node:child_process";
 import { join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { setTimeout as delay } from "node:timers/promises";
 import { verifyCandidate } from "./candidate.ts";
-import { candidate, digest, json, npm, root, run, save } from "./project.ts";
+import { candidate, digest, json, root, run, save } from "./project.ts";
 
 const statePath = join(root, "artifacts/deployment.json");
 type Identity = { source: string; version: string };
@@ -228,10 +229,24 @@ async function smoke() {
       );
     }
   });
-  console.log("Verifying the real domain in Chromium, Firefox and WebKit.");
-  process.stdout.write(
-    npm(["exec", "--no", "--", "playwright", "test", "--config", "playwright.live.config.ts"]),
+  // The local opt-in C# browser suite (tests/browser) reads the deployed domain. It never runs on CI (P2-017).
+  console.log("Verifying the real domain in local Chromium through the C# browser suite.");
+  const browserSuite = spawnSync(
+    "dotnet",
+    ["test", join(root, "tests/browser/ArcForges.Web.Browser.Tests/ArcForges.Web.Browser.Tests.csproj"), "-c", "Release"],
+    {
+      cwd: root,
+      encoding: "utf8",
+      windowsHide: true,
+      env: {
+        ...process.env,
+        ARCFORGES_LOCAL_BROWSER: "1",
+        ARCFORGES_BROWSER_BASE_URL: state.url,
+      },
+    },
   );
+  process.stdout.write(browserSuite.stdout ?? "");
+  assert.equal(browserSuite.status, 0, "The local browser suite failed.");
   await save(statePath, {
     ...state,
     verified: true,

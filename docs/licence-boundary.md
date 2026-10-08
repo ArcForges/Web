@@ -20,7 +20,7 @@ targets reject wrong effective values before build/pack. Source and evaluated
 reports include the exact commit, dirty state, inventory and findings under
 `artifacts/evidence/licence-*.json`; CI uploads the reports.
 
-The three npm scopes and the JavaScript IDE adapter are covered. Windows CI evaluates the IDE adapter using .NET SDK 10.0.401; normal npm development remains independent of that optional IDE toolchain. The final static candidate retains its licence/provenance checks. Browser and public-download verification are removed from CI under [validation policy](validation-policy.md).
+The npm inventory covers the root manifest only (wrangler, TypeScript and `@types/node`). The former first-party Contracts npm packages `@arcforges/proto` and `@arcforges/api-client` are retired (WEB.40 unit U5); the Contracts naming and identity bytes are recorded by `contracts-publication-r1`. The React workspaces and the JavaScript IDE adapter are retired (WEB.40 unit U5). Windows CI evaluates the owned C# projects with .NET SDK 10.0.401. The final static candidate retains its licence/provenance checks. Browser and public-download verification are removed from CI under [validation policy](validation-policy.md).
 
 These source/build-policy results do not establish product functionality or close
 later commercial gates. Local candidate identity and fixture/runtime evidence are

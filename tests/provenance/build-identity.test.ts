@@ -108,7 +108,10 @@ test("published ContractSet preserves protobuf and JSON schema axes independentl
   const f = fixture();
   const receipt = JSON.parse(
     readFileSync(
-      new URL("../../node_modules/@arcforges/api-client/build-identity.json", import.meta.url),
+      new URL(
+        "../../eng/contracts/ArcForges.Contracts.PublicApi/1.0.0-ci.287.1/build-identity.json",
+        import.meta.url,
+      ),
       "utf8",
     ),
   );

@@ -64,7 +64,8 @@ public sealed class ArchitecturePolicyTests
         {
             "workspace", "pins", "obsolete-target", "portable-reference", "production-command", "sdk-ui", "wire-source",
             "private-import", "desktop-dom", "computed-import", "unresolved-import", "release-fixture", "inventory",
-            "boundary", "spdx", "override", "reference", "owner", "source-reference", "gradle",
+            "boundary", "spdx", "override", "reference", "owner", "source-reference", "gradle", "whitespace",
+            "final-newline",
         };
         foreach (var family in families)
             Assert.Contains(PolicyCases.Refusals.Values, refusal => refusal.Rule == family);

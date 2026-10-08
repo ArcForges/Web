@@ -2,22 +2,22 @@ Web source provenance
 
 Original material retains its recorded licence and full legal text.
 
-browser-resources-r11
-https://github.com/ArcForges/Web @ dc46b238d6c2cf366f0679bb85d61023a8d39e94
+browser-resources-r12
+https://github.com/ArcForges/Web @ c5a5f2ed71870961237fadd2f20061abe48e34a0
 AGPL-3.0-only
-Web generated browser resources: AGPL-3.0-only owned code with permissive React/Router/Buf/Connect runtime and Vite/Rolldown/Tailwind helpers. Retain complete original legal texts, Router turbo-stream/devalue MIT attribution, original Google protobuf BSD schemas and Buf varint BSD notice. The companion punycode notice is retained for a parsed input, not a claim of emitted code. See the immutable profile for each exact source and package identity.
+Web generated public resources: AGPL-3.0-only owned code and a Tailwind CSS v4.3.3 stylesheet (MIT). Retain the complete Tailwind notice and the full AGPL text in every published candidate.
 
 canonical-agpl-legal-r1
 https://github.com/github/choosealicense.com @ 58267f8f2c5c0099810849cfd7677f52ae0c0eb3
 AGPL-3.0-only
 Copyright (C) 2007 Free Software Foundation, Inc. Full AGPL legal text retained.
 
-cloud-build-identity-r4
-https://github.com/ArcForges/Cloud @ 749de4b702a0de86859b8ae4a5f22ac90f856ffa
+cloud-build-identity-r5
+https://github.com/ArcForges/Cloud @ c5a5f2ed71870961237fadd2f20061abe48e34a0
 AGPL-3.0-only
 Build identity tooling adapted from ArcForges Cloud, Copyright ArcForges contributors, AGPL-3.0-only.
 
-cloud-dependency-policy-r2
+cloud-dependency-policy-r3
 https://github.com/ArcForges/Cloud @ 3f1a778cf9766cb795e9a2671f43a98e155f6108
 AGPL-3.0-only
 Dependency admission tooling and guide copied from ArcForges Cloud, Copyright ArcForges contributors, AGPL-3.0-only. Exact source commit and target hashes are retained.
@@ -31,6 +31,11 @@ connect-es-legal-r1
 https://github.com/connectrpc/connect-es @ 378bb8fde1209afc3ab6a9b0aa97c00d0db58c24
 Apache-2.0
 Copyright 2021-2026 The Connect Authors. Full Apache-2.0 terms retained.
+
+contracts-publication-r1
+https://github.com/ArcForges/Contracts @ ca45f36cccbdd31380f76b8f6cdecc958fdcb430
+Apache-2.0
+ArcForges Contracts publication files, Copyright ArcForges contributors, Apache-2.0.
 
 protobuf-es-legal-r1
 https://github.com/bufbuild/protobuf-es @ 09c98f182a86cd6d4bb89a418f261812d8eb2108

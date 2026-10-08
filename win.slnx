@@ -1,8 +1,4 @@
 <Solution>
-  <Project Path="ArcForges.Web.esproj">
-    <Build />
-    <Deploy />
-  </Project>
   <Folder Name="/src/">
     <Project Path="src/ArcForges.Web.Site/ArcForges.Web.Site.csproj" />
     <Project Path="src/ArcForges.Web.Ui/ArcForges.Web.Ui.csproj" />

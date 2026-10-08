@@ -66,7 +66,7 @@ public static class PolicyBaseline
         """;
 
     private const string RootManifest = """
-        {"name":"web","workspaces":["apps/site"],"packageManager":"npm@11.19.0","engines":{"node":">=24.21.0 <25","npm":">=11.19.0 <12"},"devDependencies":{"typescript":"7.0.2","@react-router/dev":"8.4.0"},"license":"AGPL-3.0-only","arcforges":{"licenceBoundary":"AGPL"}}
+        {"name":"web","workspaces":["apps/site"],"packageManager":"npm@11.19.0","engines":{"node":">=24.21.0 <25","npm":">=11.19.0 <12"},"devDependencies":{"typescript":"7.0.2","wrangler":"4.143.1"},"license":"AGPL-3.0-only","arcforges":{"licenceBoundary":"AGPL"}}
         """;
 
     private const string SiteManifest = """
@@ -74,7 +74,7 @@ public static class PolicyBaseline
         """;
 
     private const string RootLock = """
-        {"lockfileVersion":3,"packages":{"":{"devDependencies":{"typescript":"7.0.2","@react-router/dev":"8.4.0"}},"apps/site":{}}}
+        {"lockfileVersion":3,"packages":{"":{"devDependencies":{"typescript":"7.0.2","wrangler":"4.143.1"}},"apps/site":{}}}
         """;
 
     private const string Inventory = """
@@ -82,8 +82,10 @@ public static class PolicyBaseline
         """;
 
     /// <summary>Returns a new mutable copy of the passing repository.</summary>
-    public static Dictionary<string, string> Create() => new(StringComparer.Ordinal)
+    public static Dictionary<string, string> Create()
     {
+        var sources = new Dictionary<string, string>(StringComparer.Ordinal)
+        {
         ["win.slnx"] = Solution,
         ["global.json"] = """{"sdk":{"version":"10.0.401","rollForward":"disable","allowPrerelease":false},"test":{"runner":"Microsoft.Testing.Platform"}}""",
         ["NuGet.config"] = NuGetConfig,
@@ -100,14 +102,20 @@ public static class PolicyBaseline
         ["src/ArcForges.Web.Ui/packages.lock.json"] = UiLock,
         ["src/ArcForges.Web.Ui/Greeting.cs"] = "namespace ArcForges.Web.Ui;\n\npublic sealed class Greeting\n{\n}\n",
         ["src/ArcForges.Web.Ui/Greeting.razor"] = "<p>Hello</p>\n",
-    };
+        };
+        // A file on disk ends with a line feed; C# raw literals omit the final line break of their content.
+        foreach (var file in sources.Keys.ToArray())
+            if (!sources[file].EndsWith('\n'))
+                sources[file] += "\n";
+        return sources;
+    }
 
     /// <summary>Edits one JSON file of a copy in place.</summary>
     public static void EditJson(Dictionary<string, string> sources, string file, Action<JsonObject> edit)
     {
         var document = JsonNode.Parse(sources[file])!.AsObject();
         edit(document);
-        sources[file] = document.ToJsonString();
+        sources[file] = document.ToJsonString() + "\n";
     }
 
     /// <summary>Edits one XML-like file of a copy by replacing a fragment, failing when the fragment is absent.</summary>

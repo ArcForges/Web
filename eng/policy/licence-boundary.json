@@ -5,24 +5,8 @@
   "licenceBoundary": "AGPL",
   "projects": [
     {
-      "path": "apps/app/package.json",
-      "kind": "npm"
-    },
-    {
-      "path": "apps/site/package.json",
-      "kind": "npm"
-    },
-    {
       "path": "package.json",
       "kind": "npm"
-    },
-    {
-      "path": "packages/ui/package.json",
-      "kind": "npm"
-    },
-    {
-      "path": "ArcForges.Web.esproj",
-      "kind": "msbuild"
     },
     {
       "path": "src/ArcForges.Web.App/ArcForges.Web.App.csproj",

@@ -37,10 +37,10 @@ test("same version with altered bytes", () => {
   packages[firstDependency].integrity = `sha512-${Buffer.alloc(64).toString("base64")}`;
   assert.throws(() => validateClosure(baseline, packages), /mutable-version/u);
 });
-test("wrong publisher", () => {
+test("retired first-party npm package cannot re-enter the admission", () => {
   const policy = structuredClone(baseline);
-  policy.firstParty["@arcforges/proto"] = { publisher: "other/Contracts", visibility: "public" };
-  assert.throws(() => validatePolicy(policy), /Wrong publisher/u);
+  policy.firstParty["@arcforges/proto"] = { publisher: "ArcForges/Contracts", visibility: "public" };
+  assert.throws(() => validatePolicy(policy), /Unadmitted internal\/first-party package/u);
 });
 test("untrusted registry", () => {
   const packages = structuredClone(lock.packages);
@@ -77,7 +77,10 @@ test("source cannot escape into a sibling repository", () => {
     () => validateImports(root, "example.ts", 'import "../Contracts/private.ts";', baseline),
     /Sibling source/u,
   );
-  validateImports(root, "src/example.ts", 'import type { X } from "@arcforges/proto";', baseline);
+  assert.throws(
+    () => validateImports(root, "src/example.ts", 'import type { X } from "@arcforges/proto";', baseline),
+    /Forbidden internal import/u,
+  );
 });
 test("stable closure cannot inherit foundation candidates", () => {
   const policy = structuredClone(baseline);

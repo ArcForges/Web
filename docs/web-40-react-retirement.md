@@ -1,0 +1,41 @@
+# WEB.40 React and TypeScript retirement: port table
+
+Status: WEB.40 unit U5, 2026-10-08. The React sources (`apps/site`, `apps/app`, `packages/ui`), the Vite, React Router, Tailwind and Playwright toolchain, the vitest suites and the TypeScript tooling that only served them are removed. This table maps every retired test to its successor, so that no coverage is dropped silently. A row marked **remaining** is not yet ported and stays open under WEB.40.
+
+Parity of the public output is recorded in [web-40-site-parity.md](web-40-site-parity.md). The profile bundle layout and budgets are in [profile-bundle.md](profile-bundle.md).
+
+## Retired tests and their successors
+
+| Retired file (count) | Successor | Status |
+| --- | --- | --- |
+| `tests/unit/app-bundle.test.ts` (10) | `tests/ArcForges.Web.Tooling.Tests/ProfileBundleArchiveTests.cs` (determinism, digest name, unsafe, duplicate, trailing and truncated archives); `ProfileBundleRulesTests.cs` (fingerprint rule, headers) | Archive, rule and build refusal cases ported. The two-client merge refusals map onto the single Blazor publish that serves both routes: a generated or reserved path (`account/`, `chat/`, `_headers`, `manifest.json`) is refused, a missing shell is refused, bytes that differ from the recorded integrity at one path are refused, an unlisted or missing static asset is refused, and a missing manifest is refused (`tests/ArcForges.Web.Tooling.Tests/ProfileBundlePublishTests.cs`, on synthetic publish fixtures) |
+| `tests/unit/app-hello.test.ts` (10) | `tests/ArcForges.Web.App.Tests` probe and greeting cases (commit be0d916) | Ported |
+| `tests/unit/app-profiles.test.ts` (9) | `tests/ArcForges.Web.App.Tests` and `tests/ArcForges.Web.Ui.Tests` `ProfileIdentityTests` (commit be0d916) | Ported |
+| `tests/unit/app-proof.test.ts` (10) | `tests/ArcForges.Web.Tooling.Tests/ProfileBudgetTests.cs` (budget parse, the ten percent limit, the measure). The interaction ceilings are re-baseline-pending (owner PRF.11). | Budget cases ported. **Remaining:** the Blazor proof structural gates (PRF.11) and the interaction budgets |
+| `tests/unit/app-routes.test.tsx` (14) | `tests/ArcForges.Web.App.Tests` Account and Chat bUnit cases (commit be0d916) | Ported |
+| `tests/unit/app-session.test.ts` (13) | `tests/ArcForges.Web.App.Tests` session and CSRF cases (commit be0d916) | Ported |
+| `tests/unit/architecture-policy.test.ts` (5) | `tests/ArcForges.Web.Policy.Tests/ArchitecturePolicyTests.cs` (commit 80900a1) | Ported |
+| `tests/unit/naming-policy.test.ts` (1) | `tests/ArcForges.Web.Policy.Tests/NamingScannerTests.cs` (published scanner, every forbidden term) | Ported |
+| `tests/unit/licence-boundary.test.ts` (6) | `tests/ArcForges.Web.Policy.Tests/Licence/LicencePolicy.cs` over `eng/policy/licence-boundary.json`; the TypeScript audit it tested stays in `tooling/licence-boundary.ts` and runs in `npm run policy` | Ported (C# policy suite) |
+| `tests/unit/contracts.test.ts` (2) | `tests/ArcForges.Web.Site.Tests/GreetingTests.cs` (published protobuf round trip with Unicode names) and the generated-client cases in `tests/ArcForges.Web.App.Tests` | Ported |
+| `tests/unit/delivery.test.ts` (6) | `tests/provenance/cloudflare-delivery.test.ts` (CI versions, identity propagation, custom domain, header and asset waiting, all kept in `tooling/cloudflare.ts`). The CSP case → `tests/ArcForges.Web.Site.Tests/ContentSecurityPolicyTests.cs`. The seal and tamper cases → `tests/provenance/csharp-candidate.test.ts` | Ported |
+| `tests/unit/canonical-host.test.ts` (3 groups) | `tests/worker/canonical-host.test.ts` (node:test, same cases and expected values) | Ported |
+| `tests/unit/cloud-hello.test.ts` (2) | `tests/ArcForges.Web.Site.Tests/ServerConnectionTests.cs` | Ported |
+| `tests/unit/hello.test.tsx` (2) | `tests/ArcForges.Web.Site.Tests/GreetingTests.cs` and `HelloExampleTests` in `tests/ArcForges.Web.Ui.Tests` | Ported |
+| `tests/unit/lock-provenance.test.ts` (4) | `tests/provenance/lock-provenance.test.ts` (node:test). The workspace-link case now refuses every link, because the repository has no npm workspaces | Ported, with the intended change |
+| `tests/provenance/candidate.test.ts` (2) | `tests/provenance/csharp-candidate.test.ts` (19 cases: determinism, seal, resealed page, policy, wrangler, Worker, identity and bundle tamper) | Ported |
+| `tests/browser/site.spec.ts` (5) | `tests/browser/ArcForges.Web.Browser.Tests/LocalSiteBrowserTests.cs` (no-JavaScript reading, no automatic API call on `/cloud-hello/`, narrow-screen overflow, axe with a named local script). The keyboard greeting case is retired with hydration (see decisions) | Ported, local opt-in only |
+| `tests/browser/cloud-hello-fixture.spec.ts` (1) | None: it exercised hydration of the interactive `/cloud-hello/` page | Retired with the decision below |
+| `tests/browser/build-identity.spec.ts` (1) | `tests/browser/ArcForges.Web.Browser.Tests/LocalBuildIdentityBrowserTests.cs` (local opt-in: the served `/__build-info.json` equals the sealed candidate identity, with `no-store` and `no-transform`) | Ported, local opt-in only |
+
+Kept Node tests (run by `npm run test` and `npm run test:dependencies`): `tests/provenance/build-identity.test.ts`, `legal-path.test.ts`, `source.test.ts`, `csharp-candidate.test.ts`, `tooling/dependency-policy.test.ts`, and the new `tests/worker`, `cloudflare-delivery` and `lock-provenance` files.
+
+## Decisions and remaining work
+
+1. **Interactive public pages (retired by the WEB.40 outcome).** The React `/hello/` and `/cloud-hello/` controls ran after hydration and called the API. WEB.40 outcome item 1 requires these public pages with no runtime JavaScript (TB-01), outcome item 2 limits the Blazor App profile to Account and Chat, and brief section 5 item 14 adds nothing outside the brief. The live greeting and connection controls are therefore retired and the static pages keep their texts. The `/cloud-hello/` API call is refused by the no-automatic-call browser check. Coordinator confirmation is requested in the unit report.
+2. **Identity source (done in U5).** `tooling/build-identity.ts` reads the Contracts axes from the NuGet publication record `eng/contracts/ArcForges.Contracts.PublicApi/1.0.0-ci.287.1` (CON.07; bound by `contracts-publication-r1`) and pins it against the central `Directory.Packages.props` entry. The npm packages `@arcforges/api-client` and `@arcforges/proto` are retired. The naming scanner moves with them: `eng/naming` is a byte copy of the `tools/naming` assets of the NuGet package `ArcForges.Contracts.Validation` 1.0.0-ci.287.1, with its digests pinned in `eng/policy/naming-candidate.json`.
+3. **Formatting gates (done in U5).** Prettier and Biome are retired. CI runs `dotnet format <project> --verify-no-changes` for each C# project in the `csharp` job. The policy suite enforces one final newline and no trailing whitespace over the audited C#, MSBuild, npm, lock and Worker inputs (`ArchitecturePolicy.Whitespace.cs`), and `npm run typecheck` types the thin TypeScript Worker.
+4. **Bundle refusal tests and the browser identity port (ported).** See the table.
+5. **Coordination (remaining).** CLOUD.71 and CLOUD.85 bundle-naming note (see [profile-bundle.md](profile-bundle.md)).
+6. **Proof gates (owned by PRF.11, not WEB.40 U5).** The Blazor proof structural gates and the interaction budget re-baseline stay with PRF.11, as brief section 10 records.
+7. **Local gaps (recorded, not run).** The local Node is 24.20 against the 24.21 pin, so `npm run policy` stops at its Node assertion locally; the rest of that script is covered by the hosted CI job. The Linux locked restore is authoritative on hosted ubuntu CI; a WSL2 run uses an unlocked restore because WSL2 has only SDK 10.0.400.

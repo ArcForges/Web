@@ -46,6 +46,7 @@ public static partial class ArchitecturePolicy
         AuditReleaseGraph(context);
         AuditCSharpSources(context);
         AuditTypeScriptSources(context);
+        AuditWhitespace(context);
         return context.Findings
             .OrderBy(finding => finding.File, StringComparer.Ordinal)
             .ThenBy(finding => finding.Rule, StringComparer.Ordinal)
@@ -154,7 +155,7 @@ public static partial class ArchitecturePolicy
         var root = PolicyText.ParseObject(context.Text("package.json"));
         var devDependencies = root?["devDependencies"] as JsonObject;
         if (!ExactVersion.IsMatch(JsonString(devDependencies, "typescript"))
-            || !ExactVersion.IsMatch(JsonString(devDependencies, "@react-router/dev")))
+            || !ExactVersion.IsMatch(JsonString(devDependencies, "wrangler")))
             context.Report("pins", "package.json", "Exact compiler and static generator pins are required.");
 
         var packageManager = JsonString(root, "packageManager");

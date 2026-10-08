@@ -18,6 +18,10 @@ public static class PolicyCases
     /// <summary>Every refusal case, keyed by its stable identifier.</summary>
     public static IReadOnlyDictionary<string, PolicyCase> Refusals { get; } = new Dictionary<string, PolicyCase>(StringComparer.Ordinal)
     {
+        // whitespace and final newline: the text-format rules that replace the removed Prettier and Biome gates
+        ["whitespace-trailing-space"] = new("whitespace", s => s[Ui] = s[Ui].Replace("\n", " \n", StringComparison.Ordinal)),
+        ["final-newline-missing"] = new("final-newline", s => s[Ui] = s[Ui].TrimEnd('\n')),
+        ["final-newline-double"] = new("final-newline", s => s[Ui] += "\n"),
         // workspace: one solution, one lock per project, one npm lock and manifest inventory
         ["workspace-second-solution"] = new("workspace", s => s["ArcForges.sln"] = "Microsoft Visual Studio Solution File"),
         ["workspace-unlocked-project"] = new("workspace", s => s["src/ArcForges.Web.Site/ArcForges.Web.Site.csproj"] = "<Project Sdk=\"Microsoft.NET.Sdk\" />"),
@@ -134,6 +138,7 @@ public static class PolicyCases
     /// <summary>Accepted forms: each mutation keeps the repository admitted, so the audit must report nothing.</summary>
     public static IReadOnlyDictionary<string, Action<Dictionary<string, string>>> Accepted { get; } = new Dictionary<string, Action<Dictionary<string, string>>>(StringComparer.Ordinal)
     {
+        ["whitespace-crlf-working-copy"] = s => s[Ui] = s[Ui].Replace("\n", "\r\n", StringComparison.Ordinal),
         ["blazor-webassembly-standalone"] = s => PolicyBaseline.Replace(s, Ui, "<PackageReference Include=\"ArcForges.Contracts.PublicApi\" />", "<PackageReference Include=\"ArcForges.Contracts.PublicApi\" /><PackageReference Include=\"Microsoft.AspNetCore.Components.WebAssembly\" />"),
         ["npm-ci-with-ignored-scripts-exec"] = s => PolicyBaseline.Replace(s, "Directory.Build.targets", "<Project />", "<Project><Target Name=\"Restore\"><Exec Command=\"npm ci --ignore-scripts\" /></Target></Project>"),
         ["admitted-json-codec"] = s => s["src/ArcForges.Web.App/Probe/WireJson.cs"] = "using System.Text.Json;\nnamespace ArcForges.Web.App.Probe;\npublic static class WireJson { public static object? Read(ReadOnlySpan<byte> bytes) => JsonSerializer.Deserialize<object>(bytes); }\n",

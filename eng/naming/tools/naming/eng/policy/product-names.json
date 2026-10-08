@@ -1,0 +1,132 @@
+{
+  "schemaVersion": 2,
+  "license": "Apache-2.0",
+  "design": {
+    "repository": "ArcForges/ArcForges-Design",
+    "commit": "ec1a1e7400683a6f971693cf84c8480183b4b6c5",
+    "rule": "P2-019"
+  },
+  "repositories": ["DesktopPlatform", "Contracts", "ArcScope", "Cloud", "AI", "Web", "Mobile"],
+  "products": [
+    {
+      "id": "arcscope",
+      "displayName": "ArcScope",
+      "kind": "desktop",
+      "owners": ["ArcScope"],
+      "namespaces": ["ArcScope", "ArcForges.ArcScope"],
+      "applicationIds": ["com.arcforges.arcscope"],
+      "legacyApplicationIds": [],
+      "fileAssociations": [
+        {
+          "extension": ".arcscope",
+          "windowsProgId": "ArcForges.ArcScope.Project",
+          "appleTypeId": "com.arcforges.arcscope.project",
+          "state": "reserved",
+          "formatOwner": "WP33/WP35",
+          "registrationOwner": "WP53"
+        }
+      ]
+    },
+    {
+      "id": "companion",
+      "displayName": "ArcChat",
+      "kind": "companion",
+      "owners": ["Mobile", "Web"],
+      "namespaces": ["com.arcforges.mobile"],
+      "applicationIds": ["com.arcforges.mobile"],
+      "legacyApplicationIds": [
+        {
+          "id": "io.github.arcforges.mobile",
+          "disposition": "development-prerelease-reinstall",
+          "owner": "WP30"
+        }
+      ],
+      "fileAssociations": []
+    }
+  ],
+  "features": [
+    {
+      "id": "assistant",
+      "displayName": "ArcChat",
+      "owner": "DesktopPlatform",
+      "namespaces": ["ArcForges.Assistant"],
+      "fileAssociations": []
+    }
+  ],
+  "webOutputs": ["site", "account", "chat", "operations"],
+  "retiredProductIds": ["arcnotes", "arcslate", "arcchat", "arcchat-mobile", "mobile", "web"],
+  "providers": [
+    {
+      "name": "Paddle",
+      "role": "merchant-of-record"
+    },
+    {
+      "name": "Payoneer",
+      "role": "payout-only"
+    }
+  ],
+  "forbiddenNames": [
+    {
+      "name": "ArcCanvas",
+      "disposition": "excluded",
+      "target": null,
+      "note": "No replacement product or canvas/slides capability."
+    },
+    {
+      "name": "ArcMusic",
+      "disposition": "excluded",
+      "target": null,
+      "note": "No replacement product or runtime alias."
+    },
+    {
+      "name": "ArcImage",
+      "disposition": "excluded",
+      "target": null,
+      "note": "No replacement. The observation product is independently defined."
+    },
+    {
+      "name": "ArcVideo",
+      "disposition": "excluded",
+      "target": null,
+      "note": "Obsolete product; no current direction or runtime alias."
+    },
+    {
+      "name": "ArcVideoFoundation",
+      "disposition": "reference-only",
+      "target": null,
+      "note": "An existing reference repository, never a product or runtime dependency."
+    },
+    {
+      "name": "Waffo",
+      "disposition": "provider-replaced",
+      "target": "Paddle",
+      "note": "All provider-specific mechanics retired. Settlement destination is payout-only."
+    }
+  ],
+  "referenceRepositoryNames": ["ArcVideo", "ArcVideoFoundation"],
+  "provenanceExceptions": [
+    {
+      "repository": "DesktopPlatform",
+      "path": "artifacts/evidence/traceability/feature-trace-bridge.json",
+      "sha256": "f4a8f47549a96e529af5af9582f07a81dd97af73f006ba3c4436c624210a0976",
+      "names": ["ArcVideo", "ArcVideoFoundation"],
+      "reason": "Reviewed fixed-commit sourceBaselines in the retained historical traceability seed; no current product or reuse authority."
+    },
+    {
+      "repository": "DesktopPlatform",
+      "path": "eng/provenance/reference-inputs.json",
+      "sha256": "4d06afa72af2deeff860288b96644a63b3b1ce814ab2bf8cb7992cd3b005edd5",
+      "names": ["ArcVideo", "ArcVideoFoundation"],
+      "reason": "Reviewed WP00.04 fixed-commit reference identity and packaged-observation metadata under Design f5ef5d56dba6e7ecbe49a4ff47163bc548b94c8c; names identify existing sources only, never products or reuse permission."
+    }
+  ],
+  "derivedDeclarations": [
+    {
+      "repository": "DesktopPlatform",
+      "path": "eng/policy/glossary-terms.json",
+      "designCommit": "ec1a1e7400683a6f971693cf84c8480183b4b6c5",
+      "sourceSha256": "9041df86987324c25446dc3a5cfbfbabd6b6df1ea20381135a8caf84f98e44d4",
+      "declarationSha256": "bdbdfcdc7e77fec492890159747cfffe4996181090af8818322064ae897ee023"
+    }
+  ]
+}

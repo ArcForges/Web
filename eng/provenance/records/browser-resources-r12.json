@@ -1,0 +1,182 @@
+{
+  "schemaVersion": 1,
+  "id": "browser-resources-r12",
+  "kind": "generated",
+  "sourceRepository": "https://github.com/ArcForges/Web",
+  "sourceCommit": "c5a5f2ed71870961237fadd2f20061abe48e34a0",
+  "sourcePaths": [
+    "LICENSE",
+    "eng/provenance/profiles/browser-resources-r12.json",
+    "src/ArcForges.Web.Site/Assets/site.css",
+    "third-party/tailwind.LICENSE.txt",
+    "tooling/candidate.ts",
+    "tooling/project.ts",
+    "tools/ArcForges.Web.Tooling/Candidate/CandidateCore.cs",
+    "worker/index.ts",
+    "wrangler.json"
+  ],
+  "licence": {
+    "spdx": "AGPL-3.0-only",
+    "category": "agpl-compatible",
+    "evidence": [
+      {
+        "path": "LICENSE",
+        "sha256": "8486a10c4393cee1c25392769ddd3b2d6c242d6ec7928e1414efff7dfb2f07ef",
+        "finding": "First-party AGPL-3.0-only owner of the public candidate, its Worker adapter and the tooling that emits it."
+      },
+      {
+        "path": "third-party/tailwind.LICENSE.txt",
+        "sha256": "60e0b68c0f35c078eef3a5d29419d0b03ff84ec1df9c3f9d6e39a519a5ae7985",
+        "finding": "MIT notice of the Tailwind v4.3.3 stylesheet carried byte for byte in the public Site."
+      }
+    ],
+    "scope": "The public Web candidate: the C# static Site, its stylesheet, the Cloudflare Worker adapter and the emitted headers.",
+    "copyingPermission": null
+  },
+  "attribution": [
+    "ArcForges contributors; Tailwind CSS (MIT, Tailwind Labs) preflight and generated stylesheet notice retained in third-party-notices.txt."
+  ],
+  "targets": [
+    {
+      "path": "src/ArcForges.Web.Site/Assets/site.css",
+      "sha256": "d4912dbd6dc5e22b2f51f771233b4670204bf6e9ffcf6fba178cd7b6fff7ec3a",
+      "normalization": "lf"
+    }
+  ],
+  "artifactTargets": [
+    {
+      "project": "src/ArcForges.Web.Site/ArcForges.Web.Site.csproj",
+      "package": "ArcForges.Web.Site",
+      "kind": "static-browser-candidate",
+      "profile": "eng/provenance/profiles/browser-resources-r12.json",
+      "sha256": "5dd1d44a13562b616f156648909d7f4d4d2e67d40bc802c70df392da46e0d6ee"
+    }
+  ],
+  "disposition": "Replace",
+  "verification": {
+    "kind": "actual-input-graph-and-regenerated-candidate",
+    "command": "dotnet tools/ArcForges.Web.Tooling/bin/Release/net10.0/ArcForges.Web.Tooling.dll candidate verify --dir artifacts/candidate --repo . ; dotnet test tests/ArcForges.Web.Policy.Tests",
+    "expected": "The candidate verifier regenerates the Site, the notices, the SBOM and the headers from the reviewed inputs; the policy suite finds no drift.",
+    "artifacts": []
+  },
+  "notice": {
+    "required": true,
+    "text": "Web generated public resources: AGPL-3.0-only owned code and a Tailwind CSS v4.3.3 stylesheet (MIT). Retain the complete Tailwind notice and the full AGPL text in every published candidate.",
+    "files": [
+      "LICENSE",
+      "third-party/tailwind.LICENSE.txt"
+    ],
+    "distribution": "Published with the public candidate as license.txt and third-party-notices.txt.",
+    "reason": "The public Site ships the Tailwind-derived stylesheet; the full AGPL text is required by the licence boundary."
+  },
+  "lifetime": {
+    "status": "permanent",
+    "owner": "Web Licensing and Provenance Owner",
+    "removalTrigger": null
+  },
+  "generation": {
+    "generators": [
+      {
+        "repository": "https://github.com/tailwindlabs/tailwindcss",
+        "commit": "c2b24dd15fed1c59dd521bd86082f520c9f5ad0d",
+        "paths": [
+          "packages/@tailwindcss-vite/src/index.ts",
+          "packages/tailwindcss/preflight.css",
+          "packages/tailwindcss/src/index.ts",
+          "packages/tailwindcss/theme.css"
+        ],
+        "spdx": "MIT",
+        "evidence": [
+          {
+            "path": "LICENSE",
+            "sha256": "60e0b68c0f35c078eef3a5d29419d0b03ff84ec1df9c3f9d6e39a519a5ae7985",
+            "finding": "Root MIT licence applies to selected runtime paths; unrelated compiler/plugin/test subtrees excluded."
+          }
+        ]
+      },
+      {
+        "repository": "https://github.com/tailwindlabs/tailwindcss",
+        "commit": "c2b24dd15fed1c59dd521bd86082f520c9f5ad0d",
+        "paths": [
+          "packages/@tailwindcss-vite/src/index.ts",
+          "packages/tailwindcss/preflight.css",
+          "packages/tailwindcss/src/index.ts",
+          "packages/tailwindcss/theme.css"
+        ],
+        "spdx": "MIT",
+        "evidence": [
+          {
+            "path": "LICENSE",
+            "sha256": "60e0b68c0f35c078eef3a5d29419d0b03ff84ec1df9c3f9d6e39a519a5ae7985",
+            "finding": "Root MIT licence applies to selected runtime paths; unrelated compiler/plugin/test subtrees excluded."
+          }
+        ]
+      }
+    ],
+    "inputs": [
+      {
+        "repository": "https://github.com/tailwindlabs/tailwindcss",
+        "commit": "c2b24dd15fed1c59dd521bd86082f520c9f5ad0d",
+        "paths": [
+          "packages/@tailwindcss-vite/src/index.ts",
+          "packages/tailwindcss/preflight.css",
+          "packages/tailwindcss/src/index.ts",
+          "packages/tailwindcss/theme.css"
+        ],
+        "spdx": "MIT",
+        "evidence": [
+          {
+            "path": "LICENSE",
+            "sha256": "60e0b68c0f35c078eef3a5d29419d0b03ff84ec1df9c3f9d6e39a519a5ae7985",
+            "finding": "Root MIT licence applies to selected runtime paths; unrelated compiler/plugin/test subtrees excluded."
+          }
+        ]
+      },
+      {
+        "repository": "https://github.com/tailwindlabs/tailwindcss",
+        "commit": "c2b24dd15fed1c59dd521bd86082f520c9f5ad0d",
+        "paths": [
+          "packages/@tailwindcss-vite/src/index.ts",
+          "packages/tailwindcss/preflight.css",
+          "packages/tailwindcss/src/index.ts",
+          "packages/tailwindcss/theme.css"
+        ],
+        "spdx": "MIT",
+        "evidence": [
+          {
+            "path": "LICENSE",
+            "sha256": "60e0b68c0f35c078eef3a5d29419d0b03ff84ec1df9c3f9d6e39a519a5ae7985",
+            "finding": "Root MIT licence applies to selected runtime paths; unrelated compiler/plugin/test subtrees excluded."
+          }
+        ]
+      },
+      {
+        "repository": "https://github.com/ArcForges/Web",
+        "commit": "1667b75d6a5b5bf60f86c9519139ad3464cbca64",
+        "paths": [
+          "package-lock.json"
+        ],
+        "spdx": "AGPL-3.0-only",
+        "evidence": [
+          {
+            "path": "LICENSE",
+            "sha256": "8486a10c4393cee1c25392769ddd3b2d6c242d6ec7928e1414efff7dfb2f07ef",
+            "finding": "Reviewed the Dependabot lock delta: only node_modules/source-map-js moves from 1.2.1 to 1.2.2 (GHSA-68fv-2mgg-jv7q), a development-only transitive of PostCSS, css-tree and @tailwindcss/node with unchanged BSD-3-Clause licence and registry origin; it is absent from the accepted browser producer identities."
+          }
+        ]
+      }
+    ],
+    "command": "No Web command regenerates the stylesheet after the React removal. The committed bytes are the Tailwind v4.3.3 output of the React build at 80900a1 (docs/web-40-site-parity.md).",
+    "outputSpdx": "AGPL-3.0-only"
+  },
+  "review": {
+    "owner": "Licensing and Provenance Owner",
+    "reviewer": "w-deku-20261008-rev-web-40",
+    "reviewedOn": "2026-10-08",
+    "decision": "approved",
+    "rationale": "Successor of browser-resources-r11 for WEB.40 unit U5. The React prerender and its Vite, Rolldown, React Router and Buf/Connect browser graph are removed with apps/site, apps/app and packages/ui. The public candidate is the C# static Site whose only third-party public resource is the Tailwind v4.3.3 stylesheet, carried byte for byte. The Worker adapter remains worker/index.ts.",
+    "baselineCommit": "80900a1430c0fbb483e4a220e20980e3c18728b3",
+    "reconciliation": true
+  },
+  "supersedes": "browser-resources-r11"
+}

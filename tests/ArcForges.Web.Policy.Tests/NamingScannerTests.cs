@@ -8,9 +8,10 @@ using Xunit;
 namespace ArcForges.Web.Policy.Tests;
 
 /// <summary>
-/// The forbidden-term scanner of WP-05.02 in the C# policy suite. The scanner and its product-name policy are the
-/// published Contracts naming authority in node_modules; this suite verifies the pinned identity and runs the scanner
-/// under python -I on an isolated local Git fixture, once for the current terms and once for every forbidden term.
+/// The forbidden-term scanner of WP-05.02 in the C# policy suite. The scanner and its product-name policy are a byte copy
+/// of the published Contracts naming authority (ArcForges.Contracts.Validation 1.0.0-ci.287.1, tools/naming) vendored
+/// under eng/naming; this suite verifies the pinned asset digests and runs the scanner under python -I on an isolated
+/// local Git fixture, once for the current terms and once for every forbidden term.
 /// </summary>
 public sealed class NamingScannerTests
 {
@@ -21,12 +22,10 @@ public sealed class NamingScannerTests
     {
         var root = RepositoryRoot.Find();
         var candidate = JsonNode.Parse(File.ReadAllText(Path.Combine(root, "eng", "policy", "naming-candidate.json")))!.AsObject();
-        var package = NamingPackage(root, candidate["package"]!.GetValue<string>());
-
-        var manifest = JsonNode.Parse(File.ReadAllText(Path.Combine(package, "package.json")))!.AsObject();
-        Assert.Equal(candidate["version"]!.GetValue<string>(), manifest["version"]!.GetValue<string>());
-        var source = JsonNode.Parse(File.ReadAllText(Path.Combine(package, "source.json")))!.AsObject();
-        Assert.Equal(candidate["sourceCommit"]!.GetValue<string>(), source["commit"]!.GetValue<string>());
+        var package = NamingRoot(root);
+        Assert.Equal("ArcForges.Contracts.Validation", candidate["package"]!.GetValue<string>());
+        Assert.Equal("1.0.0-ci.287.1", candidate["version"]!.GetValue<string>());
+        Assert.Equal("ca45f36cccbdd31380f76b8f6cdecc958fdcb430", candidate["sourceCommit"]!.GetValue<string>());
         foreach (var (asset, expected) in candidate["assets"]!.AsObject())
             Assert.Equal(expected!.GetValue<string>(), Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(Path.Combine(package, asset)))).ToLowerInvariant());
     }
@@ -35,7 +34,7 @@ public sealed class NamingScannerTests
     public void PublishedScannerAcceptsCurrentTermsAndDetectsEveryForbiddenTerm()
     {
         var root = RepositoryRoot.Find();
-        var package = NamingPackage(root, "@arcforges/proto");
+        var package = NamingRoot(root);
         var script = Path.Combine(package, "tools", "naming", "eng", "check_naming.py");
         var policy = JsonNode.Parse(File.ReadAllText(Path.Combine(package, "tools", "naming", "eng", "policy", "product-names.json")))!.AsObject();
 
@@ -75,11 +74,10 @@ public sealed class NamingScannerTests
         Directory.Delete(repository, recursive: true);
     }
 
-    private static string NamingPackage(string root, string package)
+    private static string NamingRoot(string root)
     {
-        var parts = package.Split('/');
-        var directory = Path.Combine([root, "node_modules", .. parts]);
-        Assert.True(Directory.Exists(directory), "The published naming package is not installed: " + package);
+        var directory = Path.Combine(root, "eng", "naming");
+        Assert.True(Directory.Exists(directory), "The vendored naming authority is missing: eng/naming");
         return directory;
     }
 

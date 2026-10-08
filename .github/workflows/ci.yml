@@ -21,7 +21,7 @@ env:
   DOTNET_NOLOGO: "1"
   DOTNET_SKIP_FIRST_TIME_EXPERIENCE: "1"
   # The C# product projects. The browser test project (tests/browser) is local opt-in tooling and is never restored
-  # or built in CI (validation policy). win.slnx is not used here because it carries the retiring esproj entry.
+  # or built in CI (validation policy). win.slnx is not used here: the explicit project list is the CI authority.
   CSHARP_PROJECTS: >-
     src/ArcForges.Web.Ui/ArcForges.Web.Ui.csproj
     src/ArcForges.Web.Site/ArcForges.Web.Site.csproj
@@ -81,7 +81,6 @@ jobs:
           path: |
             artifacts/evidence/licence-*.json
             artifacts/evidence/source-provenance.json
-            artifacts/evidence/browser-graph.json
           if-no-files-found: error
           retention-days: 30
 
@@ -105,18 +104,20 @@ jobs:
         uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6
         with:
           dotnet-version: "10.0.401"
-      - name: Set up the pinned Node toolchain for the published naming authority
-        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
-        with:
-          node-version-file: .node-version
-          package-manager-cache: false
-      - name: Install the locked npm closure that carries the published naming authority
-        run: npm ci --ignore-scripts
       - name: Restore with the locked NuGet closure
         run: |
           set -euo pipefail
           for project in $CSHARP_PROJECTS; do
             dotnet restore "$project" --locked-mode
+          done
+      # The formatting gate of the C# sources (WEB.40 U5 replaces the removed Prettier and Biome gates). The text rules
+      # (final newline, no trailing whitespace) of the audited C#, MSBuild, npm and Worker inputs are enforced by the
+      # policy suite in the Test step, and the Worker type check runs in the source job (npm run typecheck).
+      - name: Check the C# formatting gate
+        run: |
+          set -euo pipefail
+          for project in $CSHARP_PROJECTS; do
+            dotnet format "$project" --verify-no-changes --no-restore
           done
       - name: Build
         run: |
@@ -124,7 +125,7 @@ jobs:
           for project in $CSHARP_PROJECTS; do
             dotnet build "$project" --no-restore -c Release
           done
-      - name: Test (no browser E2E; the Playwright project is not built here)
+      - name: Test (no browser E2E; the browser project is not built here)
         run: |
           set -euo pipefail
           for project in $CSHARP_TEST_PROJECTS; do
