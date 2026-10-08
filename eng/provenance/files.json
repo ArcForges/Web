@@ -27,6 +27,7 @@
     "Directory.Build.props",
     "Directory.Build.targets",
     "Directory.Packages.props",
+    "docs/web-40-site-parity.md",
     "eng/policy/dependency-reviews/web-40-admission-r8.json",
     "NuGet.config",
     "README.md",

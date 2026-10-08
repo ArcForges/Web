@@ -189,7 +189,9 @@ public sealed class SiteOutputTests
             Assert.Contains("<link rel=\"stylesheet\" href=\"/" + stylesheet.Path + "\"", html, StringComparison.Ordinal);
         }
         var css = Encoding.UTF8.GetString(stylesheet.Content);
-        Assert.Contains("@media (max-width: 800px)", css, StringComparison.Ordinal);
+        // The stylesheet is the reviewed Tailwind v4.3.3 output of the React build (docs/web-40-site-parity.md), which
+        // writes the narrow-width breakpoint in range syntax.
+        Assert.Contains("@media (width<=800px)", css, StringComparison.Ordinal);
         Assert.DoesNotContain("@import", css, StringComparison.Ordinal);
         Assert.DoesNotContain("@theme", css, StringComparison.Ordinal);
     }
