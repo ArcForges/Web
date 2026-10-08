@@ -18,5 +18,6 @@
     <Project Path="tests/ArcForges.Web.Ui.Tests/ArcForges.Web.Ui.Tests.csproj" />
     <Project Path="tests/ArcForges.Web.Policy.Tests/ArcForges.Web.Policy.Tests.csproj" />
     <Project Path="tests/ArcForges.Web.Operations.Tests/ArcForges.Web.Operations.Tests.csproj" />
+    <Project Path="tests/browser/ArcForges.Web.Browser.Tests/ArcForges.Web.Browser.Tests.csproj" />
   </Folder>
 </Solution>
