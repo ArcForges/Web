@@ -111,6 +111,11 @@ test("unknown locked transitive packages and unversioned npm aliases fail", () =
     f.write("package-lock.json", { packages: {} });
     f.write("package.json", { ...f.manifest, dependencies: { alias: "npm:@arcforges/unknown" } });
     assert.throws(() => auditLicences(f.root), /Unknown first-party/u);
+    f.write("package.json", f.manifest);
+    f.write("packages.lock.json", {
+      dependencies: { "net10.0": { "ArcForges.Contracts.Unknown": { type: "Transitive" } } },
+    });
+    assert.throws(() => auditLicences(f.root), /Unknown first-party/u);
   } finally {
     f.cleanup();
   }

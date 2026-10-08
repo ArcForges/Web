@@ -2,7 +2,7 @@
 
 ## Current setup
 
-The public Hello site uses **Workers Static Assets** and a small importless Worker that redirects `www.arcforges.com` to `https://arcforges.com` with HTTP 308 before serving assets. It preserves the path and query. There is no paid AI binding, request-time SSR or C# host in Web. Wrangler deploys `artifacts/candidate/assets` and the private `artifacts/candidate/worker/index.js` module from the same verified candidate, with `no_bundle: true`, an `ASSETS` binding and `run_worker_first: true`. The Worker is `arcforges-web`; `workers_dev` and preview URLs remain explicitly disabled.
+The public Hello site uses **Workers Static Assets** and a small importless Worker that redirects `www.arcforges.com` to `https://arcforges.com` with HTTP 308 before serving assets. It preserves the path and query. There is no paid AI binding, request-time SSR or C# host in Web. Wrangler deploys `artifacts/candidate/assets` and the private `artifacts/candidate/worker/index.js` module (emitted from the reviewed `worker/index.ts` source) from the same verified candidate, with `no_bundle: true`, an `ASSETS` binding and `run_worker_first: true`. The Worker is `arcforges-web`; `workers_dev` and preview URLs remain explicitly disabled.
 
 Cloudflare manages the existing apex Custom Domain, `www.arcforges.com/*` Web route and proxied www DNS record. Keep all three. The configuration intentionally omits `routes`, does not recreate DNS/domain mappings and requires no new Cloudflare permissions for this redirect change. The separate Cloud Worker retains `arcforges.com/api/*`.
 

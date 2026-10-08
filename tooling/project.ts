@@ -2,6 +2,7 @@
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
 import { spawnSync } from "node:child_process";
+import { stripTypeScriptTypes } from "node:module";
 import { cp, mkdir, readFile, readdir, rm, writeFile } from "node:fs/promises";
 import { dirname, join, relative, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -20,6 +21,13 @@ import {
 
 export const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 export const candidate = join(root, "artifacts/candidate");
+// The canonical-host Worker is authored in TypeScript (worker/index.ts). The candidate ships its
+// JavaScript form, produced by Node type stripping: no bundling, no import, no added code.
+export const workerSource = join(root, "worker/index.ts");
+export async function workerScript(): Promise<string> {
+  const source = (await readFile(workerSource, "utf8")).replaceAll("\r\n", "\n");
+  return stripTypeScriptTypes(source);
+}
 export function run(command: string, args: string[], cwd = root): string {
   const result = spawnSync(command, args, {
     cwd,
@@ -180,7 +188,7 @@ export async function verify(
 export async function verifyWorkerScript(directory: string) {
   assert.equal(
     await readFile(join(directory, "worker/index.js"), "utf8"),
-    (await readFile(join(root, "worker/index.js"), "utf8")).replaceAll("\r\n", "\n"),
+    await workerScript(),
     "Worker script changed from the reviewed source",
   );
 }
@@ -267,10 +275,7 @@ async function build() {
   config.assets.directory = "./assets";
   await save(join(candidate, "wrangler.json"), config);
   await mkdir(join(candidate, "worker"), { recursive: true });
-  await writeFile(
-    join(candidate, "worker/index.js"),
-    (await readFile(join(root, "worker/index.js"), "utf8")).replaceAll("\r\n", "\n"),
-  );
+  await writeFile(join(candidate, "worker/index.js"), await workerScript());
   for (const packageName of ["proto", "api-client"])
     for (const path of ["source.json", "LICENSE", "NOTICE", "sbom.cdx.json"]) {
       await mkdir(join(candidate, "contracts", packageName), { recursive: true });

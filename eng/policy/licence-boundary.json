@@ -61,6 +61,10 @@
       "kind": "msbuild"
     },
     {
+      "path": "tests/browser/ArcForges.Web.Browser.Tests/ArcForges.Web.Browser.Tests.csproj",
+      "kind": "msbuild"
+    },
+    {
       "path": "tools/ArcForges.Web.Tooling/ArcForges.Web.Tooling.csproj",
       "kind": "msbuild"
     }

@@ -2,9 +2,10 @@
 import { mkdtemp, mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { basename, dirname, join } from "node:path";
+import { pathToFileURL } from "node:url";
 import { expect, test, vi } from "vitest";
-import worker from "../../worker/index.js";
-import { root, verifyWorkerScript } from "../../tooling/project.ts";
+import worker from "../../worker/index.ts";
+import { root, verifyWorkerScript, workerScript } from "../../tooling/project.ts";
 
 test.each([
   ["https://www.arcforges.com/", "https://arcforges.com/"],
@@ -59,11 +60,46 @@ test("delivery runs the reviewed Worker before assets without a deployment rebui
   expect(config.assets.run_worker_first).toBe(true);
 });
 
+test("the emitted candidate Worker is importless and carries no type syntax", async () => {
+  const emitted = await workerScript();
+  expect(emitted).not.toMatch(/^\s*import\s/mu);
+  expect(emitted).not.toMatch(/\brequire\(/u);
+  expect(emitted).not.toMatch(/\binterface\s|:\s*Env\b|:\s*Request\b/u);
+  expect(emitted).toMatch(/export default \{/u);
+});
+
+test.each([
+  "https://www.arcforges.com/",
+  "https://www.arcforges.com/cloud-hello/?name=a%2Fb&next=%2Fhello%2F",
+  "http://www.arcforges.com:8080//other.example/path?x=1&x=2",
+  "https://www.arcforges.com/api/example?mode=binary",
+  "https://arcforges.com/cloud-hello/",
+  "http://127.0.0.1:4173/hello/",
+])("the emitted candidate Worker answers like the TypeScript source: %s", async (url) => {
+  const directory = await mkdtemp(join(tmpdir(), "arcforges-emitted-worker-"));
+  try {
+    const modulePath = join(directory, "index.mjs");
+    await writeFile(modulePath, await workerScript());
+    const emitted = (await import(pathToFileURL(modulePath).href)).default;
+    const sourceAsset = vi.fn(async () => new Response("asset"));
+    const emittedAsset = vi.fn(async () => new Response("asset"));
+    const sourceResponse = await worker.fetch(new Request(url), { ASSETS: { fetch: sourceAsset } });
+    const emittedResponse = await emitted.fetch(new Request(url), {
+      ASSETS: { fetch: emittedAsset },
+    });
+    expect(emittedResponse.status).toBe(sourceResponse.status);
+    expect(emittedResponse.headers.get("location")).toBe(sourceResponse.headers.get("location"));
+    expect(emittedAsset.mock.calls.length).toBe(sourceAsset.mock.calls.length);
+  } finally {
+    await rm(directory, { recursive: true, force: true });
+  }
+});
+
 test("candidate verification rejects a replaced private Worker independently of its manifest", async () => {
   const directory = await mkdtemp(join(tmpdir(), "arcforges-canonical-worker-"));
   try {
     await mkdir(join(directory, "worker"));
-    const source = (await readFile(join(root, "worker/index.js"), "utf8")).replaceAll("\r\n", "\n");
+    const source = await workerScript();
     await writeFile(join(directory, "worker/index.js"), source);
     await expect(verifyWorkerScript(directory)).resolves.toBeUndefined();
     await writeFile(
