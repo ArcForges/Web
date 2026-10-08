@@ -16,6 +16,8 @@ Install the exact Node version in `.node-version`, which includes npm 11.19.0. `
 | `npm run preview`          | Run the sealed assets and redirect Worker using local Wrangler                         |
 | `npm run test:e2e`         | Optional local browser checks using existing installations; never CI                   |
 
+The C# policy suite runs in the `csharp` CI job and locally with `dotnet test tests/ArcForges.Web.Policy.Tests/ArcForges.Web.Policy.Tests.csproj -c Release` after `npm ci --ignore-scripts` (the forbidden-term scanner reads the published naming authority from `node_modules`). It is the C# successor of the GOV.11 policy: the architecture rules (workspace and central packages, exact pins, obsolete Blazor targets, portable references, production and install commands, private and server imports, generated wire types only, the desktop DOM prohibition and the release route graph), the licence boundary over `eng/policy/licence-boundary.json`, the forbidden-term scanner and the NuGet closure admission. Every rule has a passing and a failing fixture in `tests/ArcForges.Web.Policy.Tests/Fixtures`. The TypeScript source rules in `eng/policy/architecture.ts` keep running in `npm run policy` until the React and TypeScript removal unit retires them.
+
 Hooks check whitespace only. They never repeat builds/tests at commit or push. Git enables `extensions.worktreeConfig` so the hook path does not alter the main checkout's configuration. The `.githooks` shell files only dispatch the whitespace check. On Windows they run through Git for Windows.
 
 The protected `main` branch requires both `Verify` and the separate GitHub `CodeQL` scanning result. A successful CodeQL analysis job alone does not imply that it found no blocking security alerts.

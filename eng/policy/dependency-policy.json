@@ -9,7 +9,7 @@
     "packages/ui/package.json"
   ],
   "inputs": {
-    ".github/workflows/ci.yml": "ff594b36bcec33e499a091695639db163cf86494ecce2a1c434c5e1a64a7b5b2",
+    ".github/workflows/ci.yml": "f8d07aef5fc955a429c1de0bf2b94f209100f47f62e1fd500f76f35f42787eea",
     ".node-version": "73fb1b615e2043a933be1c0895cde4358036acc28d785692509b822aa53c761f",
     ".npmrc": "73814024102037fcc5a961119bcbf39f81e0a73af504735653d3a6086651cef1",
     "ArcForges.Web.esproj": "94cf503447c0a773dbce60ca9a5bcbfdfa8d44eea315a7d37f19081cc5619835",
@@ -53,9 +53,9 @@
     "owner": "Web dependency maintainer",
     "reviewer": "w-deku-20261008-rev-web-40",
     "date": "2026-10-08",
-    "rationale": "WEB.40 successor of web-40-admission-r6 for the deploy switch (unit U3b). .github/workflows/ci.yml: the candidate job publishes the Blazor WebAssembly application, emits the Worker and build identity through tooling/candidate.ts, builds the sealed C# candidate twice with a byte comparison, verifies it, and builds the Account and Chat profile bundle with the C# tool; the deploy job restores and builds the C# verifier and then ships the same sealed candidate under the unchanged main-push guards. The static Site candidate is the C# Site output. No package, lock, class, closure or project file changes; every other input digest is unchanged from r6.",
+    "rationale": "WEB.40 successor of web-40-admission-r7 for the U4 policy port (unit U4). .github/workflows/ci.yml: the csharp job installs the pinned Node toolchain and the locked npm closure (npm ci --ignore-scripts) so the C# policy suite can read the published naming authority from node_modules and run its scanner under python -I. No package, lock, class, closure, project or props file changes; every other input digest is unchanged from r7.",
     "inputs": {
-      ".github/workflows/ci.yml": "ff594b36bcec33e499a091695639db163cf86494ecce2a1c434c5e1a64a7b5b2",
+      ".github/workflows/ci.yml": "f8d07aef5fc955a429c1de0bf2b94f209100f47f62e1fd500f76f35f42787eea",
       ".node-version": "73fb1b615e2043a933be1c0895cde4358036acc28d785692509b822aa53c761f",
       ".npmrc": "73814024102037fcc5a961119bcbf39f81e0a73af504735653d3a6086651cef1",
       "ArcForges.Web.esproj": "94cf503447c0a773dbce60ca9a5bcbfdfa8d44eea315a7d37f19081cc5619835",
@@ -106,7 +106,7 @@
     ],
     "runtimeAssessment": "The workflow runs the locked restore and build of the candidate verifier and the Blazor WebAssembly publish, the sealed candidate build twice with a byte comparison and its verification, the profile bundle build and verification, and the deploy-time verification before the existing Cloudflare upload. No browser run, live service, hosted device or macOS job is added.",
     "maintenance": "Each NuGet coordinate is exact and content-hashed. The Contracts packages move only by a reviewed successor that re-verifies the CON.07 or later candidate identity from the publication record. The browser-wasm packs must stay at the SDK bundled runtime version (10.0.12 for SDK 10.0.401); any change needs a new reviewed receipt that names this file as its predecessor. Historical receipts remain immutable.",
-    "previous": "eng/policy/dependency-reviews/web-40-admission-r6.json",
+    "previous": "eng/policy/dependency-reviews/web-40-admission-r7.json",
     "immutableHistory": "Admitted review records are retained in Git history. A dependency change requires a new reviewed source commit and updated input-bound rationale; never amend an already accepted provenance record."
   },
   "closure": {
@@ -2243,7 +2243,7 @@
     "unenv": "2.0.0-rc.24",
     "youch": "4.1.0-beta.10"
   },
-  "reviewRecord": "eng/policy/dependency-reviews/web-40-admission-r7.json",
+  "reviewRecord": "eng/policy/dependency-reviews/web-40-admission-r8.json",
   "dependencyClasses": {
     "build-inputs": "Complete exact npm lock inventory; licence metadata is preserved, not inferred as a redistribution grant. Existing transitive development prereleases are named build-only migration inputs and cannot enter runtime/stable closures.",
     "runtime": "Only the independently enforced existing shipped artifact records admit runtime inputs and legal scopes.",
