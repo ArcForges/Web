@@ -19,8 +19,8 @@
     "NuGet.config": "cb93c65e28718aa9075fce221e9f9cea9e72d3fe1b30462383448a591f5b3aa1",
     "apps/app/package.json": "0634d5208be3edd24ff0f2f70f230d3069b16810ba0317295f9eb79d35bdc4b5",
     "apps/site/package.json": "68f599c70359599806f4b9475187607a0d5a059d09bc3975f0ee03db70d0f38d",
-    "eng/provenance/profiles/browser-resources-r10.json": "f1cfc05a10dbf988096d2f7f6da86971d55f0fa033e1e12ee3a3a4bebf3117c5",
-    "eng/provenance/records/browser-resources-r10.json": "01b6b16095c78de16005b18c06d41a9b3e0aede3cfd5d686cc8df98e0450f07b",
+    "eng/provenance/profiles/browser-resources-r11.json": "e9c496ff9b97757b4845b08abe07eec456bcc103b8454fd2447b7dbacbd53177",
+    "eng/provenance/records/browser-resources-r11.json": "15f6bb8a2157107e197b85ae799c53fc8b934a0ac463d141e0fc7bb5922f3bf8",
     "global.json": "67381be18aa807c04218165844967cf58235875477f30495ba98c3648248a9d4",
     "package-lock.json": "5b21acc8087f3216924c46d4c23ff11dd5ffbcf52ea1f55005ac807d4809d052",
     "package.json": "bdb0154fe07aac403dabdf5bdda7c39b4c70a3605d85d5a3fcd43b0cbe4eff8e",
@@ -53,7 +53,7 @@
     "owner": "Web dependency maintainer",
     "reviewer": "w-deku-20261008-rev-web-40",
     "date": "2026-10-08",
-    "rationale": "WEB.40 step 3 (Blazor WebAssembly Account and Chat profiles). Adds the gRPC-Web client transport (Grpc.Net.Client and Grpc.Net.Client.Web 2.84.0, published 2026-09-21, Apache-2.0) that the generated Contracts hello client uses, and the Microsoft.Playwright 1.62.0 (published 2026-08-11, Apache-2.0) test-only local opt-in browser tooling. The transitive closure is the nugetClosure rows: every row was read from the restored lock files and its nuspec fetched from the nuget.org flat container. Playwright is never run in CI (LocalOptIn gate). The input digests are rebound over every csproj, props, targets and packages.lock.json in the worktree.",
+    "rationale": "WEB.40 successor of web-40-admission-r3 for the browser provenance chain. The browser profile and its record move from r10 to r11 because worker/index.js is converted to worker/index.ts (the emitted worker bytes are unchanged in behaviour) and the emitter in tooling/project.ts changes. No package, lock, manifest or class changes: the nuget closure, npm closure and package-lock are the r3 values. Every other input digest is rebound unchanged from r3.",
     "inputs": {
       ".github/workflows/ci.yml": "bd8facf68d4758b846db01d87e0cda803d9387ef9e3db66c6e860e0896d01fb5",
       ".node-version": "73fb1b615e2043a933be1c0895cde4358036acc28d785692509b822aa53c761f",
@@ -65,8 +65,8 @@
       "NuGet.config": "cb93c65e28718aa9075fce221e9f9cea9e72d3fe1b30462383448a591f5b3aa1",
       "apps/app/package.json": "0634d5208be3edd24ff0f2f70f230d3069b16810ba0317295f9eb79d35bdc4b5",
       "apps/site/package.json": "68f599c70359599806f4b9475187607a0d5a059d09bc3975f0ee03db70d0f38d",
-      "eng/provenance/profiles/browser-resources-r10.json": "f1cfc05a10dbf988096d2f7f6da86971d55f0fa033e1e12ee3a3a4bebf3117c5",
-      "eng/provenance/records/browser-resources-r10.json": "01b6b16095c78de16005b18c06d41a9b3e0aede3cfd5d686cc8df98e0450f07b",
+      "eng/provenance/profiles/browser-resources-r11.json": "e9c496ff9b97757b4845b08abe07eec456bcc103b8454fd2447b7dbacbd53177",
+      "eng/provenance/records/browser-resources-r11.json": "15f6bb8a2157107e197b85ae799c53fc8b934a0ac463d141e0fc7bb5922f3bf8",
       "global.json": "67381be18aa807c04218165844967cf58235875477f30495ba98c3648248a9d4",
       "package-lock.json": "5b21acc8087f3216924c46d4c23ff11dd5ffbcf52ea1f55005ac807d4809d052",
       "package.json": "bdb0154fe07aac403dabdf5bdda7c39b4c70a3605d85d5a3fcd43b0cbe4eff8e",
@@ -106,7 +106,7 @@
     ],
     "runtimeAssessment": "Step 2 restores and compiles the Razor class library, the static Site generator and their xUnit and bUnit test projects against the admitted closure. No browser-wasm build, publish, AOT compilation, browser run or deployment is performed by this admission. The browser-wasm packs are admitted for the later Blazor profile steps and are not executed here.",
     "maintenance": "Each NuGet coordinate is exact and content-hashed. The Contracts packages move only by a reviewed successor that re-verifies the CON.07 or later candidate identity from the publication record. The browser-wasm packs must stay at the SDK bundled runtime version (10.0.12 for SDK 10.0.401); any change needs a new reviewed receipt that names this file as its predecessor. Historical receipts remain immutable.",
-    "previous": "eng/policy/dependency-reviews/web-40-admission-r1.json",
+    "previous": "eng/policy/dependency-reviews/web-40-admission-r3.json",
     "immutableHistory": "Admitted review records are retained in Git history. A dependency change requires a new reviewed source commit and updated input-bound rationale; never amend an already accepted provenance record."
   },
   "closure": {
@@ -2228,7 +2228,7 @@
   "registry": "https://registry.npmjs.org/",
   "channel": "foundation-candidate",
   "artifactRecords": [
-    "browser-resources-r10"
+    "browser-resources-r11"
   ],
   "native": {
     "mode": "existing-artifact-closure-only",
@@ -2243,7 +2243,7 @@
     "unenv": "2.0.0-rc.24",
     "youch": "4.1.0-beta.10"
   },
-  "reviewRecord": "eng/policy/dependency-reviews/web-40-admission-r3.json",
+  "reviewRecord": "eng/policy/dependency-reviews/web-40-admission-r4.json",
   "dependencyClasses": {
     "build-inputs": "Complete exact npm lock inventory; licence metadata is preserved, not inferred as a redistribution grant. Existing transitive development prereleases are named build-only migration inputs and cannot enter runtime/stable closures.",
     "runtime": "Only the independently enforced existing shipped artifact records admit runtime inputs and legal scopes.",
