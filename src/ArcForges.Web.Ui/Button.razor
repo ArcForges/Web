@@ -1,0 +1,11 @@
+<button class="button" @attributes="AdditionalAttributes">@ChildContent<Arrow /></button>
+
+@code {
+    /// <summary>The visible label, placed before the arrow.</summary>
+    [Parameter]
+    public RenderFragment? ChildContent { get; set; }
+
+    /// <summary>Attributes passed through to the button element (type, disabled, event handlers).</summary>
+    [Parameter(CaptureUnmatchedValues = true)]
+    public IDictionary<string, object>? AdditionalAttributes { get; set; }
+}

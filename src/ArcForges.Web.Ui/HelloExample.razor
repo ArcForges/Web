@@ -1,0 +1,35 @@
+<section class="example"><a class="back-link" href="/">← Back home</a><p class="eyebrow"><span class="status-dot" aria-hidden="true"></span>Hello example</p><h1>A hello, <em>just for you.</em></h1><p class="hero-copy">Start with your name. This example runs in your browser, and your name stays on this page.</p><form class="hello-form" @onsubmit="Submit" @onsubmit:preventDefault="true"><label for="hello-name">Your name</label><div class="input-row"><input id="hello-name" disabled="@(!_ready)" @bind="_name" @bind:event="oninput" autocomplete="off" spellcheck="false" aria-invalid="@InvalidText" aria-describedby="@DescribedBy" /><Button type="submit" disabled="@(!_ready)">Say hello</Button></div><p id="name-hint" class="field-hint">Up to 80 characters. No account needed.</p>@if (_error.Length > 0) { <p id="name-error" class="field-error" role="alert">@_error</p> }</form><noscript><p class="no-script">The example greeting is shown below. Enable JavaScript to personalize it.</p></noscript><div class="greeting" role="status" aria-live="polite" aria-atomic="true"><span class="greeting-label">Your greeting</span><p>@_message</p></div><p class="field-hint"><a href="/cloud-hello/">Check the server connection →</a></p></section>
+
+@code {
+    private string _name = HelloGreeting.DefaultName;
+    private string _message = HelloGreeting.Greet(HelloGreeting.DefaultName);
+    private string _error = string.Empty;
+    private bool _ready;
+
+    private string InvalidText => _error.Length > 0 ? "true" : "false";
+
+    private string DescribedBy => _error.Length > 0 ? "name-error name-hint" : "name-hint";
+
+    /// <summary>Enables the controls after the first interactive render, as the React example did after mount.</summary>
+    protected override void OnAfterRender(bool firstRender)
+    {
+        if (firstRender && !_ready)
+        {
+            _ready = true;
+            StateHasChanged();
+        }
+    }
+
+    private void Submit(EventArgs _)
+    {
+        try
+        {
+            _message = HelloGreeting.Greet(_name);
+            _error = string.Empty;
+        }
+        catch (InvalidNameException)
+        {
+            _error = HelloGreeting.InvalidNameMessage;
+        }
+    }
+}

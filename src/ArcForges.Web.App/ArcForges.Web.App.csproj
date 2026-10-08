@@ -8,6 +8,10 @@
     <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly" />
   </ItemGroup>
   <ItemGroup>
+    <!-- WEB.40 section 10 browser-wasm admission (receipt web-40-admission-r2.json): the WebAssembly SDK pack at the SDK 10.0.401 bundled runtime version 10.0.12. The Mono browser-wasm runtime pack is added implicitly by the SDK at the same version. -->
+    <PackageDownload Include="Microsoft.NET.Runtime.WebAssembly.Sdk" Version="[10.0.12]" />
+  </ItemGroup>
+  <ItemGroup>
     <ProjectReference Include="../ArcForges.Web.Ui/ArcForges.Web.Ui.csproj" />
   </ItemGroup>
   <PropertyGroup>

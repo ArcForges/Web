@@ -1,0 +1,23 @@
+<html lang="en"><head><meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" /><meta name="robots" content="noindex, nofollow" /><meta name="theme-color" content="#f4f3ed" /><link rel="icon" href="/favicon.svg" type="image/svg+xml" /><title>@Title</title>@if (Description is not null) { <meta name="description" content="@Description" /> }<link rel="stylesheet" href="@Stylesheet" /></head><body><Shell SourceUrl="@SourceUrl">@Body</Shell></body></html>
+
+@code {
+    /// <summary>The document title, the exact React meta title.</summary>
+    [Parameter, EditorRequired]
+    public string Title { get; set; } = string.Empty;
+
+    /// <summary>The meta description, when the page has one.</summary>
+    [Parameter]
+    public string? Description { get; set; }
+
+    /// <summary>The content-hashed stylesheet path of the build.</summary>
+    [Parameter, EditorRequired]
+    public string Stylesheet { get; set; } = string.Empty;
+
+    /// <summary>The source link of the build.</summary>
+    [Parameter, EditorRequired]
+    public string SourceUrl { get; set; } = string.Empty;
+
+    /// <summary>The page content.</summary>
+    [Parameter, EditorRequired]
+    public RenderFragment Body { get; set; } = _ => { };
+}
