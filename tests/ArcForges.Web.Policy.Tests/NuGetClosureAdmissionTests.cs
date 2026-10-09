@@ -43,7 +43,6 @@ public sealed class NuGetClosureAdmissionTests
         var restoredByCi = CiRestoredKeys(root);
         var packsRoot = DotNetPacksFolder();
         var verified = 0;
-        var satisfiedByPacks = new List<string>();
         foreach (var section in new[] { "nugetClosure", "nugetPackDownloads" })
         {
             foreach (var entry in policy[section]!.AsObject())
@@ -55,21 +54,14 @@ public sealed class NuGetClosureAdmissionTests
                     Assert.Equal(expected, actual);
                     verified++;
                 }
-                else if (SatisfiedByPacksFolder(packsRoot, entry.Key, out _))
+                else if (!SatisfiedByPacksFolder(packsRoot, entry.Key, out _))
                 {
-                    // The SDK resolved this implicit pack from its own packs folder on this runner (see PacksFolderRows).
-                    satisfiedByPacks.Add(entry.Key);
-                }
-                else
-                {
+                    // A row with no NuGet copy is skipped only through an explicit PacksFolderRows entry for this platform.
                     Assert.False(mustBePresent, $"Admitted package {entry.Key} is not in the NuGet packages folder; run the locked restore first.");
                 }
             }
         }
         Assert.True(verified > 0, "No admitted nuspec was verified against the restored packages.");
-        // Every row skipped here is an explicit PacksFolderRows entry for this platform whose packs copy exists, and every
-        // other admitted row was verified against its NuGet copy above.
-        Assert.All(satisfiedByPacks, key => Assert.Contains(PacksFolderRows, row => row.Key == key && row.Platform == CurrentPlatform()));
     }
 
     [Fact]
@@ -191,7 +183,7 @@ public sealed class NuGetClosureAdmissionTests
     /// does not write their NuGet copy there. The SDK adds the implicit Mono browser-wasm runtime pack as a NuGet download only
     /// when the packs folder lacks the bundled runtime version. The explicit PackageDownload rows are always restored to NuGet.
     /// Every other row is required in the NuGet packages folder on every platform. A row is skipped only when its packs copy
-    /// exists at the admitted version, so a missing pack still fails.
+    /// holds the admitted version and its content marker, so a missing or empty pack still fails.
     /// </summary>
     private static readonly PacksFolderRow[] PacksFolderRows =
     [
@@ -200,10 +192,18 @@ public sealed class NuGetClosureAdmissionTests
             Platform: "Windows",
             PacksFolder: "Microsoft.NETCore.App.Runtime.Mono.browser-wasm",
             Version: "10.0.12",
-            Reason: "The hosted windows-2025-vs2026 image (runner image 20260925.250.1, CI job 113727560820) preinstalls the wasm.tools workload into C:\\Program Files\\dotnet, which holds this pack at the bundled version 10.0.12 (the same run's build lists the 10.0.12 Emscripten workload packs in that folder), so the SDK adds no NuGet download. Ubuntu, and a local machine whose packs folder lacks 10.0.12, restore the NuGet copy and it is verified by digest there."),
+            Marker: Path.Combine("runtimes", "browser-wasm", "native", "dotnet.native.wasm"),
+            Reason: "The hosted windows-2025-vs2026 image (runner image 20260925.250.1, CI job 113727560820) preinstalls the wasm.tools workload into C:\\Program Files\\dotnet, which holds this pack at the bundled version 10.0.12 (the same run's build lists the 10.0.12 Emscripten workload packs in that folder), so the SDK adds no NuGet download. A local machine whose packs folder lacks 10.0.12 restores the NuGet copy and it is verified by digest there."),
+        new(
+            Key: "microsoft.netcore.app.runtime.mono.browser-wasm/10.0.12",
+            Platform: "Linux",
+            PacksFolder: "Microsoft.NETCore.App.Runtime.Mono.browser-wasm",
+            Version: "10.0.12",
+            Marker: Path.Combine("runtimes", "browser-wasm", "native", "dotnet.native.wasm"),
+            Reason: "The Ubuntu hosted image carries no WebAssembly workload, so this row is checked there and not satisfied: the SDK adds the implicit pack as a NuGet download, restores it and the test verifies its digest. The NuGet copy is skipped only when a 10.0.12 packs copy with the marker exists locally, and in that case the SDK does not download the pack either."),
     ];
 
-    private sealed record PacksFolderRow(string Key, string Platform, string PacksFolder, string Version, string Reason);
+    private sealed record PacksFolderRow(string Key, string Platform, string PacksFolder, string Version, string Marker, string Reason);
 
     private static bool SatisfiedByPacksFolder(string packsRoot, string key, out string reason)
     {
@@ -212,7 +212,8 @@ public sealed class NuGetClosureAdmissionTests
         {
             if (row.Key != key || row.Platform != CurrentPlatform())
                 continue;
-            if (!Directory.Exists(Path.Combine(packsRoot, row.PacksFolder, row.Version)))
+            // The folder alone is not evidence of an installed pack: the content marker must exist at the admitted version.
+            if (!File.Exists(Path.Combine(packsRoot, row.PacksFolder, row.Version, row.Marker)))
                 return false;
             reason = row.Reason;
             return true;
