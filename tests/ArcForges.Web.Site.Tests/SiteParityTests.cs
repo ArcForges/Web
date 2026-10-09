@@ -129,6 +129,61 @@ public sealed class SiteParityTests
     }
 
     [Fact]
+    public void AMatchedStylesheetPairIsExcusedOnItsOwnSidesAndNothingElseIs()
+    {
+        var reference = new[] { "404.css", "__spa-fallback.html", "assets/entry.client-C6nGypqo.js", "assets/root-BPtceTrQ.css", "index.html" };
+        var candidate = new[] { "404.css", "assets/site.d4912dbd6dc5e22b.css", "index.html" };
+
+        var comparison = CompareFileSets(reference, candidate, "assets/root-BPtceTrQ.css", "assets/site.d4912dbd6dc5e22b.css");
+
+        Assert.Empty(comparison.Failures);
+        Assert.Equal(new[] { "__spa-fallback.html", "assets/entry.client-C6nGypqo.js" }, comparison.ReferenceOnly);
+        Assert.Empty(comparison.CandidateOnly);
+    }
+
+    [Fact]
+    public void AnUnmatchedStylesheetStillFailsOnEitherSide()
+    {
+        var reference = new[] { "assets/root-BPtceTrQ.css", "index.html" };
+        var candidate = new[] { "assets/site.d4912dbd6dc5e22b.css", "index.html" };
+
+        // The React page names a stylesheet that the reference does not hold, so no pair is matched.
+        var unnamed = CompareFileSets(reference, candidate, "assets/missing.css", "assets/site.d4912dbd6dc5e22b.css");
+        Assert.Contains(unnamed.Failures, failure => failure.Contains("is not a reference file", StringComparison.Ordinal));
+
+        // The candidate names a stylesheet that it does not hold.
+        var absent = CompareFileSets(reference, candidate, "assets/root-BPtceTrQ.css", "assets/site.nothere.css");
+        Assert.Contains(absent.Failures, failure => failure.Contains("has no stylesheet file", StringComparison.Ordinal));
+
+        // The candidate has a second stylesheet that no reference stylesheet pairs with.
+        var extra = new[] { "assets/extra.css", "assets/site.d4912dbd6dc5e22b.css", "index.html" };
+        var second = CompareFileSets(reference, extra, "assets/root-BPtceTrQ.css", "assets/site.d4912dbd6dc5e22b.css");
+        Assert.Equal(new[] { "assets/extra.css" }, second.CandidateOnly);
+        Assert.Contains("The candidate has files the reference does not.", second.Failures);
+    }
+
+    [Fact]
+    public void AReferenceStylesheetThatIsNotTheMatchedPairStillFailsTheRuntimeRule()
+    {
+        var reference = new[] { "__spa-fallback.html", "assets/entry.client-C6nGypqo.js", "assets/root-BPtceTrQ.css", "assets/unpaired.css", "index.html" };
+        var candidate = new[] { "assets/site.d4912dbd6dc5e22b.css", "index.html" };
+
+        var comparison = CompareFileSets(reference, candidate, "assets/root-BPtceTrQ.css", "assets/site.d4912dbd6dc5e22b.css");
+
+        Assert.Equal(new[] { "__spa-fallback.html", "assets/entry.client-C6nGypqo.js", "assets/unpaired.css" }, comparison.ReferenceOnly);
+        Assert.Contains("The reference-only files are not exactly the React runtime files.", comparison.Failures);
+    }
+
+    [Fact]
+    public void ANonIdenticalStylesheetPairIsNotTheSameBytes()
+    {
+        // The file-set check excuses the pair's names only; the bytes of the pair are compared by SameBytes.
+        Assert.True(SameBytes(Encoding.UTF8.GetBytes("a{color:red}"), Encoding.UTF8.GetBytes("a{color:red}")));
+        Assert.False(SameBytes(Encoding.UTF8.GetBytes("a{color:red}"), Encoding.UTF8.GetBytes("a{color:blue}")));
+        Assert.False(SameBytes(Encoding.UTF8.GetBytes("a{color:red}"), null));
+    }
+
+    [Fact]
     public async Task TheCSharpSiteAgreesWithTheRecordedReactPrerenderWhenItIsNamed()
     {
         var reference = Environment.GetEnvironmentVariable(ReferenceVariable);
@@ -142,7 +197,8 @@ public sealed class SiteParityTests
         var failures = new List<string>();
 
         // File inventory. The reference-only files are the React runtime (hydration bundles and the SPA fallback). The candidate
-        // has no file the reference lacks; its content-hashed stylesheet is paired with the reference stylesheet below.
+        // has no file the reference lacks, except its content-hashed stylesheet, which is one matched pair with the reference
+        // stylesheet named by the React page. The pair is excused on its own side only; its bytes are compared below.
         var referenceFiles = Directory.EnumerateFiles(root, "*", SearchOption.AllDirectories)
             .Select(path => Path.GetRelativePath(root, path).Replace('\\', '/'))
             .OrderBy(path => path, StringComparer.Ordinal)
@@ -150,19 +206,12 @@ public sealed class SiteParityTests
         var candidateFiles = site.Files.Select(file => file.Path).OrderBy(path => path, StringComparer.Ordinal).ToList();
         var stylesheet = ReferenceStylesheet.Match(File.ReadAllText(Path.Combine(root, "index.html"), Encoding.UTF8)).Groups[1].Value;
         var candidateStylesheet = Assert.Single(candidateFiles, path => path.StartsWith("assets/site.", StringComparison.Ordinal));
-        var referenceOnly = referenceFiles.Except(candidateFiles, StringComparer.Ordinal).ToList();
-        var candidateOnly = candidateFiles.Except(referenceFiles, StringComparer.Ordinal).ToList();
-        var expectedReferenceOnly = referenceFiles
-            .Where(path => path == "__spa-fallback.html" || (path.StartsWith("assets/", StringComparison.Ordinal) && path.EndsWith(".js", StringComparison.Ordinal)))
-            .ToList();
+        var inventory = CompareFileSets(referenceFiles, candidateFiles, stylesheet, candidateStylesheet);
         report.AppendLine($"Reference files: {referenceFiles.Count}. Candidate files: {candidateFiles.Count}.");
-        report.AppendLine($"Reference-only (React runtime, intended): {string.Join(", ", referenceOnly)}");
-        report.AppendLine($"Candidate-only: {(candidateOnly.Count == 0 ? "none" : string.Join(", ", candidateOnly))}");
+        report.AppendLine($"Reference-only (React runtime, intended): {string.Join(", ", inventory.ReferenceOnly)}");
+        report.AppendLine($"Candidate-only: {(inventory.CandidateOnly.Count == 0 ? "none" : string.Join(", ", inventory.CandidateOnly))}");
         report.AppendLine($"Stylesheet pair: {stylesheet} and {candidateStylesheet}.");
-        if (!referenceOnly.SequenceEqual(expectedReferenceOnly, StringComparer.Ordinal))
-            failures.Add("The reference-only files are not exactly the React runtime files.");
-        if (candidateOnly.Count > 0)
-            failures.Add("The candidate has files the reference does not.");
+        failures.AddRange(inventory.Failures);
 
         // HTML pages: each page is a document, and its normalised structure must be equal.
         foreach (var path in HtmlPaths)
@@ -212,7 +261,45 @@ public sealed class SiteParityTests
         Assert.True(failures.Count == 0, text + string.Join(Environment.NewLine, failures));
     }
 
-    private static bool SameBytes(byte[] reference, byte[]? candidate) =>
+    /// <summary>The file-set verdict of the parity gate: what remains on each side once the matched stylesheet pair is excused.</summary>
+    internal sealed record FileSetComparison(IReadOnlyList<string> ReferenceOnly, IReadOnlyList<string> CandidateOnly, IReadOnlyList<string> Failures);
+
+    /// <summary>
+    /// Compares two sorted file inventories. The stylesheet the React page names and the candidate's content-hashed stylesheet
+    /// are one matched pair, excused on their own side only, and only when both files exist. Everything else stays strict: the
+    /// reference-only files must be exactly the React runtime files, and the candidate may have no other file the reference lacks.
+    /// </summary>
+    internal static FileSetComparison CompareFileSets(
+        IReadOnlyList<string> referenceFiles,
+        IReadOnlyList<string> candidateFiles,
+        string referenceStylesheet,
+        string candidateStylesheet)
+    {
+        var failures = new List<string>();
+        if (!referenceFiles.Contains(referenceStylesheet, StringComparer.Ordinal))
+            failures.Add($"The React page names a stylesheet that is not a reference file: '{referenceStylesheet}'.");
+        if (!candidateFiles.Contains(candidateStylesheet, StringComparer.Ordinal))
+            failures.Add($"The candidate has no stylesheet file '{candidateStylesheet}'.");
+
+        var referenceOnly = referenceFiles
+            .Except(candidateFiles, StringComparer.Ordinal)
+            .Where(path => !string.Equals(path, referenceStylesheet, StringComparison.Ordinal))
+            .ToList();
+        var candidateOnly = candidateFiles
+            .Except(referenceFiles, StringComparer.Ordinal)
+            .Where(path => !string.Equals(path, candidateStylesheet, StringComparison.Ordinal))
+            .ToList();
+        var expectedReferenceOnly = referenceFiles
+            .Where(path => path == "__spa-fallback.html" || (path.StartsWith("assets/", StringComparison.Ordinal) && path.EndsWith(".js", StringComparison.Ordinal)))
+            .ToList();
+        if (!referenceOnly.SequenceEqual(expectedReferenceOnly, StringComparer.Ordinal))
+            failures.Add("The reference-only files are not exactly the React runtime files.");
+        if (candidateOnly.Count > 0)
+            failures.Add("The candidate has files the reference does not.");
+        return new FileSetComparison(referenceOnly, candidateOnly, failures);
+    }
+
+    internal static bool SameBytes(byte[] reference, byte[]? candidate) =>
         candidate is not null && SHA256.HashData(reference).AsSpan().SequenceEqual(SHA256.HashData(candidate));
 
     /// <summary>The header lines that differ, after the React script hashes are removed from its policy.</summary>
