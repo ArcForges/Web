@@ -410,9 +410,15 @@ jobs:
           VERSION=$(node --input-type=module -e 'import fs from "node:fs"; console.log(JSON.parse(fs.readFileSync("artifacts/candidate/manifest.json")).version)')
           # The Site archive (web-site-<sha256>.tar) is the candidate's one sealed root member, verified by npm run deploy above.
           # It is published here beside web-profiles, and only by this main-push release. It is not a deployed asset.
-          test "$(ls artifacts/candidate/web-site-*.tar | wc -l)" = 1
+          shopt -s nullglob
+          site_archives=(artifacts/candidate/web-site-*.tar)
+          shopt -u nullglob
+          test "${#site_archives[@]}" = 1
+          site_archive="${site_archives[0]}"
+          site_digest=$(sha256sum "$site_archive" | cut -d ' ' -f 1)
+          test "$(basename "$site_archive")" = "web-site-${site_digest}.tar"
           tar -czf "artifacts/web-${VERSION}.tar.gz" -C artifacts/candidate .
-          gh release create "web-${VERSION}" "artifacts/web-${VERSION}.tar.gz" artifacts/deployment.json artifacts/profiles/web-profiles-*.tar artifacts/candidate/web-site-*.tar --target "$GITHUB_SHA" --title "Web ${VERSION}" --prerelease --generate-notes
+          gh release create "web-${VERSION}" "artifacts/web-${VERSION}.tar.gz" artifacts/deployment.json artifacts/profiles/web-profiles-*.tar "$site_archive" --target "$GITHUB_SHA" --title "Web ${VERSION}" --prerelease --generate-notes
       - name: Preserve deployment evidence
         if: always()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
