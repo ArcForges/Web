@@ -280,7 +280,18 @@
     "tsconfig.json",
     "win.slnx",
     "worker/index.ts",
-    "wrangler.json"
+    "wrangler.json",
+    "docs/prf-11-budgets.md",
+    "docs/prf-11-profile-proof.md",
+    "docs/prf-11-runbook.md",
+    "docs/prf-11-stream-transport.md",
+    "tests/ArcForges.Web.App.Tests/StreamFramingTests.cs",
+    "tests/ArcForges.Web.App.Tests/WireLimitTests.cs",
+    "tests/ArcForges.Web.Tooling.Tests/EmittedProfileContractTests.cs",
+    "tests/browser/ArcForges.Web.Browser.Tests/LivePrf11OptIn.cs",
+    "tests/browser/ArcForges.Web.Browser.Tests/LivePrf11OptInTests.cs",
+    "tests/browser/ArcForges.Web.Browser.Tests/LivePrf11Specs.cs",
+    "tests/browser/ArcForges.Web.Browser.Tests/LocalNoScriptBrowserTests.cs"
   ],
   "reused": {
     "LICENSE": "canonical-agpl-legal-r1",
