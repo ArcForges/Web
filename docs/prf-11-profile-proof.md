@@ -141,37 +141,38 @@ The served policy (`WasmContentSecurityPolicy`, Ui, outside the PRF.11 write sco
 
 - The bundle was built under CI conditions (App publish, then `profiles bundle` and `profiles verify`, 175 members), extracted to a scratch folder, and served on `127.0.0.1` with the exact per-profile `Content-Security-Policy` from its `_headers`. Four of four headless runs of `/account/` logged `Setting the document's base URI to 'http://127.0.0.1:4190/' violates the following Content Security Policy directive: "base-uri 'none'". The action has been blocked.` and left the DOM on `Loading…`. The heading `Your session, as the server sees it.` never rendered.
 - The mechanism is the relative framework loader. With the base element blocked, `_framework/blazor.webassembly.js` resolves to `/account/_framework/blazor.webassembly.js`, which returns 404, while the root path returns 200. Blazor therefore never boots.
-- Control, in a scratch server only (not in the repository): the same bundle with `base-uri 'self'` logged no violation, and the heading rendered in 2 of 4 runs. The other two runs stayed on `Loading…` with no violation logged. The `--dump-dom` method is not reliable enough to settle the control in every run, so the control shows only that the violation is what changes between the two modes. With no CSP header the heading rendered in 2 of 2 runs.
+- Control, in a scratch server only (not in the repository): the same bundle with `base-uri 'self'` logged no violation, and the heading rendered in 2 of 4 runs. The other two runs stayed on `Loading…` with no violation logged. The `--dump-dom` method is not reliable enough to settle the render in every control run. What the control does establish is that no violation is logged under `base-uri 'self'`, in all four runs. With no CSP header the heading rendered in 2 of 2 runs.
 - Claimant-reported, local, not the deployed origin. The live spec on the deployed origin remains the check that the shells start.
 
 The offline tests cannot see this, because they pin the policy string and do not run a browser. The fix is a reviewed change to the Ui policy (for example `base-uri 'self'`) or a reviewed host-page change. Both are outside the PRF.11 write scope and need a new coordinator decision (brief 5.13, S20(b)), so this record makes no code change. Until that decision lands, the shells do not start under the served policy, the in-browser CSP and shell checks are not passed, and the policy string stays pinned as served. CLOUD.85 would serve that string on the proof origin, so the decision is needed before CLOUD.85 deploys.
 
-### Gates (local, under CI conditions unless stated)
+### Gates (fix1 re-run under CI conditions, code head `b84e2e3`)
+
+The gates were re-run after the fix1 record changes, from a clean state (`git clean -fdX`, then an empty NuGet folder under the scratchpad), at `b84e2e3`. Every step ran in the build slot. Three local conditions were corrected on the way and are recorded in the local CI conditions section: `GITHUB_REPOSITORY` for AFP006, the clean start against stale publish output, and building the C# tool before `npm test`, which the CI source job does first on Linux. These are local-condition fixes, not product changes.
 
 | Gate | Result | Notes |
 | --- | --- | --- |
-| Policy suite (`ArcForges.Web.Policy.Tests`) | 108 of 108 passed | Whitespace and final newline rules included |
-| `dotnet format --verify-no-changes` (every CSHARP_PROJECTS entry) | passed | Run per project with `--no-restore` |
-| `dotnet build -c Release` (every CSHARP_PROJECTS entry) | passed | Zero errors |
+| Locked restores (every CSHARP_PROJECTS entry, `--locked-mode`) | passed | `NUGET_PACKAGES` is an empty scratch folder |
+| `dotnet format --verify-no-changes --no-restore` (every CSHARP_PROJECTS entry) | passed | |
+| `dotnet build -c Release --no-restore` (every CSHARP_PROJECTS entry) | passed | 11 projects, zero errors and zero warnings |
 | `dotnet test --no-build -c Release` (every CSHARP_TEST_PROJECTS entry) | Tooling 56/56; Site 75 passed, 1 skipped by design (`SiteParityTests`, no React prerender named); Ui 14/14; App 91/91; Operations 5/5; Policy 108/108 | |
-| Locked restores (every CSHARP_PROJECTS entry and the browser project) | passed | `NUGET_PACKAGES` is an empty scratch folder |
-| Profile publish (App to `artifacts/profiles/app` and `artifacts/publish/app`; Operations) | passed | IL build; `RunAOTCompilation` false; no `wasm-tools` workload, so AOT is not run |
-| Profile budgets (`profiles budget`) | passed against the re-baselined values | |
+| Profile publish (App to `artifacts/profiles/app`, Operations to `artifacts/profiles/operations`) | passed | IL build; `RunAOTCompilation` false; no `wasm-tools` workload, so AOT is not run |
+| Static Site (`site build` twice, `diff -r`) | identical | |
+| Candidate job: tooling restore and build, App locked restore and publish to `artifacts/publish/app` | passed | |
+| Profile budgets (`profiles budget`) | passed | against the re-baselined values |
+| Candidate (worker and identity emitted, built twice, `diff -r`, verified) | passed; the two trees are identical; verified at 20 members | Local identity placeholders (see the local CI conditions section) |
 | Profile bundle (`profiles bundle` and `profiles verify`) | passed (175 members) | |
-| Candidate (worker and identity emitted, built twice, diffed, verified) | passed; the two candidate trees are identical (20 members) | Local identity placeholders (see the local CI conditions section) |
-| Site (built twice, diffed) | identical | |
-| `npm ci --ignore-scripts` | passed with the lock | Required `--engine-strict=false`; see the environment gaps |
+| `npm ci --ignore-scripts --engine-strict=false` | passed | `--engine-strict=false` is needed locally (see the environment gaps) |
 | `npm audit --audit-level=high` | 0 vulnerabilities | |
-| `npm run check:dependencies` | passed (114 dependencies, 39 inputs) | |
-| `npm run policy`, the provenance and licence audits | the licence boundary, the provenance audit, the naming check and every assertion before the Node version check passed | The Node version assertion fails (24.20 against the 24.21 pin). The remaining assertions were replicated from a scratch script: exact pins, lockfile v3, lock provenance and wrangler routing passed; the `packageManager` assertion fails (npm 12.0.2 against the pinned 11.19.0). Hosted CI is authoritative for `npm run policy`. |
+| `npm run check:dependencies` | passed | |
 | `npm run typecheck` | passed | |
 | `npm run test:dependencies` | 15 of 15 passed | |
-| `npm run test` | 94 of 94 passed | |
+| `npm run test` | 94 of 94 passed | Run after the C# tool was built. `tests/provenance/csharp-candidate.test.ts` needs the built tool, as the CI source job builds it first |
+| `npm run policy` | fails at the Node version assertion (`v24.20.0` against the `v24.21.0` pin) | Environment gap, unchanged from the U9 record. The later assertions are not reached locally. Hosted CI is authoritative |
 | `node tooling/project.ts licence-evaluated` (Windows source leg) | passed | |
 | `actionlint` 1.7.12 on `.github/workflows/ci.yml` | passed | Workflow not changed |
-| gitleaks (pinned digest `c00b6bd0`, run in WSL Debian Docker over a WSL-native clone of `task/prf-11` at `98547cb`, network disabled) | no leaks found | The image was already cached and was not pulled. The scan reported 100 commits scanned for a 127-commit history; the difference was not investigated, and the scan is repeated for the final head. |
-| Inventory (`eng/provenance/files.json`) | passed after adding eleven first-party entries (commit `98547cb`) | |
-| Hosted only (not run here) | CodeQL (javascript-typescript, actions, csharp), dependency review (PR only), the Linux leg of the csharp and source jobs, the candidate job on Linux, the deploy job (main only) and the Cloudflare deploy | Recorded as hosted-only |
+| gitleaks (pinned image `c00b6bd0`, WSL Debian Docker, `--network none`, over a fresh clone at `b84e2e3`) | no leaks found; 102 commits scanned | The image was already cached, so it was run by its image ID and not pulled. The `git` mode scans the history reachable from HEAD |
+| Hosted only (not run here) | CodeQL (javascript-typescript, actions, csharp), dependency review (PR only), the Linux legs of the csharp and source jobs, the candidate job on Linux, the verify job, and the deploy job (main push only) | Recorded as hosted. `npm run deploy` was not run |
 
 ### Environment gaps (not fixes)
 
@@ -180,7 +181,7 @@ The offline tests cannot see this, because they pin the policy string and do not
 
 ### Commits (local, on `task/prf-11`, not pushed)
 
-`fc4fba0` (U1), `f27a9b4` (U2), `9edf001` (U3), `b21aa64` (U4), `a1ede81` (U5), `2a21bc3` (U6), `db38e2c` (U7), `98547cb` (inventory fix), and this commit (U9). U8 is skipped by its own condition.
+`fc4fba0` (U1), `f27a9b4` (U2), `9edf001` (U3), `b21aa64` (U4), `a1ede81` (U5), `2a21bc3` (U6), `db38e2c` (U7), `98547cb` (inventory fix), `3283edf` (U9), then `b84e2e3` (fix1: the shell outcome and the S25 review fields). The fix1 gate re-run record is the commit after `b84e2e3`. U8 is skipped by its own condition.
 
 ### Completion blockers (blocked, not proven)
 
@@ -194,7 +195,7 @@ The offline tests cannot see this, because they pin the policy string and do not
 
 The independent reviewer's material findings at `3283edf` and their dispositions:
 
-- **Shells do not start under the pinned policy (material).** Confirmed locally; see the open-decision section. The finding asks for `base-uri` to change in `src/ArcForges.Web.Ui/WasmContentSecurityPolicy.cs`. That file is outside the PRF.11 write scope, and brief 5.13 and S20(b) make an in-browser CSP change that needs a Ui edit a stop for a new decision. So no code is changed. The record now states the observed outcome, and the decision is listed under remaining work for the coordinator. The pinned string and its test pins are unchanged.
+- **Shells do not start under the pinned policy (material).** Confirmed locally; see the open-decision section. The finding asks for `base-uri` to change in `src/ArcForges.Web.Ui/WasmContentSecurityPolicy.cs`. That file is outside the PRF.11 write scope, and brief 5.13 and S20(b) make an in-browser CSP change that needs a Ui edit a stop for a new decision. So no code is changed. The record now states the observed outcome, and the decision is listed in the completion blockers for the coordinator. The pinned string and its test pins are unchanged.
 - **S25 review fields missing (material).** This record now carries the reviewer, `decision: approved` and `reviewedOn` fields at its head (above). `docs/prf-11-stream-transport.md` carries the same fields, and `docs/prf-11-budgets.md` already did. The S25 fields are a proposal ratified only by the named reviewer's exact-head approval.
 
 ### CLOUD.71 history (D11)
