@@ -21,3 +21,13 @@ regexes = [
   '''^\s*"node_modules/@arcforges/api-client/dist/shapes/gen/NativeTokenRequest\.js": "79d75ee79a5b6d52433e6425de6eefdaa1e829fd58ee2dcda204cf391e3517df",?$''',
   '''^\s*"node_modules/@arcforges/api-client/dist/shapes/gen/NativeTokenResponse\.js": "725cac5a5ceeba78f775804a26b8b5de99a7eeaf250d37335fc59bdd5ec58ce1",?$''',
 ]
+
+[[allowlists]]
+description = "Reviewed public schema digest in the CON.07 Contracts publication record: the key name contains auth, and the value is the SHA-256 of the packaged public schema (verified against the NuGet package bytes)"
+condition = "AND"
+targetRules = ["generic-api-key"]
+regexTarget = "line"
+paths = ['''^eng/contracts/ArcForges\.Contracts\.PublicApi/1\.0\.0-ci\.287\.1/source\.json$''']
+regexes = [
+  '''^\s*"public/http/v1/native-auth\.schema\.json": "e7807ae0ab6b4530d817941a922d7df90e4feb525c68d81a245a4c089ad3d296",?$''',
+]
