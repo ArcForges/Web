@@ -30,6 +30,7 @@ public static class PolicyCases
         ["workspace-yarn-lock"] = new("workspace", s => s["yarn.lock"] = "alternate"),
         ["workspace-nested-manifest"] = new("workspace", s => s["hidden/package.json"] = "{\"name\":\"hidden\"}"),
         ["workspace-nested-workspaces"] = new("workspace", s => s["apps/site/package.json"] = "{\"name\":\"site\",\"workspaces\":[\"x\"],\"license\":\"AGPL-3.0-only\",\"arcforges\":{\"licenceBoundary\":\"AGPL\"}}"),
+        ["workspace-root-workspaces-not-array"] = new("workspace", s => PolicyBaseline.EditJson(s, Root, o => o["workspaces"] = System.Text.Json.Nodes.JsonValue.Create("apps/site"))),
         ["workspace-lock-differs"] = new("workspace", s => PolicyBaseline.EditJson(s, Site, o => o["devDependencies"] = new System.Text.Json.Nodes.JsonObject { ["left-pad"] = "1.3.0" })),
         ["workspace-restore-without-lock"] = new("workspace", s => PolicyBaseline.Replace(s, "Directory.Build.props", "<RestorePackagesWithLockFile>true", "<RestorePackagesWithLockFile>false")),
         ["workspace-alternate-nuget-source"] = new("workspace", s => PolicyBaseline.Replace(s, "NuGet.config", "</packageSources>", "<add key=\"other\" value=\"https://example.invalid/index.json\" /></packageSources>")),

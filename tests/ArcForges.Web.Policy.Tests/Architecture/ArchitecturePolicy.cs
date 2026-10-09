@@ -109,11 +109,14 @@ public static partial class ArchitecturePolicy
             context.Report("workspace", "package.json", "The root package.json is missing or malformed.");
             return;
         }
-        if (root["workspaces"] is not JsonArray workspaceArray)
+        if (root["workspaces"] is not null and not JsonArray)
         {
-            context.Report("workspace", "package.json", "One explicit root workspace array is required.");
+            context.Report("workspace", "package.json", "The root workspaces field must be an array when present.");
             return;
         }
+        // The root is the only npm project when the field is absent: the React workspaces are retired (WEB.40 U5), and
+        // the root package.json holds wrangler and the TypeScript Worker build only.
+        var workspaceArray = root["workspaces"] as JsonArray ?? new JsonArray();
         var workspaces = workspaceArray.Select(node => node?.GetValue<string>() ?? string.Empty).ToArray();
         var expected = new[] { "package.json" }.Concat(workspaces.Select(name => name + "/package.json"))
             .Order(StringComparer.Ordinal).ToArray();

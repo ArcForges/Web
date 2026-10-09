@@ -86,22 +86,22 @@ public static class PolicyBaseline
     {
         var sources = new Dictionary<string, string>(StringComparer.Ordinal)
         {
-        ["win.slnx"] = Solution,
-        ["global.json"] = """{"sdk":{"version":"10.0.401","rollForward":"disable","allowPrerelease":false},"test":{"runner":"Microsoft.Testing.Platform"}}""",
-        ["NuGet.config"] = NuGetConfig,
-        ["Directory.Build.props"] = BuildProps,
-        ["Directory.Build.targets"] = "<Project />",
-        ["Directory.Packages.props"] = CentralPackages,
-        [".node-version"] = "24.21.0\n",
-        ["package.json"] = RootManifest,
-        ["package-lock.json"] = RootLock,
-        ["apps/site/package.json"] = SiteManifest,
-        ["apps/site/app/root.ts"] = "import type { Message } from \"@arcforges/proto\";\n\ndocument.title = \"Web DOM is allowed\";\n",
-        ["eng/policy/licence-boundary.json"] = Inventory,
-        ["src/ArcForges.Web.Ui/ArcForges.Web.Ui.csproj"] = UiProject,
-        ["src/ArcForges.Web.Ui/packages.lock.json"] = UiLock,
-        ["src/ArcForges.Web.Ui/Greeting.cs"] = "namespace ArcForges.Web.Ui;\n\npublic sealed class Greeting\n{\n}\n",
-        ["src/ArcForges.Web.Ui/Greeting.razor"] = "<p>Hello</p>\n",
+            ["win.slnx"] = Solution,
+            ["global.json"] = """{"sdk":{"version":"10.0.401","rollForward":"disable","allowPrerelease":false},"test":{"runner":"Microsoft.Testing.Platform"}}""",
+            ["NuGet.config"] = NuGetConfig,
+            ["Directory.Build.props"] = BuildProps,
+            ["Directory.Build.targets"] = "<Project />",
+            ["Directory.Packages.props"] = CentralPackages,
+            [".node-version"] = "24.21.0\n",
+            ["package.json"] = RootManifest,
+            ["package-lock.json"] = RootLock,
+            ["apps/site/package.json"] = SiteManifest,
+            ["apps/site/app/root.ts"] = "import type { Message } from \"@arcforges/proto\";\n\ndocument.title = \"Web DOM is allowed\";\n",
+            ["eng/policy/licence-boundary.json"] = Inventory,
+            ["src/ArcForges.Web.Ui/ArcForges.Web.Ui.csproj"] = UiProject,
+            ["src/ArcForges.Web.Ui/packages.lock.json"] = UiLock,
+            ["src/ArcForges.Web.Ui/Greeting.cs"] = "namespace ArcForges.Web.Ui;\n\npublic sealed class Greeting\n{\n}\n",
+            ["src/ArcForges.Web.Ui/Greeting.razor"] = "<p>Hello</p>\n",
         };
         // A file on disk ends with a line feed; C# raw literals omit the final line break of their content.
         foreach (var file in sources.Keys.ToArray())

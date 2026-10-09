@@ -75,17 +75,17 @@ public sealed class NuGetClosureAdmissionTests
         {
             var document = JsonNode.Parse(File.ReadAllText(lockPath))!.AsObject();
             foreach (var framework in document["dependencies"]!.AsObject())
-            foreach (var package in framework.Value!.AsObject())
-            {
-                var entry = package.Value!.AsObject();
-                if (entry["type"]!.GetValue<string>() == "Project")
-                    continue;
-                var key = package.Key.ToLowerInvariant() + "/" + entry["resolved"]!.GetValue<string>();
-                var hash = entry["contentHash"]!.GetValue<string>();
-                if (closure.TryGetValue(key, out var seen))
-                    Assert.Equal(seen, hash);
-                closure[key] = hash;
-            }
+                foreach (var package in framework.Value!.AsObject())
+                {
+                    var entry = package.Value!.AsObject();
+                    if (entry["type"]!.GetValue<string>() == "Project")
+                        continue;
+                    var key = package.Key.ToLowerInvariant() + "/" + entry["resolved"]!.GetValue<string>();
+                    var hash = entry["contentHash"]!.GetValue<string>();
+                    if (closure.TryGetValue(key, out var seen))
+                        Assert.Equal(seen, hash);
+                    closure[key] = hash;
+                }
         }
         return closure;
     }
