@@ -26,6 +26,7 @@
     "docs/web-40-accessibility.md",
     "eng/policy/dependency-reviews/web-40-admission-r12.json",
     "eng/policy/dependency-reviews/web-40-admission-r13.json",
+    "eng/policy/dependency-reviews/web-40-admission-r14.json",
     "NuGet.config",
     "README.md",
     "SECURITY.md",

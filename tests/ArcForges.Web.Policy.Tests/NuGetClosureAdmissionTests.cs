@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0-only
+using System.Security.Cryptography;
 using System.Text.Json.Nodes;
 using Xunit;
 
@@ -28,6 +29,64 @@ public sealed class NuGetClosureAdmissionTests
             var source = row["source"]?.GetValue<string>() ?? string.Empty;
             Assert.StartsWith("https://api.nuget.org/v3-flatcontainer/", source, StringComparison.Ordinal);
         }
+    }
+
+    [Fact]
+    public void EveryAdmittedNuspecDigestIsTheRestoredNuspecDigest()
+    {
+        // Convention: the SHA-256 of the .nuspec entry exactly as the package stores it, UTF-8 BOM included. The CI source
+        // job restores every project except the local browser project from nuget.org, so each package it restores must be
+        // present here and must match; browser-only test packages are verified wherever the local folder holds them.
+        var root = RepositoryRoot.Find();
+        var policy = PolicyDocument(root);
+        var packages = NuGetPackagesFolder();
+        var restoredByCi = CiRestoredKeys(root);
+        var verified = 0;
+        foreach (var section in new[] { "nugetClosure", "nugetPackDownloads" })
+        {
+            foreach (var entry in policy[section]!.AsObject())
+            {
+                var expected = entry.Value!.AsObject()["nuspecSha256"]!.GetValue<string>();
+                var mustBePresent = section == "nugetPackDownloads" || restoredByCi.Contains(entry.Key);
+                if (TryRestoredNuspecDigest(packages, entry.Key, out var actual))
+                {
+                    Assert.Equal(expected, actual);
+                    verified++;
+                }
+                else
+                {
+                    Assert.False(mustBePresent, $"Admitted package {entry.Key} is not in the NuGet packages folder; run the locked restore first.");
+                }
+            }
+        }
+        Assert.True(verified > 0, "No admitted nuspec was verified against the restored packages.");
+    }
+
+    [Fact]
+    public void ContractsIdentityNuspecDigestsAreTheRestoredNuspecDigests()
+    {
+        var root = RepositoryRoot.Find();
+        var receipt = ActiveReceipt(root);
+        var identity = receipt["con07Identity"]!.AsObject();
+        var version = identity["version"]!.GetValue<string>().ToLowerInvariant();
+        var packages = NuGetPackagesFolder();
+        foreach (var package in identity["packages"]!.AsArray())
+        {
+            var row = package!.AsObject();
+            var key = row["id"]!.GetValue<string>().ToLowerInvariant() + "/" + version;
+            if (TryRestoredNuspecDigest(packages, key, out var actual))
+                Assert.Equal(row["nuspecSha256"]!.GetValue<string>(), actual);
+        }
+    }
+
+    [Fact]
+    public void AdmittedNuspecRowsEqualTheActiveReceipt()
+    {
+        var root = RepositoryRoot.Find();
+        var policy = PolicyDocument(root);
+        var receipt = ActiveReceipt(root);
+        Assert.True(JsonNode.DeepEquals(policy["nugetClosure"], receipt["nugetClosure"]), "Policy and receipt nugetClosure rows differ.");
+        Assert.True(JsonNode.DeepEquals(policy["nugetPackDownloads"], receipt["nugetPackDownloads"]), "Policy and receipt nugetPackDownloads rows differ.");
     }
 
     [Fact]
@@ -107,8 +166,61 @@ public sealed class NuGetClosureAdmissionTests
 
     private static JsonObject AdmittedClosure(string root)
     {
-        var policy = JsonNode.Parse(File.ReadAllText(Path.Combine(root, "eng", "policy", "dependency-policy.json")))!.AsObject();
-        return policy["nugetClosure"]!.AsObject();
+        return PolicyDocument(root)["nugetClosure"]!.AsObject();
+    }
+
+    private static JsonObject PolicyDocument(string root)
+    {
+        return JsonNode.Parse(File.ReadAllText(Path.Combine(root, "eng", "policy", "dependency-policy.json")))!.AsObject();
+    }
+
+    private static JsonObject ActiveReceipt(string root)
+    {
+        var reviewRecord = PolicyDocument(root)["reviewRecord"]!.GetValue<string>();
+        return JsonNode.Parse(File.ReadAllText(Path.Combine(root, reviewRecord)))!.AsObject();
+    }
+
+    private static string NuGetPackagesFolder()
+    {
+        var configured = Environment.GetEnvironmentVariable("NUGET_PACKAGES");
+        return string.IsNullOrWhiteSpace(configured)
+            ? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".nuget", "packages")
+            : configured;
+    }
+
+    private static bool TryRestoredNuspecDigest(string packages, string key, out string digest)
+    {
+        var parts = key.Split('/');
+        var nuspec = Path.Combine(packages, parts[0], parts[1], parts[0] + ".nuspec");
+        digest = string.Empty;
+        if (!File.Exists(nuspec))
+            return false;
+        digest = Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(nuspec))).ToLowerInvariant();
+        return true;
+    }
+
+    private static HashSet<string> CiRestoredKeys(string root)
+    {
+        // The source job restores every project except the local opt-in browser project under tests/browser.
+        var browser = "tests" + Path.DirectorySeparatorChar + "browser" + Path.DirectorySeparatorChar;
+        var keys = new HashSet<string>(StringComparer.Ordinal);
+        foreach (var lockPath in Directory.EnumerateFiles(root, "packages.lock.json", SearchOption.AllDirectories)
+                     .Where(path => !path.Contains($"{Path.DirectorySeparatorChar}bin{Path.DirectorySeparatorChar}", StringComparison.Ordinal)
+                                    && !path.Contains($"{Path.DirectorySeparatorChar}obj{Path.DirectorySeparatorChar}", StringComparison.Ordinal)
+                                    && !Path.GetRelativePath(root, path).StartsWith(browser, StringComparison.Ordinal)))
+        {
+            var document = JsonNode.Parse(File.ReadAllText(lockPath))!.AsObject();
+            foreach (var framework in document["dependencies"]!.AsObject())
+                foreach (var package in framework.Value!.AsObject())
+                {
+                    var entry = package.Value!.AsObject();
+                    if (entry["type"]!.GetValue<string>() == "Project")
+                        continue;
+                    keys.Add(package.Key.ToLowerInvariant() + "/" + entry["resolved"]!.GetValue<string>());
+                }
+        }
+        Assert.NotEmpty(keys);
+        return keys;
     }
 
     private static IReadOnlyDictionary<string, string> RestoredClosure(string root)
