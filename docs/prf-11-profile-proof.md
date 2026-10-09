@@ -85,4 +85,8 @@ The CON.92 registry bounds are read from `WireLimits.Bytes` and pinned: unary an
 
 `HelloProbe` now sets the gRPC channel's `MaxReceiveMessageSize` and `MaxSendMessageSize` to the unary class (4 MiB), so the greeting, a unary call, is bounded explicitly rather than by the library default. `HelloProbeTests.AGreetingReplyAboveTheUnaryMessageBoundIsRefusedNeverAccepted` pins that a reply whose message is over the class is `Malformed` and never a greeting.
 
+## Server-stream framing (U4)
+
+The binary and grpc-web-text server-stream framings are recorded as fixtures in `StreamFramingTests`, and the transport decision (binary first, grpc-web-text only if the observed run fails) is recorded in `docs/prf-11-stream-transport.md`. That decision is open until the local opt-in observation (LS2) is made. No deployed stream is claimed.
+
 Still not claimed: the live int64, uint64 and decimal calls through the deployed Cloud probe (blocked on CLOUD.21 and CLOUD.22, not proven), and the framing of server-streamed frames on the deployed ingress (U4 records the offline framing fixtures only).
