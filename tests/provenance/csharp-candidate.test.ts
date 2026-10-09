@@ -13,6 +13,11 @@ import { expectedIdentity } from "../../tooling/build-identity.ts";
 import { toolLibrary } from "../../tooling/candidate.ts";
 import { root, workerScript } from "../../tooling/project.ts";
 
+// A missing tool build fails here with the build command, not later with a spawn error for every test.
+await access(toolLibrary).catch(() => {
+  throw new Error(`The C# tool is not built at ${toolLibrary}. Build it first (see the header of this file).`);
+});
+
 const sha = (bytes: Uint8Array | string) => createHash("sha256").update(bytes).digest("hex");
 const scratch = await mkdtemp(path.join(tmpdir(), "arcforges-candidate-"));
 const identityRecord = expectedIdentity("0.1.0-local");

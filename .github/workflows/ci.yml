@@ -63,6 +63,19 @@ jobs:
           cache: ${{ matrix.os == 'ubuntu-latest' && 'npm' || '' }}
           package-manager-cache: false
       - run: npm ci --ignore-scripts
+      # The candidate tests (tests/provenance/csharp-candidate.test.ts) run the built C# tool. Its Release build is produced
+      # here from the locked restore, so this job never depends on stale bin/ output from an earlier local run.
+      - name: Set up the pinned .NET SDK for the candidate tests
+        if: runner.os == 'Linux'
+        uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6
+        with:
+          dotnet-version: "10.0.401"
+      - name: Build the C# tool for the candidate tests
+        if: runner.os == 'Linux'
+        run: |
+          set -euo pipefail
+          dotnet restore tools/ArcForges.Web.Tooling/ArcForges.Web.Tooling.csproj --locked-mode
+          dotnet build tools/ArcForges.Web.Tooling/ArcForges.Web.Tooling.csproj --no-restore -c Release
       - run: npm run check
         if: runner.os == 'Linux'
       - name: Set up the IDE project evaluation toolchain

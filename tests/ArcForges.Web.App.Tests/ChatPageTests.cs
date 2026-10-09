@@ -149,6 +149,55 @@ public sealed class ChatPageTests
     }
 
     [Fact]
+    public void ChatTabsFromTheNameFieldToSendAndReachesCancelOnlyWhileAMessageIsPending()
+    {
+        var server = new ScriptedServer(async (_, token) =>
+        {
+            await Task.Delay(Timeout.Infinite, token);
+            return Greeting("unused");
+        });
+        using var context = new BunitContext();
+        AccountPageTests.RegisterProbes(context, server);
+
+        var cut = context.Render<Chat>();
+        Assert.Equal(new[] { "input:Name", "button:Send" }, FocusOrder.TabSequence(cut));
+        FocusOrder.AssertNoPositiveTabIndex(cut);
+
+        SendButton(cut).Click();
+        cut.WaitForAssertion(() => Assert.Contains("Sending…", cut.Markup, StringComparison.Ordinal));
+        // Send is disabled while the message is pending, so the reachable control is Cancel.
+        Assert.Equal(new[] { "input:Name", "button:Cancel" }, FocusOrder.TabSequence(cut));
+        FocusOrder.AssertNoPositiveTabIndex(cut);
+
+        CancelButton(cut)!.Click();
+        cut.WaitForAssertion(() => Assert.Contains("The request was cancelled.", cut.Markup, StringComparison.Ordinal));
+        Assert.Equal(new[] { "input:Name", "button:Send" }, FocusOrder.TabSequence(cut));
+    }
+
+    [Fact]
+    public void EnterInTheNameFieldSendsThroughTheFormsDefaultButtonAndTheReplyIsAnnouncedInTheTranscript()
+    {
+        // The keyboard path of the retired Hello greeting: Enter in the name field submits the form, and the reply is
+        // announced by the live transcript. Enter activates the form's default button, the first submit button in the form.
+        var server = ScriptedServer.Always(() => Responses.Raw(ProbeFixtures.HelloReply("Hello, ArcForges!"), "application/grpc-web+proto"));
+        using var context = new BunitContext();
+        AccountPageTests.RegisterProbes(context, server);
+
+        var cut = context.Render<Chat>();
+        var form = cut.Find("form");
+        Assert.NotNull(form.QuerySelector("input"));
+        Assert.Equal("Send", FocusOrder.DefaultButtonOf(form));
+
+        var transcript = cut.Find("ol.transcript");
+        Assert.Equal("polite", transcript.GetAttribute("aria-live"));
+        Assert.Equal("Messages", transcript.GetAttribute("aria-label"));
+
+        cut.Find("form").Submit();
+        cut.WaitForAssertion(() => Assert.Contains("Hello, ArcForges!", cut.Find("ol.transcript").TextContent, StringComparison.Ordinal));
+        Assert.Equal(1, server.Count);
+    }
+
+    [Fact]
     public void TheTransportFailureIsUnavailableAndItIsAFixedNotice()
     {
         var server = new ScriptedServer((_, _) => throw new HttpRequestException("Failed to fetch"));

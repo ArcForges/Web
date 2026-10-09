@@ -227,6 +227,52 @@ public sealed class AccountPageTests
         Assert.True(observed.IsCancellationRequested);
     }
 
+    [Fact]
+    public void AnAnonymousVisitorHasNoControlToTabTo()
+    {
+        var server = ScriptedServer.Always(() => Responses.Json(Encoding.UTF8.GetBytes(ProbeFixtures.AnonymousJson)));
+        using var context = new BunitContext();
+        RegisterProbes(context, server);
+
+        var cut = context.Render<Account>();
+        cut.WaitForAssertion(() => Assert.Contains("You are not signed in.", cut.Markup, StringComparison.Ordinal));
+        Assert.Empty(FocusOrder.TabSequence(cut));
+        FocusOrder.AssertNoPositiveTabIndex(cut);
+    }
+
+    [Fact]
+    public void ASignedInVisitorTabsToSignOutAfterTheSessionStatusAndSignOutIsANativeButton()
+    {
+        var server = ScriptedServer.Always(() => Responses.Json(Encoding.UTF8.GetBytes(ProbeFixtures.AuthenticatedJson)));
+        using var context = new BunitContext();
+        RegisterProbes(context, server);
+
+        var cut = context.Render<Account>();
+        cut.WaitForAssertion(() => Assert.True(HasButton(cut, "Sign out")));
+        // Reading order: the live status region holds the session facts, then the one control.
+        Assert.Equal(new[] { "status", "button" }, FocusOrder.ReadingOrder(cut));
+        Assert.Equal(new[] { "button:Sign out" }, FocusOrder.TabSequence(cut));
+        // A native button gives Enter and Space activation; type="button" keeps it out of any form submission.
+        var signOut = Button(cut, "Sign out");
+        Assert.Equal("button", signOut.LocalName);
+        Assert.Equal("button", signOut.GetAttribute("type"));
+        FocusOrder.AssertNoPositiveTabIndex(cut);
+    }
+
+    [Fact]
+    public void AFailedReadAnnouncesItsAlertBeforeTheOnlyControlTryAgain()
+    {
+        var server = ScriptedServer.Always(() => Responses.Text("down", HttpStatusCode.ServiceUnavailable));
+        using var context = new BunitContext();
+        RegisterProbes(context, server);
+
+        var cut = context.Render<Account>();
+        cut.WaitForAssertion(() => Assert.Equal("The server is unavailable. Try again later.", cut.Find("[role=alert]").TextContent));
+        Assert.Equal(new[] { "status", "alert", "button" }, FocusOrder.ReadingOrder(cut));
+        Assert.Equal(new[] { "button:Try again" }, FocusOrder.TabSequence(cut));
+        FocusOrder.AssertNoPositiveTabIndex(cut);
+    }
+
     internal static async Task WaitUntilAsync(Func<bool> condition)
     {
         for (var attempt = 0; attempt < 500 && !condition(); attempt++)
