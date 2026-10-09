@@ -5,6 +5,7 @@
 // (1.4.11). The host page and stylesheet are read from the source tree.
 using System.Globalization;
 using System.Text.RegularExpressions;
+using AngleSharp.Dom;
 using AngleSharp.Html.Parser;
 using Xunit;
 
@@ -29,6 +30,29 @@ public sealed class HostPageAccessibilityTests
         Assert.Equal("button", dismiss.GetAttribute("type"));
         Assert.Equal("Dismiss", dismiss.GetAttribute("aria-label"));
         Assert.False(dismiss.HasAttribute("tabindex"));
+    }
+
+    [Fact]
+    public void TheErrorBannerMessageIsAnAlertAndNoTextSitsDirectlyInTheBanner()
+    {
+        // axe-core 4.13.0's region rule (WCAG 1.3.1 best practice) flags text and links outside every landmark, region, live region or
+        // alert (an anchor is exempt only for a same-page fragment target). role="alert" makes its content a region, so the message
+        // and the Reload link live inside that alert and the banner itself carries no text or link of its own.
+        var document = new HtmlParser().ParseDocument(AppSource("wwwroot/index.html"));
+        var banner = Assert.Single(document.QuerySelectorAll("#blazor-error-ui"));
+        var alert = Assert.Single(banner.QuerySelectorAll("[role=\"alert\"]"));
+        Assert.Equal("An unhandled error has occurred. Reload", Regex.Replace(alert.TextContent, @"\s+", " ").Trim());
+        Assert.Single(alert.QuerySelectorAll("a.reload"));
+        foreach (var text in banner.ChildNodes.OfType<IText>())
+        {
+            Assert.True(
+                string.IsNullOrWhiteSpace(text.Data),
+                $"Text \"{text.Data.Trim()}\" sits directly in #blazor-error-ui, outside the alert region.");
+        }
+        foreach (var link in banner.QuerySelectorAll("a"))
+        {
+            Assert.NotNull(link.Closest("[role=\"alert\"]"));
+        }
     }
 
     [Fact]
