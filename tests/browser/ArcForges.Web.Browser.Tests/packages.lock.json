@@ -4,9 +4,9 @@
     "net10.0": {
       "ArcForges.Build.Policy": {
         "type": "Direct",
-        "requested": "[1.0.0-ci.94.1, )",
-        "resolved": "1.0.0-ci.94.1",
-        "contentHash": "PCpeEXikk2m87zhMF6L8tbHe2QrI87mO4Nc5lJBenEDhOePwwV4TkArc6IaM1G11Pm8ojVjurLAIoPW22ozb/A=="
+        "requested": "[1.0.0-ci.130.1, )",
+        "resolved": "1.0.0-ci.130.1",
+        "contentHash": "+9cGGo8JxDrOXzxlV8qLI3fG+ANxc2JG68eg1kpGcglI+6WzFf4oHqiRZKhkb3Wu+mkc0BYCsMYg3T1BnjeVwQ=="
       },
       "Deque.AxeCore.Playwright": {
         "type": "Direct",
@@ -21,9 +21,9 @@
       },
       "Microsoft.Playwright": {
         "type": "Direct",
-        "requested": "[1.62.0, )",
-        "resolved": "1.62.0",
-        "contentHash": "cos6dmHPcMpS6bXw2WEgoXb8KXwMhs3c5L0P/cUf2rdUpjVA3g3u+KiSpVp2VCzsXymRpy2tFHqm+Wnz7s5VhQ==",
+        "requested": "[1.63.0, )",
+        "resolved": "1.63.0",
+        "contentHash": "O9F45Tt5vjauIo7mTTgQtahigL7cfRLvBMpErLJfdvgCnQ14yue5BmRASNnfNBWRBni4Mqp2YiD1eFGIO4nUUw==",
         "dependencies": {
           "Microsoft.Bcl.AsyncInterfaces": "6.0.0",
           "System.ComponentModel.Annotations": "5.0.0"
