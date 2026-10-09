@@ -17,6 +17,15 @@ public sealed class ContentSecurityPolicyTests
     }
 
     [Fact]
+    public void TheSitePolicyKeepsBaseUriNoneBecauseThePublicPagesHaveNoBaseElement()
+    {
+        var policy = SiteContentSecurityPolicy.FromPages(["<!DOCTYPE html><html><head></head><body>plain</body></html>"]);
+
+        Assert.Contains("; base-uri 'none';", policy, StringComparison.Ordinal);
+        Assert.DoesNotContain("base-uri 'self'", policy, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void AnInlineScriptBodyIsAddedAsItsSha256Hash()
     {
         const string body = "console.log(1);";

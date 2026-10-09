@@ -28,6 +28,7 @@ public sealed class OperationsProfileTests
         var directives = WasmContentSecurityPolicy.ParseDirectives(WasmContentSecurityPolicy.FromHostPages([html]));
         Assert.Equal(new[] { "'self'", "'wasm-unsafe-eval'" }, directives["script-src"]);
         Assert.Equal(new[] { "'self'" }, directives["style-src"]);
+        Assert.Equal(new[] { "'self'" }, directives["base-uri"]);
         var policy = WasmContentSecurityPolicy.FromHostPages([html]);
         Assert.DoesNotContain("'unsafe-inline'", policy, StringComparison.Ordinal);
         Assert.DoesNotContain("'unsafe-eval'", policy, StringComparison.Ordinal);

@@ -24,6 +24,8 @@ public sealed class WasmProfilePolicyTests
         Assert.Equal(new[] { "'self'" }, directives["style-src"]);
         Assert.Equal(new[] { "'self'" }, directives["default-src"]);
         Assert.Equal(new[] { "'self'" }, directives["connect-src"]);
+        // The shells carry <base href="/"> (CLOUD.85 D1), so the profile policy must admit the base element (S36).
+        Assert.Equal(new[] { "'self'" }, directives["base-uri"]);
         Assert.DoesNotContain("'unsafe-inline'", policy, StringComparison.Ordinal);
         Assert.DoesNotContain("'unsafe-eval'", policy, StringComparison.Ordinal);
         Assert.True(policy.Length < WasmContentSecurityPolicy.HeaderLineBudget);
