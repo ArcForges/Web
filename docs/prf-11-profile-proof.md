@@ -93,6 +93,10 @@ The CON.92 registry bounds are read from `WireLimits.Bytes` and pinned: unary an
 - The one local opt-in run: the Site output was served from `artifacts/site` on `127.0.0.1` (a local static server, not a deployed origin). The browser was the installed Google Chrome, `C:\Program Files\Google\Chrome\Application\chrome.exe`, product version 156.0.8078.12, named by `ARCFORGES_CHROMIUM_PATH`. No browser was downloaded. The test passed: 1 of 1, 4.5 s. Host Windows 11, Microsoft.Playwright 1.62.0 driving the installed binary by path (D10). The match between this Chrome build and the Chromium that Playwright 1.62.0 expects was not verified, so it is recorded as a mismatch risk. Claimant-reported; date 2026-10-09.
 - Not claimed: the no-script reading of the deployed proof origin (blocked on CLOUD.85, not proven).
 
+## Asset budgets, file count and WA-08 costing (U6)
+
+The AL-06 re-baseline of the asset baseline (`eng/policy/profile-budgets.json`), the static-asset file count against the Workers platform limit, and the WA-08 costing of the non-virtualised chat list are recorded in `docs/prf-11-budgets.md`. The asset baseline is the measured local publish (174 served files, 116 precompressed; the platform limit is 20,000 files per Worker version on Free). The interaction budgets stay re-baseline-pending (owner PRF.11) until the deployed run (LS3, blocked on CLOUD.85). The AOT benchmark is not run (no `wasm-tools` workload installed).
+
 ## Server-stream framing (U4)
 
 The binary and grpc-web-text server-stream framings are recorded as fixtures in `StreamFramingTests`, and the transport decision (binary first, grpc-web-text only if the observed run fails) is recorded in `docs/prf-11-stream-transport.md`. That decision is open until the local opt-in observation (LS2) is made. No deployed stream is claimed.
