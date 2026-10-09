@@ -16,6 +16,8 @@ This is the record of the PRF.11 proof for the Web repository (Design WP-06.05 f
 | WEB.40 status | `delivered` in the ledger (`ledger/tasks/web-40.md` on Plan main); merged, deployed and released as `web-0.1.0-ci.111.1` (S28(a)) |
 | Plan authority | the PRF.11 entry of `phase2-plans.json` (units U1 to U9, defaults D1 to D12), the task record, and brief sections 0, 0a, 0b, 10 and 11 |
 
+Base refresh (fix3, 2026-10-10): `origin/main` is now `049f6a5` (Web #38, the WEB.40 completion follow-up for S36 and S37). It is merged into `task/prf-11` as `f4c639c`. The start identity above is the original base and stays as history.
+
 ### Start edges
 
 | Start edge | Ledger status | Evidence used by this proof |
@@ -33,9 +35,9 @@ This is the record of the PRF.11 proof for the Web repository (Design WP-06.05 f
 | CLOUD.22 (ArcResult and gRPC-Web status and trailer mapping) | not started (waits on CLOUD.21) | Typed failures, deadline and cancel-after-dispatch are blocked on CLOUD.22, not proven. |
 | CLOUD.08 (readiness surfaces) | `complete` | Readiness observation is available for the live units. |
 | CLOUD.71 (proof-origin route families for the React bytes) | `complete` (history for the React bytes only) | The `/api`, `/session/v1` and `/proof/v1` route precedence is not proven for the Blazor bytes. D11 treats the graph inconsistency as history (brief S16(a)). |
-| CLOUD.85 (proof-origin serving of the Blazor Account and Chat shells and the C# Site, under base href "/", CLOUD.85 D1) | not started (no ledger record; waits on WEB.40 and the Cloud deploy) | Same-origin serving, the `/account/` and `/chat/` shells, digest-verified bytes and the exact CSP on served responses are blocked on CLOUD.85, not proven. PRF.11 cannot complete until CLOUD.85 delivers and its checks pass (S27(b)). |
+| CLOUD.85 (proof-origin serving of the Blazor Account and Chat shells and the C# Site, under base href "/", CLOUD.85 D1) | not complete at this record; its S36 follow-up Cloud #82 pins the corrected profile policy, and its proof redeploy is not observed here | Same-origin serving, the `/account/` and `/chat/` shells, digest-verified bytes and the exact CSP on served responses are blocked on CLOUD.85, not proven. PRF.11 cannot complete until CLOUD.85 delivers and its checks pass (S27(b)). |
 
-Completion of PRF.11 is therefore blocked. The offline units U1 to U9 are the work of this phase (brief S20(d)). The task is stopped at the open decision below, so it is not delivered.
+PRF.11 is delivered on its offline units U1 to U9 (brief S20(d)). Its completion is still blocked on CLOUD.21 and CLOUD.22, and the parts that need them are recorded as "blocked on CLOUD.21/CLOUD.22, not proven". Its local opt-in live run against proof.arcforges.com follows the CLOUD.85 follow-up proof redeploy. The `base-uri` stop recorded at fix1 and fix2 is resolved by S36 (see the resolved decision below).
 
 ### Shell and base href
 
@@ -61,6 +63,8 @@ The write scope is the PRF.11 `writes` list in the task record, with the D3 addi
 - The published output of the App publish is produced by CI after the test step, so tests that read emitted files need a local publish first or are covered through the bundle tooling tests. This is recorded in the U2 section.
 - Node is 24.20 locally against the 24.21 pin, so `npm run policy` is recorded as not run locally (hosted CI is authoritative). This is an environment gap and not a fix.
 - The WSL2 Debian SDK is 10.0.400, so a locked Linux restore fails with NU1004 there. Linux checks are not run in this phase unless they are affected.
+- Docker is not on the Windows PATH. gitleaks runs in WSL Debian through docker, with the cached image `c00b6bd0aeb3` (the pinned digest) and `--network none`.
+- actionlint 1.7.12 is the local Windows binary built from source in the Go bin folder. Its version matches the CI pin.
 
 ## Local CI conditions used for the gates
 
@@ -72,11 +76,11 @@ The gates also start from a clean state: `git clean -fdX` removes only ignored b
 
 The emitted policy is the one string in `WasmContentSecurityPolicy` for the host page, pinned in `ArcForges.Web.App.Tests` (`WasmProfilePolicyTests.ExactPolicy`) and in `ArcForges.Web.Tooling.Tests` (`EmittedProfileContractTests`):
 
-- `default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self'; img-src 'self' data:; font-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'; form-action 'none'`
+- `default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self'; img-src 'self' data:; font-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'self'; frame-ancestors 'none'; form-action 'none'`
 
 `script-src` is exactly `'self'` and `'wasm-unsafe-eval'` (the host page has no inline script, so no hash is added). `style-src` is `'self'`. No `'unsafe-inline'`, `'unsafe-eval'` or `'unsafe-hashes'` appears in the policy or the headers file. The bundle test builds the profile bundle from a publish whose shell is the real host page, then reads the served `account/index.html` and `chat/index.html` (identical bytes, one `<base href="/">` each) and the `_headers` file, which names the exact policy on `/account/*` and `/chat/*`.
 
-Open point, confirmed by a local observation (see the open-decision section): `base-uri 'none'` in the served policy blocks the `<base href="/">` of the shells, and under that policy the Account and Chat shells do not start. The browser logs `Setting the document's base URI to ... violates the following Content Security Policy directive: "base-uri 'none'". The action has been blocked.` The fix is a change to the Ui policy (`WasmContentSecurityPolicy`), which is outside the PRF.11 write scope, so the proof stops for a new decision (brief 5.13). The offline tests pin the current string and do not claim it is correct.
+Resolved (S36, WEB.40 follow-up Web #38): the profile policy carries `base-uri 'self'`, so the `<base href="/">` of the shells is admitted. The earlier open point, under `base-uri 'none'`, is history and is kept in the open-decision section below. The Site policy keeps `base-uri 'none'`, because the public pages have no base element.
 
 ## Exact values and CON.92 limits (U3)
 
@@ -101,8 +105,8 @@ The CON.92 registry bounds are read from `WireLimits.Bytes` and pinned: unary an
 
 - Inline-style audit (static, offline): no `style=` attribute and no `<style>` element in the Razor components in use (`src/ArcForges.Web.App`: `App.razor`, `Layout/ProfileLayout.razor`, `Pages/Account.razor`, `Pages/Chat.razor`; `src/ArcForges.Web.Ui`: `Arrow`, `Button`, `CloudHelloExample`, `HelloExample`, `HomeContent`, `Shell`), and none in the host page, which loads only `app.css`. No C# builder emits a `style` attribute. This is a static audit. It does not prove that the framework sets no inline style at run time, and the in-browser check is the real test.
 - In-browser CSP (local emulation, not the deployed origin): the bundle built from the publish (`profiles-u6`) was extracted and served on `127.0.0.1` with the exact per-profile `Content-Security-Policy` from its `_headers`. Headless Google Chrome 156.0.8078.12 loaded `/account/`. Chrome logged `Setting the document's base URI to 'http://127.0.0.1:4180/' violates the following Content Security Policy directive: "base-uri 'none'". The action has been blocked.` The message reproduced in two enforced runs. The root framework path `/_framework/blazor.webassembly.js` returned 200. The same shell path `/account/_framework/blazor.webassembly.js` returned 404, because the relative framework path resolves under the shell path once the base element is blocked.
-- Render outcome under the served policy (fix1, observed locally; see the open-decision section): the Account shell does not start. Four of four runs logged the base-uri violation and never rendered the heading. The live spec `TheShellsLoadInTheInstalledBrowserWithNoContentSecurityPolicyViolation` is the in-browser check on the deployed origin, and it fails on the violation message.
-- Decision needed (stop, per the plan and brief 5.13): the served policy blocks the base element of the shells, so the shells do not start, a violation the offline tests cannot see (fix1 observation above). The fix is in the Ui policy, outside the PRF.11 write scope, so no change is made here. The options are for the coordinator: a reviewed Ui change to `base-uri` (for example `'self'`), or a reviewed host-page change. The exact policy string and its test pins stay as they are until that decision.
+- Render outcome under the policy that fix1 observed (history, `base-uri 'none'`): the Account shell did not start. Four of four runs logged the base-uri violation and never rendered the heading. The live spec `TheShellsLoadInTheInstalledBrowserWithNoContentSecurityPolicyViolation` is the in-browser check on the deployed origin. The S36 boot check under the served headers belongs to the WEB.40 follow-up, and this record does not repeat it.
+- Decision (resolved by S36 and Web #38): the profile policy is `base-uri 'self'`, and the exact string is pinned at that value in the App, Tooling and browser test projects (fix3). The live spec remains the check on the deployed origin that the shells start, and it waits for the CLOUD.85 follow-up proof redeploy.
 - Live specs (`tests/browser/ArcForges.Web.Browser.Tests/LivePrf11Specs.cs`, with `LivePrf11OptIn.cs`): four specs, skipped without `ARCFORGES_LIVE_PRF11=1` and an https proof origin, and skipped on a CI host. Under CI conditions all four skipped, and the 20 guard and opt-in tests passed. The cloud specs (greeting round trip and INP capture) also need `ARCFORGES_PRF11_CLOUD_READY=1`, and skip as "blocked on CLOUD.21/CLOUD.22, not proven" without it. They have not been run against the deployed origin. The runbook is `docs/prf-11-runbook.md`.
 - Not claimed: exact int64, uint64 and decimal calls through the deployed probe, typed failures, cancellation, session and CSRF on the deployed origin (blocked on CLOUD.21 and CLOUD.22, not proven; manual steps in the runbook), and the deployed CSP.
 
@@ -120,14 +124,14 @@ Still not claimed: the live int64, uint64 and decimal calls through the deployed
 
 ### Status
 
-PRF.11 is **stopped, not delivered**. The offline units U1 to U9 are committed in local commits on `task/prf-11`, but the task stops at the open decision below: under the served policy (`base-uri 'none'`, in `WasmContentSecurityPolicy`, Ui), the Account and Chat shells do not start. Plan D3 makes an in-browser CSP change that needs a Ui edit a stop for a new decision, so this record does not claim delivery. Delivery could be claimed only if the coordinator accepted delivered-with-open-decision in writing, and no such acceptance is recorded here. The task is stopped pending the coordinator's Ui decision. It is also **not complete**: the completion edges CLOUD.21, CLOUD.22 and CLOUD.85 are not started. The task record names PRF.08 as superseded, and this record supersedes PRF.08 (`docs/prf-08-profile-proof.md` is history). PRF.11 is the successor of the WEB.40 app-proof row (ruling S28(i)).
+PRF.11 is **delivered on its offline units U1 to U9** (brief S20(d)). The offline units are committed in local commits on `task/prf-11`. The `base-uri` stop that fix1 and fix2 recorded is resolved by S36 and WEB.40 follow-up Web #38, and the fix3 merge carries that fix into this branch. The task is **not complete**: the completion edges CLOUD.21 and CLOUD.22 are not started, so the parts that need them are recorded as "blocked on CLOUD.21/CLOUD.22, not proven". Its local opt-in live run against proof.arcforges.com follows the CLOUD.85 follow-up proof redeploy, and no deployed result is claimed here. The task record names PRF.08 as superseded, and this record supersedes PRF.08 (`docs/prf-08-profile-proof.md` is history). PRF.11 is the successor of the WEB.40 app-proof row (ruling S28(i)).
 
 ### Offline receipt (WP-06.05, offline portion)
 
 | Item | Evidence | Result |
 | --- | --- | --- |
 | Start identity and edges (U1) | `docs/prf-11-profile-proof.md` start section; CON.92 limits in Contracts `docs/architecture.md` at ca45f36; CON.07 identity `ArcForges.Contracts.PublicApi 1.0.0-ci.287.1` | Recorded; P0c holds |
-| Exact CSP token set and base hrefs (U2) | `WasmProfilePolicyTests.TheEmittedPolicyIsTheExactReviewedString`, `TheHostPageDeclaresExactlyOneBaseAtTheRootAndTheShellsRelyOnIt`; `EmittedProfileContractTests` (4 cases) | Passes offline; the string is pinned. Under it the shells do not start in the browser (see the decision below), so the in-browser CSP check is not passed |
+| Exact CSP token set and base hrefs (U2) | `WasmProfilePolicyTests.TheEmittedPolicyIsTheExactReviewedString`, `TheHostPageDeclaresExactlyOneBaseAtTheRootAndTheShellsRelyOnIt`; `EmittedProfileContractTests` (4 cases) | Passes offline; the string is pinned at `base-uri 'self'` (S36, fix3). The earlier `base-uri 'none'` string stopped the shells in the browser; that stop is resolved (see the resolved decision below) |
 | Exact int64, uint64, decimal and CON.92 limits (U3) | `ExactUnsignedTests` (9 cases: int64 and decimal values, the typed `FormatException` refusals, and the shared decimal bound at both edges); `WireLimitTests` (7 cases, including the `TooDeep` refusal at 101 nested levels); `HelloProbeTests.AGreetingReplyAboveTheUnaryMessageBoundIsRefusedNeverAccepted` | Passes offline |
 | Server-stream framing fixtures and decision (U4) | `StreamFramingTests` (6 cases); `docs/prf-11-stream-transport.md` | Fixtures pass; the decision is open until the observed run (LS2) |
 | No-script reading and determinism (U5) | `SiteOutputTests.TheOutputCarriesNoScriptOrWebAssemblyFileAtAll` and the existing `EveryPageIsReadableWithScriptingDisabled`; Site built twice and diffed (identical, nine files); `LocalNoScriptBrowserTests` (local opt-in, one run with installed Chrome 156.0.8078.12, passed) | Offline and local evidence recorded; claimant-reported |
@@ -135,7 +139,9 @@ PRF.11 is **stopped, not delivered**. The offline units U1 to U9 are committed i
 | Inline-style audit, in-browser CSP and live specs (U7) | `docs/prf-11-runbook.md`; `LivePrf11Specs` (4, skipped without the opt-in); `LivePrf11OptInTests` and `LocalOptInTests` (guards) | Audit clean (static); live specs not run; see the decision below |
 | NuGet closure admission (U8) | Conditional. The `git diff` against the WEB.40 base shows no change to any `*.csproj`, `packages.lock.json`, `Directory.Packages.props`, `Directory.Build.props`, `NuGet.config` or `eng/policy/dependency-policy.json` | Skipped (no closure change) |
 
-### Open decision (stop, brief 5.13): `base-uri 'none'` blocks the shells' base href
+### Resolved decision (history): `base-uri 'none'` blocked the shells' base href
+
+Resolved by S36 and WEB.40 follow-up Web #38 (merged as `049f6a58`, released as `web-0.1.0-ci.117.1`). `WasmContentSecurityPolicy` now emits `base-uri 'self'` for the profiles, and the Site policy keeps `base-uri 'none'`. Fix3 (`2038716`) moves every PRF.11 pin of the profile policy to `'self'`. The bullets below are the fix1 evidence that led to the fix. They are kept as history, not as a current stop.
 
 The served policy (`WasmContentSecurityPolicy`, Ui, outside the PRF.11 write scope) contains `base-uri 'none'`. Under that policy the Account and Chat shells do not start. This is the observed outcome of fix1 (2026-10-09), not an open question, and it was reproduced locally with the installed Google Chrome 156.0.8078.12, driven by path with no download:
 
@@ -144,7 +150,7 @@ The served policy (`WasmContentSecurityPolicy`, Ui, outside the PRF.11 write sco
 - Control, in a scratch server only (not in the repository): the same bundle with `base-uri 'self'` logged no violation, and the heading rendered in 2 of 4 runs. The other two runs stayed on `Loading…` with no violation logged. The `--dump-dom` method is not reliable enough to settle the render in every control run. What the control does establish is that no violation is logged under `base-uri 'self'`, in all four runs. With no CSP header the heading rendered in 2 of 2 runs.
 - Claimant-reported, local, not the deployed origin. The live spec on the deployed origin remains the check that the shells start.
 
-The offline tests cannot see this, because they pin the policy string and do not run a browser. The fix is a reviewed change to the Ui policy (for example `base-uri 'self'`) or a reviewed host-page change. Both are outside the PRF.11 write scope and need a new coordinator decision (brief 5.13, S20(b)), so this record makes no code change. Until that decision lands, the shells do not start under the served policy, the in-browser CSP and shell checks are not passed, and the policy string stays pinned as served. CLOUD.85 would serve that string on the proof origin, so the decision is needed before CLOUD.85 deploys.
+The offline tests could not see this, because they pinned the policy string and did not run a browser. The reviewed change was the Ui policy `base-uri 'self'` (S36), which Web #38 merged. Fix1 and fix2 made no code change in `src/ArcForges.Web.Ui/**`, which was outside the PRF.11 write scope at that time.
 
 ### Gates (fix1 re-run under CI conditions, code head `b84e2e3`)
 
@@ -203,6 +209,36 @@ The gates were re-run from a clean state (`git clean -fdX` in the worktree, whic
 | gitleaks (pinned image `c00b6bd0`, WSL Debian Docker, `--network none`, over a fresh clone at `792af5a`) | no leaks found; 105 commits scanned | The image was already cached and was run by its image ID, not pulled (S31) |
 | Hosted only (not run here) | CodeQL (javascript-typescript, actions, csharp), dependency review (PR only), the Linux legs of the source and csharp jobs, the candidate job on Linux, the verify job, and the deploy job (main push only) | Recorded as hosted. `npm run deploy` was not run |
 
+### Gates (fix3 re-run under CI conditions, code head `2038716`)
+
+The gates ran after the S36 merge (`f4c639c`) and the pin commit (`2038716`), from a clean state (`git clean -fdX`, which removes only ignored build output), with `NUGET_PACKAGES` set to a new empty folder under the scratchpad. The CI environment of the local CI conditions section applies (`GITHUB_ACTIONS=true`, `CI=true`, the placeholder run identity `1`). Every CPU-heavy step ran in the build slot, one foreground call per chunk. The browser opt-in project is local tooling and is not part of CI. It was restored from the default NuGet cache.
+
+| Gate | Result | Notes |
+| --- | --- | --- |
+| `npm ci --ignore-scripts --engine-strict=false` | passed | `--engine-strict=false` is needed locally (Node 24.20 against the 24.21 pin; npm 12.0.2 against 11.19.0) |
+| `npm audit --audit-level=high` | 0 vulnerabilities | |
+| `npm run check:dependencies` | passed | 114 dependencies, 39 inputs |
+| `npm run typecheck` | passed | |
+| `npm run test:dependencies` | 15 of 15 passed | |
+| `npm run policy` | fails at the Node version assertion (`v24.20.0` against `v24.21.0`) | Environment gap. The later assertions are not reached locally. Hosted CI is authoritative |
+| `npm run test` | 94 of 94 passed | Run after the C# tool was built and the App was published, so the profile bundle tests run |
+| `node tooling/project.ts licence-evaluated` | passed | |
+| Locked restores (every CSHARP_PROJECTS entry, `--locked-mode`) | passed | |
+| `dotnet format --verify-no-changes --no-restore` (every CSHARP_PROJECTS entry) | passed | |
+| `dotnet build -c Release --no-restore` (every CSHARP_PROJECTS entry) | passed | 11 projects, zero errors and zero warnings |
+| `dotnet test --no-build -c Release` (every CSHARP_TEST_PROJECTS entry) | Tooling 56/56; Site 76 passed, 1 skipped by design (`SiteParityTests`); Ui 15/15; App 95/95; Operations 6/6; Policy 108/108 | The counts rise from fix2 because the merge adds tests |
+| Profile publish (App to `artifacts/profiles/app`, Operations to `artifacts/profiles/operations`) | passed | |
+| Static Site (`site build` twice, `diff -r`) | identical | nine files |
+| Candidate job: tooling restore and build, App locked restore and publish to `artifacts/publish/app` | passed | |
+| Profile budgets (`profiles budget`) | passed | |
+| Worker and identity (`candidate.ts worker`, `candidate.ts identity`) | emitted | identity `0.1.0-ci.1.1` (the placeholder run identity) |
+| Candidate (built twice, compared, verified) | identical; verified `0.1.0-ci.1.1` at `2038716`, 20 members | |
+| Profile bundle (`profiles bundle` and `profiles verify`) | passed | 175 members, 18,673,152 bytes |
+| `actionlint` v1.7.12 on `.github/workflows/ci.yml` | passed | Workflow not changed |
+| gitleaks (pinned image `c00b6bd0`, WSL Debian Docker, `--network none`, over a fresh clone at `2038716`) | no leaks found; 109 commits scanned | The cached image was run by its ID, not pulled |
+| Browser opt-in project (`tests/browser/ArcForges.Web.Browser.Tests`, local only) | restore (`--locked-mode`), build (0 warnings, 0 errors) and test passed; 43 total, 20 passed, 23 skipped | The opt-ins are off, so the live specs skip |
+| Hosted only (not run here) | the Linux legs of the source and csharp jobs (the locked Linux restore fails with NU1004 in WSL2), the candidate job on Linux, CodeQL, dependency review (PR only), the verify job, and the deploy job (main push only) | Recorded as hosted. `npm run deploy` was not run |
+
 ### Environment gaps (not fixes)
 
 - Node 24.20.0 is installed locally against the 24.21.0 pin, and npm 12.0.2 against the 11.19.0 pin. No toolchain was installed for this run.
@@ -210,13 +246,13 @@ The gates were re-run from a clean state (`git clean -fdX` in the worktree, whic
 
 ### Commits (local, on `task/prf-11`, not pushed)
 
-`fc4fba0` (U1), `f27a9b4` (U2), `9edf001` (U3), `b21aa64` (U4), `a1ede81` (U5), `2a21bc3` (U6), `db38e2c` (U7), `98547cb` (inventory fix), `3283edf` (U9), then `b84e2e3` (fix1: the shell outcome and the S25 review fields). The fix1 gate re-run record is `8b52483`. Fix2 adds `0b42cb4` (typed refusals, the decimal bound and the TooDeep test) and `792af5a` (the Status and the fix2 review section). The fix2 gate re-run record is the commit after `792af5a`. U8 is skipped by its own condition.
+`fc4fba0` (U1), `f27a9b4` (U2), `9edf001` (U3), `b21aa64` (U4), `a1ede81` (U5), `2a21bc3` (U6), `db38e2c` (U7), `98547cb` (inventory fix), `3283edf` (U9), then `b84e2e3` (fix1: the shell outcome and the S25 review fields). The fix1 gate re-run record is `8b52483`. Fix2 adds `0b42cb4` (typed refusals, the decimal bound and the TooDeep test) and `792af5a` (the Status and the fix2 review section). The fix2 gate re-run record is the commit after `792af5a`. U8 is skipped by its own condition. Fix3 merges `origin/main` at `049f6a5` (Web #38) as `f4c639c`, pins the exact profile policy to `base-uri 'self'` in `2038716`, and records the fix3 gate re-run in the commit after it.
 
 ### Completion blockers (blocked, not proven)
 
 - CLOUD.21 and CLOUD.22 are not started. The exact int64, uint64 and decimal calls, typed failures, cancellation after dispatch, session and CSRF on the deployed origin are blocked on them, not proven.
-- CLOUD.85 is not started. Same-origin serving of the shells at `/account/` and `/chat/` under base href `/`, the framework at the root and the exact CSP on the served responses are blocked on it, not proven.
-- The base-uri decision above: under the served policy the Account and Chat shells do not start, so the coordinator must decide the Ui fix before CLOUD.85 deploys the string.
+- CLOUD.85 is not complete at this record. Its S36 follow-up (Cloud #82) and the proof redeploy are not observed here. Same-origin serving of the shells at `/account/` and `/chat/` under base href `/`, the framework at the root and the exact CSP on the served responses are blocked on it, not proven.
+- The `base-uri` decision is resolved by S36 and Web #38 (`base-uri 'self'`). The check that the shells start on the proof origin is the live spec, which waits for the CLOUD.85 follow-up proof redeploy.
 - The observed server-stream run (LS2), the INP measurement for the AL-06 interaction re-baseline (LS3), and the AOT benchmark (not run).
 - The deployed proof origin is not observed. Every local result is claimant-reported.
 
@@ -241,6 +277,13 @@ Cases still not covered by a test:
 - Nesting through a generated message type that has a message field. The Foundation type the tests decode (`V1.Decimal`) has no such field, so the depth test exercises the parser's recursion limit through unknown groups only.
 - Negative zero and leading-zero decimals (`-0`, `-0.0`, `01.5`). The `ExactDecimal` constructor refuses them, but no test in this fix pins that refusal.
 
+### S36 follow-up (fix3, 2026-10-10)
+
+- The merge: `origin/main` at `049f6a5` (Web #38, from `task/web-40`) is merged into `task/prf-11` as `f4c639c`. It brings the S36 `base-uri 'self'` profile policy in `WasmContentSecurityPolicy` and the S37 removal of the Tailwind preamble from both profile stylesheets. There were no conflicts.
+- The pins: `WasmProfilePolicyTests.ExactPolicy`, `EmittedProfileContractTests.ExactPolicy` and `LivePrf11Specs.ExactPolicy` carry `base-uri 'self'` (`2038716`). The Site policy keeps `base-uri 'none'`, and the Site tests are unchanged.
+- The record: the status, the CSP section, the open decision and the completion blockers now state the resolved decision. The stop recorded at fix1 and fix2 is history.
+- Not claimed at fix3: a separate local headless boot check of the shells under the served headers (the S36 check, which belongs to the WEB.40 follow-up), any deployed result, and the CLOUD.85 follow-up proof redeploy.
+
 ### CLOUD.71 history (D11)
 
 CLOUD.71 is ledger-complete for the React bytes only. Its start edge names PRF.11 while PRF.11 has a complete edge on it. Treated as complete-task history (brief S16(a)); no action in this run.
@@ -252,3 +295,4 @@ CLOUD.71 is ledger-complete for the React bytes only. Its start edge names PRF.1
 - Startup time and interaction responsiveness budgets (not measured), and the AOT benchmark (not run).
 - The WA-08 numeric sustained chat memory budget (not found in the Design authority at `b01ae31`; the costing is by construction only).
 - Any macOS result (out of scope, P2-023), and any WSL2 or Linux result (hosted).
+- The deployed proof origin's shells, CSP and live calls: blocked on the CLOUD.85 follow-up redeploy and the local opt-in live run (not proven).
