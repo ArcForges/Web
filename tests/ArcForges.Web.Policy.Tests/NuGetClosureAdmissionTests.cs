@@ -60,6 +60,51 @@ public sealed class NuGetClosureAdmissionTests
         Assert.Contains(NuGetAdmission.Violations(admitted, restored), message => message.StartsWith("Forbidden or unreviewed licence", StringComparison.Ordinal));
     }
 
+    [Fact]
+    public void TestOnlyCopyleftIsAdmittedOnlyForATestOnlyRow()
+    {
+        var restored = new Dictionary<string, string> { ["axe.test/1.0.0"] = "h" };
+        var testOnly = new JsonObject
+        {
+            ["axe.test/1.0.0"] = new JsonObject { ["contentHash"] = "h", ["licence"] = "MPL-2.0", ["testOnly"] = true },
+        };
+        Assert.Empty(NuGetAdmission.Violations(testOnly, restored));
+
+        var productionCopyleft = new JsonObject
+        {
+            ["axe.test/1.0.0"] = new JsonObject { ["contentHash"] = "h", ["licence"] = "MPL-2.0" },
+        };
+        Assert.Contains(NuGetAdmission.Violations(productionCopyleft, restored), message => message.StartsWith("Forbidden or unreviewed licence", StringComparison.Ordinal));
+
+        var testOnlyGpl = new JsonObject
+        {
+            ["axe.test/1.0.0"] = new JsonObject { ["contentHash"] = "h", ["licence"] = "GPL-3.0-only", ["testOnly"] = true },
+        };
+        Assert.Contains(NuGetAdmission.Violations(testOnlyGpl, restored), message => message.StartsWith("Forbidden or unreviewed licence", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void TestOnlyPackagesAreRestoredByNoProductProject()
+    {
+        var root = RepositoryRoot.Find();
+        var testOnly = AdmittedClosure(root)
+            .Where(entry => entry.Value!.AsObject()["testOnly"]?.GetValue<bool>() == true)
+            .Select(entry => entry.Key.Split('/')[0])
+            .ToList();
+        Assert.NotEmpty(testOnly);
+
+        var productLocks = Directory.EnumerateFiles(root, "packages.lock.json", SearchOption.AllDirectories)
+            .Where(path => !path.Contains($"{Path.DirectorySeparatorChar}bin{Path.DirectorySeparatorChar}", StringComparison.Ordinal)
+                           && !path.Contains($"{Path.DirectorySeparatorChar}obj{Path.DirectorySeparatorChar}", StringComparison.Ordinal))
+            .Where(path => !Path.GetRelativePath(root, path).StartsWith($"tests{Path.DirectorySeparatorChar}", StringComparison.Ordinal));
+        foreach (var lockPath in productLocks)
+        {
+            var text = File.ReadAllText(lockPath);
+            foreach (var id in testOnly)
+                Assert.DoesNotContain($"\"{id}\": {{", text, StringComparison.OrdinalIgnoreCase);
+        }
+    }
+
     private static JsonObject AdmittedClosure(string root)
     {
         var policy = JsonNode.Parse(File.ReadAllText(Path.Combine(root, "eng", "policy", "dependency-policy.json")))!.AsObject();

@@ -19,8 +19,8 @@ public sealed class ChatPageTests
     private static IElement SendButton(IRenderedComponent<Chat> cut) =>
         cut.FindAll("button").Single(button => button.TextContent.Trim() is "Send" or "Sending…");
 
-    private static IElement? CancelButton(IRenderedComponent<Chat> cut) =>
-        cut.FindAll("button").SingleOrDefault(button => button.TextContent.Trim() == "Cancel");
+    private static IElement CancelButton(IRenderedComponent<Chat> cut) =>
+        cut.FindAll("button").Single(button => button.TextContent.Trim() == "Cancel");
 
     private static HttpResponseMessage Greeting(string name) =>
         Responses.Raw(ProbeFixtures.HelloReply($"Hello, {name}!"), "application/grpc-web+proto");
@@ -95,9 +95,11 @@ public sealed class ChatPageTests
         cut.Find("form").Submit();
         Assert.Equal(1, server.Count);
 
-        CancelButton(cut)!.Click();
+        CancelButton(cut).Click();
         cut.WaitForAssertion(() => Assert.Contains("The request was cancelled.", cut.Markup, StringComparison.Ordinal));
-        Assert.Null(CancelButton(cut));
+        // Cancel stays in the document after the message ends, idle again: aria-disabled and out of the tab order.
+        Assert.Equal("true", CancelButton(cut).GetAttribute("aria-disabled"));
+        Assert.Equal("-1", CancelButton(cut).GetAttribute("tabindex"));
         Assert.Equal("false", SendButton(cut).GetAttribute("aria-disabled"));
     }
 
@@ -217,9 +219,58 @@ public sealed class ChatPageTests
         Assert.Equal(new[] { "input:Name", "button:Sending…", "button:Cancel" }, FocusOrder.TabSequence(cut));
         FocusOrder.AssertNoPositiveTabIndex(cut);
 
-        CancelButton(cut)!.Click();
+        CancelButton(cut).Click();
         cut.WaitForAssertion(() => Assert.Contains("The request was cancelled.", cut.Markup, StringComparison.Ordinal));
         Assert.Equal(new[] { "input:Name", "button:Send" }, FocusOrder.TabSequence(cut));
+    }
+
+    [Fact]
+    public void CancelStaysInTheDocumentWhileIdleAndAClickOnItIsRefused()
+    {
+        // Option (a) of the 2026-10-09 adjudication: Cancel is persistent. While idle it is aria-disabled and tabindex -1, so
+        // it is never a tab stop and never removed; focus cannot fall to the body when a message ends.
+        var server = ScriptedServer.Always(() => Responses.Raw(ProbeFixtures.HelloReply("Hello, ArcForges!"), "application/grpc-web+proto"));
+        using var context = new BunitContext();
+        AccountPageTests.RegisterProbes(context, server);
+
+        var cut = context.Render<Chat>();
+        var cancel = CancelButton(cut);
+        Assert.Equal("true", cancel.GetAttribute("aria-disabled"));
+        Assert.Equal("-1", cancel.GetAttribute("tabindex"));
+        Assert.False(cancel.HasAttribute("disabled"));
+
+        cancel.Click();
+        Assert.Equal(0, server.Count);
+        Assert.Empty(cut.FindAll("li"));
+        Assert.Equal("true", CancelButton(cut).GetAttribute("aria-disabled"));
+        Assert.Equal(new[] { "input:Name", "button:Send" }, FocusOrder.TabSequence(cut));
+    }
+
+    [Fact]
+    public void CancelBecomesTabbableWhileAMessageIsPendingAndReturnsToIdleWithoutBeingRemoved()
+    {
+        var server = new ScriptedServer(async (_, token) =>
+        {
+            await Task.Delay(Timeout.Infinite, token);
+            return Greeting("unused");
+        });
+        using var context = new BunitContext();
+        AccountPageTests.RegisterProbes(context, server);
+
+        var cut = context.Render<Chat>();
+        SendButton(cut).Click();
+        cut.WaitForAssertion(() => Assert.Contains("Sending…", cut.Markup, StringComparison.Ordinal));
+        Assert.Equal("false", CancelButton(cut).GetAttribute("aria-disabled"));
+        Assert.False(CancelButton(cut).HasAttribute("tabindex"));
+        Assert.Equal(new[] { "input:Name", "button:Sending…", "button:Cancel" }, FocusOrder.TabSequence(cut));
+
+        CancelButton(cut).Click();
+        cut.WaitForAssertion(() => Assert.Contains("The request was cancelled.", cut.Markup, StringComparison.Ordinal));
+        Assert.Equal("true", CancelButton(cut).GetAttribute("aria-disabled"));
+        Assert.Equal("-1", CancelButton(cut).GetAttribute("tabindex"));
+        Assert.Equal(new[] { "input:Name", "button:Send" }, FocusOrder.TabSequence(cut));
+        FocusOrder.AssertNoPositiveTabIndex(cut);
+        Assert.Equal(1, server.Count);
     }
 
     [Fact]

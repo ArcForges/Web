@@ -8,6 +8,17 @@
         "resolved": "1.0.0-ci.94.1",
         "contentHash": "PCpeEXikk2m87zhMF6L8tbHe2QrI87mO4Nc5lJBenEDhOePwwV4TkArc6IaM1G11Pm8ojVjurLAIoPW22ozb/A=="
       },
+      "Deque.AxeCore.Playwright": {
+        "type": "Direct",
+        "requested": "[4.13.0, )",
+        "resolved": "4.13.0",
+        "contentHash": "tqzqVEsQfVg4fmx9/AkbgYjVMYHHOGI7WkTznKuP8ayi0uaBcd+2skOfxnVdUBlEhpHdu9stzxOZ6uPVhIS2JA==",
+        "dependencies": {
+          "Deque.AxeCore.Commons": "4.13.0",
+          "Microsoft.Playwright": "1.20.2",
+          "System.IO.Abstractions": "17.0.24"
+        }
+      },
       "Microsoft.Playwright": {
         "type": "Direct",
         "requested": "[1.62.0, )",
@@ -27,6 +38,14 @@
           "xunit.analyzers": "2.1.0",
           "xunit.v3.assert": "[4.0.1]",
           "xunit.v3.core.mtp-v2": "[4.0.1]"
+        }
+      },
+      "Deque.AxeCore.Commons": {
+        "type": "Transitive",
+        "resolved": "4.13.0",
+        "contentHash": "roq2z6OmKY4KVXGj1lSigUbjE7DnIcYLqPOVcnWrusS6CI7oB6/He8Oo3ZO/TCOlnaTS1hkJOuKPwL+PyhyC6w==",
+        "dependencies": {
+          "NewtonSoft.Json": "13.0.1"
         }
       },
       "Microsoft.ApplicationInsights": {
@@ -74,10 +93,20 @@
         "resolved": "5.0.0",
         "contentHash": "dDoKi0PnDz31yAyETfRntsLArTlVAVzUzCIvvEDsDsucrl33Dl8pIJG06ePTJTI3tGpeyHS9Cq7Foc/s4EeKcg=="
       },
+      "Newtonsoft.Json": {
+        "type": "Transitive",
+        "resolved": "13.0.1",
+        "contentHash": "ppPFpBcvxdsfUonNcvITKqLl3bqxWbDCZIzDWHzjpdAHRFfZe0Dw9HmA0+za13IdyrgJwpkDTDA9fHaxOrt20A=="
+      },
       "System.ComponentModel.Annotations": {
         "type": "Transitive",
         "resolved": "5.0.0",
         "contentHash": "dMkqfy2el8A8/I76n2Hi1oBFEbG1SfxD2l5nhwXV3XjlnOmwxJlQbYpJH4W51odnU9sARCSAgv7S3CyAFMkpYg=="
+      },
+      "System.IO.Abstractions": {
+        "type": "Transitive",
+        "resolved": "17.0.24",
+        "contentHash": "hA7bacntMiZv1Yf9xtjwl/GP3GT1mG84QxhAk7ijAUD0pJhJaVVwXScE13vMpXnNtlaRDW6SeyZdWg2j2qrh4w=="
       },
       "System.Security.AccessControl": {
         "type": "Transitive",

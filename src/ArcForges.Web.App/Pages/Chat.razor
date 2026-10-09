@@ -16,10 +16,7 @@
             Name <input @bind="_name" @bind:event="oninput" />
         </label>
         <Button type="submit" aria-disabled="@(_pending ? "true" : "false")">@(_pending ? "Sending…" : "Send")</Button>
-        @if (_pending)
-        {
-            <button type="button" class="button" @onclick="Cancel">Cancel</button>
-        }
+        <button type="button" class="button" aria-disabled="@(_pending ? "false" : "true")" tabindex="@(_pending ? null : "-1")" @onclick="Cancel">Cancel</button>
     </form>
     <ol class="transcript" aria-live="polite" aria-label="Messages">
         @foreach (var entry in _entries)
@@ -89,8 +86,16 @@
         }
     }
 
+    /// <summary>
+    /// Cancel is always rendered (option a of the 2026-10-09 focus adjudication). While idle it is aria-disabled and takes no
+    /// tab stop, so focus never falls to the body when a message ends; a click is refused.
+    /// </summary>
     private void Cancel()
     {
+        if (!_pending)
+        {
+            return;
+        }
         _active?.Cancel();
     }
 

@@ -14,7 +14,9 @@ A focused control that becomes `disabled` or is removed from the document drops 
 | --- | --- | --- | --- |
 | Chat | idle | Send (`type=submit`) | Enabled. Enter in the Name field submits through it (the form's default button). |
 | Chat | pending | Send | Same element, `aria-disabled="true"`, label "Sending…". A click or Enter is refused by the send guard, so no second message is sent. Focus stays on Send. |
-| Chat | pending | Cancel | Added while pending and removed when the pending message ends. See remaining item 1. |
+| Chat | idle | Cancel (`type=button`) | Always rendered, so it is never removed: `aria-disabled="true"` and `tabindex="-1"`. It is not a tab stop, and a click is refused by the handler (option a of the 2026-10-09 adjudication). |
+| Chat | pending | Cancel | Same element, `aria-disabled="false"` and no tabindex, so it joins the tab order after Send. A click cancels the pending message. |
+| Chat | after the message ends | Cancel | Same element, back to idle (`aria-disabled="true"`, `tabindex="-1"`). Focus that was on Cancel stays on it, because an aria-disabled control is never removed. |
 | Chat | after reply or notice | Send | Same element, `aria-disabled="false"`. Focus stays on Send. |
 | Account | anonymous first read | none | No control, so the tab sequence is empty. |
 | Account | signed in | Sign out | Enabled. |
@@ -42,8 +44,8 @@ Run: set `ARCFORGES_LOCAL_BROWSER=1` and `ARCFORGES_BROWSER_BASE_URL` to a serve
 
 ## Remaining (recorded, not fixed here)
 
-1. **Cancel in Chat.** Cancel is removed when the pending message ends. A keyboard user who presses Cancel loses focus to the body. The fix needs a decision from the coordinator, because the two options change visible UI: (a) keep Cancel in place, `aria-disabled` and `tabindex="-1"` while idle, so it is visible but not in the tab order; or (b) show one Send/Cancel control whose label changes. Owner: the WEB.40 coordinator.
-2. **WCAG 2.2 AA verification per replacement screen.** P2-021 item 8 also requires a recorded WCAG 2.2 AA verification for Account and Chat. This record covers focus only (AX-02). Owner: the WEB.40 coordinator.
+1. **Cancel in Chat (resolved, option a).** Cancel is always rendered. While idle it is `aria-disabled="true"` and `tabindex="-1"`, so it is never a tab stop and never removed, and focus cannot fall to the body when a message ends. The bUnit tests `CancelStaysInTheDocumentWhileIdleAndAClickOnItIsRefused` and `CancelBecomesTabbableWhileAMessageIsPendingAndReturnsToIdleWithoutBeingRemoved` assert the states; the browser focus identity is asserted by `LocalFocusBrowserTests` for Send and Sign out, and the Cancel states are part of the axe re-proof in [web-40-accessibility.md](web-40-accessibility.md). Decision: 2026-10-09 coordinator adjudication (brief section 10); option (b), a combined Send/Cancel control, was not chosen.
+2. **WCAG 2.2 AA verification per replacement screen.** P2-021 item 8 also requires a recorded WCAG 2.2 AA verification for Account, Chat and the Site pages. That record is [web-40-accessibility.md](web-40-accessibility.md). This record covers focus only (AX-02).
 3. **Browser run on the recording machine.** The browser check runs only with the local opt-in. It is not part of CI (P2-017), and hosted CI does not run it.
 
 ## Record of the local browser run

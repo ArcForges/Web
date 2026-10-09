@@ -11,13 +11,13 @@ namespace ArcForges.Web.Browser.Tests;
 
 public sealed class LocalFocusBrowserTests
 {
-    private const string HelloPath = "**/api/arcforges.hello.v1.HelloService/SayHello";
-    private const string BootstrapPath = "**/session/v1/bootstrap";
-    private const string LogoutPath = "**/session/v1/logout";
+    internal const string HelloPath = "**/api/arcforges.hello.v1.HelloService/SayHello";
+    internal const string BootstrapPath = "**/session/v1/bootstrap";
+    internal const string LogoutPath = "**/session/v1/logout";
     private const string Ended = "You are signed out. Reload to check again.";
 
     // The same wire fixtures as the bUnit suite (tests/ArcForges.Web.App.Tests/Fixtures/ProbeFixtures.cs), in browser form.
-    private const string AuthenticatedJson =
+    internal const string AuthenticatedJson =
         "{\"csrfToken\":\"cccccccccccccccccccccccc\",\"authenticated\":true,"
         + "\"session\":{\"sessionId\":\"6d1d4c2a-62a0-4b86-9d3f-0c6a3d0b5c11\",\"expiresAt\":\"2026-10-03T08:00:00.000000Z\","
         + "\"idleExpiresAt\":\"2026-10-02T20:30:00.000000Z\",\"userId\":\"0f0e6a30-5d1c-4c7e-8b53-5b6b7f9a4a10\","
@@ -26,7 +26,7 @@ public sealed class LocalFocusBrowserTests
         + "\"profile\":{\"displayName\":\"Ada Lovelace\",\"locale\":\"en-GB\",\"timezone\":\"Europe/London\","
         + "\"revision\":\"9007199254740993\"}}";
 
-    private const string ReceiptJson =
+    internal const string ReceiptJson =
         "{\"commandId\":\"7c9e6679-7425-40de-944b-e07fc1f90ae7\",\"effect\":\"happened\"}";
 
     /// <summary>One gRPC-Web frame: a flag byte, a big-endian 32-bit length and the payload.</summary>
@@ -43,7 +43,7 @@ public sealed class LocalFocusBrowserTests
     }
 
     /// <summary>A binary gRPC-Web hello answer: the SayHelloResponse message (field 1) and an OK trailer.</summary>
-    private static byte[] HelloReply(string message)
+    internal static byte[] HelloReply(string message)
     {
         var text = Encoding.UTF8.GetBytes(message);
         var payload = new byte[text.Length + 2];
