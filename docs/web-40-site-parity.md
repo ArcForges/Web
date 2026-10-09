@@ -60,3 +60,15 @@ Those differences change rendering, so the C# Site now embeds the React build's 
 After this record, `apps/site`, `apps/app` and `packages/ui` may be removed. The C# Site output is the only public
 output. Byte parity with the React output is not claimed for the HTML pages, because their markup differs by the
 hydration nodes listed above. Content parity is claimed for every public page as described.
+
+## Byte parity gate (review fix, 2026-10-09)
+
+Brief section 10 says: keep apps/site until byte parity is shown, then remove it. This section records what the comparison shows against the React prerender in `artifacts/parity/react` (local output, not committed) and the C# output in `artifacts/parity/csharp2` (site build at this branch).
+
+Measured on `index.html`, `hello/index.html` and `cloud-hello/index.html`:
+
+- Removed hydration nodes (the five or six inline scripts, the React Router context, the `<!--$-->` and `<!--/$-->` markers and the `modulepreload` links) account for the largest part of the difference. Their removal is the TB-01 change.
+- Serialization differs after those nodes are removed, so the files are not byte equal. The remaining differences are: void-element syntax (`<meta .../>` against `<meta ...>`), `charSet` against `charset`, boolean attribute spelling (`disabled=""` against `disabled`), attribute casing (`autoComplete` against `autocomplete`), the em dash in `<title>` (`&#x2014;` against the literal character), the space before `/>` on the stylesheet and description links, and the `<title>` text encoding of the React file.
+- `404.html`, `404.css`, `robots.txt` and `favicon.svg` are byte identical.
+
+Result: byte parity is not shown for the HTML pages. The content and element-skeleton parity recorded above still holds. Closing the byte gate needs either a recorded coordinator waiver or a serializer change that makes the C# output match React's serializer, which is not a hydration removal and is outside this normalisation. No waiver is recorded in this file. The apps/site deletion is open to the coordinator until one of the two is recorded.
