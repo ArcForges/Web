@@ -14,9 +14,12 @@ namespace ArcForges.Web.Tooling.Tests;
 
 public sealed class EmittedProfileContractTests
 {
-    /// <summary>The exact emitted policy, pinned in both test projects (ArcForges.Web.App.Tests pins the same string).</summary>
+    /// <summary>
+    /// The exact emitted policy, pinned in both test projects (ArcForges.Web.App.Tests pins the same string). base-uri is 'self'
+    /// because the shells carry the base element (S36, WEB.40 follow-up Web #38); the Site policy keeps 'none'.
+    /// </summary>
     private const string ExactPolicy =
-        "default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self'; img-src 'self' data:; font-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'; form-action 'none'";
+        "default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self'; img-src 'self' data:; font-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'self'; frame-ancestors 'none'; form-action 'none'";
 
     private static readonly string HostPage = File.ReadAllText(
         Path.Combine(RepositoryRoot.Find(), "src", "ArcForges.Web.App", "wwwroot", "index.html"), Encoding.UTF8);

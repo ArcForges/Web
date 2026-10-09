@@ -6,8 +6,8 @@
 //   - Shells and framework on the proof origin (HTTP only, no browser): the Account and Chat shells at /account/ and /chat/,
 //     base href "/", the framework at the root, and the exact CSP on the served response.
 //   - In-browser CSP: the Account and Chat shells load in the installed Chrome or Edge with JavaScript enabled, and no
-//     Content-Security-Policy violation is reported. This is the check that the base-uri 'none' directive does not block the
-//     base href (see docs/prf-11-profile-proof.md, the base-uri open point).
+//     Content-Security-Policy violation is reported. This is the check that the profile base-uri 'self' directive admits the
+//     base href (S36, resolved by WEB.40 follow-up Web #38; see docs/prf-11-profile-proof.md).
 //   - Cloud parts: the anonymous greeting round trip, and the interaction-responsiveness (INP) capture. These are skipped as
 //     "blocked on CLOUD.21/CLOUD.22, not proven" until the cloud switch is set. The exact int64, uint64 and decimal calls,
 //     typed failures, session expiry and CSRF need an authenticated session or the CLOUD.21 methods, so they are a manual step
@@ -21,9 +21,9 @@ namespace ArcForges.Web.Browser.Tests;
 
 public sealed class LivePrf11Specs
 {
-    /// <summary>The exact policy of the profile paths, the same string the Tooling and App tests pin.</summary>
+    /// <summary>The exact policy of the profile paths, the same string the Tooling and App tests pin (base-uri 'self', S36).</summary>
     private const string ExactPolicy =
-        "default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self'; img-src 'self' data:; font-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'; form-action 'none'";
+        "default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self'; img-src 'self' data:; font-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'self'; frame-ancestors 'none'; form-action 'none'";
 
     private static readonly string[] Profiles = ["/account/", "/chat/"];
 
