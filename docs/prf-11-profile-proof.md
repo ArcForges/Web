@@ -85,6 +85,14 @@ The CON.92 registry bounds are read from `WireLimits.Bytes` and pinned: unary an
 
 `HelloProbe` now sets the gRPC channel's `MaxReceiveMessageSize` and `MaxSendMessageSize` to the unary class (4 MiB), so the greeting, a unary call, is bounded explicitly rather than by the library default. `HelloProbeTests.AGreetingReplyAboveTheUnaryMessageBoundIsRefusedNeverAccepted` pins that a reply whose message is over the class is `Malformed` and never a greeting.
 
+## Static Site: no-script reading and determinism (U5)
+
+- Determinism: the Site is built twice with the candidate command (`site build --out ... --source-ref <sha>`) and the two output trees are identical (`diff -r`, nine files, including `_headers` and the content-hashed stylesheet). The hosted csharp job repeats this as a gate.
+- Offline, CI-eligible: `SiteOutputTests.EveryPageIsReadableWithScriptingDisabled` (existing) scans every page for script elements, event-handler attributes, framework references and `javascript:` URLs. The new `SiteOutputTests.TheOutputCarriesNoScriptOrWebAssemblyFileAtAll` refuses any `.js`, `.mjs` or `.wasm` output file and any script element in the HTML. The Site test run in the local gate passed 75 cases, skipped 1 (`SiteParityTests.TheCSharpSiteAgreesWithTheRecordedReactPrerenderWhenItIsNamed`, which is skipped by design unless a React prerender is named), and failed none.
+- Local opt-in, not CI: `tests/browser/ArcForges.Web.Browser.Tests/LocalNoScriptBrowserTests.cs` reads `/`, `/hello/` and `/cloud-hello/` with JavaScript disabled and asserts a 200 status, non-empty `main` text, no script element, and no script request. It skips with the opt-in unset. Under CI conditions it skipped (the opt-in gate also refuses any CI host).
+- The one local opt-in run: the Site output was served from `artifacts/site` on `127.0.0.1` (a local static server, not a deployed origin). The browser was the installed Google Chrome, `C:\Program Files\Google\Chrome\Application\chrome.exe`, product version 156.0.8078.12, named by `ARCFORGES_CHROMIUM_PATH`. No browser was downloaded. The test passed: 1 of 1, 4.5 s. Host Windows 11, Microsoft.Playwright 1.62.0 driving the installed binary by path (D10). The match between this Chrome build and the Chromium that Playwright 1.62.0 expects was not verified, so it is recorded as a mismatch risk. Claimant-reported; date 2026-10-09.
+- Not claimed: the no-script reading of the deployed proof origin (blocked on CLOUD.85, not proven).
+
 ## Server-stream framing (U4)
 
 The binary and grpc-web-text server-stream framings are recorded as fixtures in `StreamFramingTests`, and the transport decision (binary first, grpc-web-text only if the observed run fails) is recorded in `docs/prf-11-stream-transport.md`. That decision is open until the local opt-in observation (LS2) is made. No deployed stream is claimed.
