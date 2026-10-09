@@ -35,7 +35,7 @@ This is the record of the PRF.11 proof for the Web repository (Design WP-06.05 f
 | CLOUD.71 (proof-origin route families for the React bytes) | `complete` (history for the React bytes only) | The `/api`, `/session/v1` and `/proof/v1` route precedence is not proven for the Blazor bytes. D11 treats the graph inconsistency as history (brief S16(a)). |
 | CLOUD.85 (proof-origin serving of the Blazor Account and Chat shells and the C# Site, under base href "/", CLOUD.85 D1) | not started (no ledger record; waits on WEB.40 and the Cloud deploy) | Same-origin serving, the `/account/` and `/chat/` shells, digest-verified bytes and the exact CSP on served responses are blocked on CLOUD.85, not proven. PRF.11 cannot complete until CLOUD.85 delivers and its checks pass (S27(b)). |
 
-Completion of PRF.11 is therefore blocked. The offline units U1 to U9 are the delivery in this phase (brief S20(d)).
+Completion of PRF.11 is therefore blocked. The offline units U1 to U9 are the work of this phase (brief S20(d)). The task is stopped at the open decision below, so it is not delivered.
 
 ### Shell and base href
 
@@ -120,7 +120,7 @@ Still not claimed: the live int64, uint64 and decimal calls through the deployed
 
 ### Status
 
-PRF.11 is delivered on its offline units U1 to U9 in local commits on `task/prf-11`. It is **not complete**. The completion edges CLOUD.21, CLOUD.22 and CLOUD.85 are not started, and under the served CSP the shells do not start, which needs a coordinator decision (below). The task record names PRF.08 as superseded, and this record supersedes PRF.08 (`docs/prf-08-profile-proof.md` is history). PRF.11 is the successor of the WEB.40 app-proof row (ruling S28(i)).
+PRF.11 is **stopped, not delivered**. The offline units U1 to U9 are committed in local commits on `task/prf-11`, but the task stops at the open decision below: under the served policy (`base-uri 'none'`, in `WasmContentSecurityPolicy`, Ui), the Account and Chat shells do not start. Plan D3 makes an in-browser CSP change that needs a Ui edit a stop for a new decision, so this record does not claim delivery. Delivery could be claimed only if the coordinator accepted delivered-with-open-decision in writing, and no such acceptance is recorded here. The task is stopped pending the coordinator's Ui decision. It is also **not complete**: the completion edges CLOUD.21, CLOUD.22 and CLOUD.85 are not started. The task record names PRF.08 as superseded, and this record supersedes PRF.08 (`docs/prf-08-profile-proof.md` is history). PRF.11 is the successor of the WEB.40 app-proof row (ruling S28(i)).
 
 ### Offline receipt (WP-06.05, offline portion)
 
@@ -128,7 +128,7 @@ PRF.11 is delivered on its offline units U1 to U9 in local commits on `task/prf-
 | --- | --- | --- |
 | Start identity and edges (U1) | `docs/prf-11-profile-proof.md` start section; CON.92 limits in Contracts `docs/architecture.md` at ca45f36; CON.07 identity `ArcForges.Contracts.PublicApi 1.0.0-ci.287.1` | Recorded; P0c holds |
 | Exact CSP token set and base hrefs (U2) | `WasmProfilePolicyTests.TheEmittedPolicyIsTheExactReviewedString`, `TheHostPageDeclaresExactlyOneBaseAtTheRootAndTheShellsRelyOnIt`; `EmittedProfileContractTests` (4 cases) | Passes offline; the string is pinned. Under it the shells do not start in the browser (see the decision below), so the in-browser CSP check is not passed |
-| Exact int64, uint64, decimal and CON.92 limits (U3) | `ExactUnsignedTests` (int64, decimal); `WireLimitTests` (7 cases); `HelloProbeTests.AGreetingReplyAboveTheUnaryMessageBoundIsRefusedNeverAccepted` | Passes offline |
+| Exact int64, uint64, decimal and CON.92 limits (U3) | `ExactUnsignedTests` (9 cases: int64 and decimal values, the typed `FormatException` refusals, and the shared decimal bound at both edges); `WireLimitTests` (7 cases, including the `TooDeep` refusal at 101 nested levels); `HelloProbeTests.AGreetingReplyAboveTheUnaryMessageBoundIsRefusedNeverAccepted` | Passes offline |
 | Server-stream framing fixtures and decision (U4) | `StreamFramingTests` (6 cases); `docs/prf-11-stream-transport.md` | Fixtures pass; the decision is open until the observed run (LS2) |
 | No-script reading and determinism (U5) | `SiteOutputTests.TheOutputCarriesNoScriptOrWebAssemblyFileAtAll` and the existing `EveryPageIsReadableWithScriptingDisabled`; Site built twice and diffed (identical, nine files); `LocalNoScriptBrowserTests` (local opt-in, one run with installed Chrome 156.0.8078.12, passed) | Offline and local evidence recorded; claimant-reported |
 | AL-06 asset re-baseline, file count, WA-08 costing (U6) | `docs/prf-11-budgets.md`; `profiles budget` passed; `profiles bundle` and `profiles verify` (174 served files, 116 precompressed, limit 20,000 on Free) | Recorded; interaction budgets stay re-baseline-pending |
@@ -197,6 +197,20 @@ The independent reviewer's material findings at `3283edf` and their dispositions
 
 - **Shells do not start under the pinned policy (material).** Confirmed locally; see the open-decision section. The finding asks for `base-uri` to change in `src/ArcForges.Web.Ui/WasmContentSecurityPolicy.cs`. That file is outside the PRF.11 write scope, and brief 5.13 and S20(b) make an in-browser CSP change that needs a Ui edit a stop for a new decision. So no code is changed. The record now states the observed outcome, and the decision is listed in the completion blockers for the coordinator. The pinned string and its test pins are unchanged.
 - **S25 review fields missing (material).** This record now carries the reviewer, `decision: approved` and `reviewedOn` fields at its head (above). `docs/prf-11-stream-transport.md` carries the same fields, and `docs/prf-11-budgets.md` already did. The S25 fields are a proposal ratified only by the named reviewer's exact-head approval.
+
+### Review fixes (fix2, 2026-10-09)
+
+The independent reviewer's material findings at `8b52483` and their dispositions:
+
+- **Status conflicted with the planning stop rule (material).** Fixed in the Status section above: the task is stopped pending the coordinator's Ui decision, and it is not delivered. No Ui change is made, because `src/ArcForges.Web.Ui/**` is outside the write scope (Plan D3).
+- **Exact-value refusals accepted any exception (material, a).** `ExactUnsignedTests` now asserts the parser's typed `FormatException` for every int64 refusal (`ExactInteger.ParseInt64`) and every decimal syntax refusal (the `ExactDecimal` constructor), with `Assert.Throws<FormatException>` in place of `Assert.ThrowsAny<Exception>`.
+- **The shared decimal bound was not tested (material, b).** `DecimalsAtTheSharedBoundAreAcceptedAndRoundTrip` accepts 28 significant digits and nine fractional digits, and round-trips them. `DecimalsOverTheSharedBoundAreRefusedNotRounded` refuses ten fractional digits and 29 significant digits, both as an integer and after 28 integer digits, each as `FormatException`.
+- **The tooDeep refusal was not tested (material, c).** `ANestingAtTheRegistryLevelsDecodesAndOneLevelDeeperIsTooDeep` decodes 100 nested levels and refuses 101 as `ContractSerializationFailure.TooDeep`, through `ContractWire.TryDecode` and `ContractWire.Decode`. The nesting is built from unknown group fields (field 1000), because the test type `V1.Decimal` has no message field. Each group counts against the parser's recursion limit, and `ContractWire` maps the parser's "levels of nesting" refusal to `TooDeep`.
+
+Cases still not covered by a test:
+
+- Nesting through a generated message type that has a message field. The Foundation type the tests decode (`V1.Decimal`) has no such field, so the depth test exercises the parser's recursion limit through unknown groups only.
+- Negative zero and leading-zero decimals (`-0`, `-0.0`, `01.5`). The `ExactDecimal` constructor refuses them, but no test in this fix pins that refusal.
 
 ### CLOUD.71 history (D11)
 
