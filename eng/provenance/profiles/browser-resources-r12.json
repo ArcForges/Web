@@ -1,0 +1,51 @@
+{
+  "schemaVersion": 1,
+  "repository": "Web",
+  "graph": {
+    "modules": [],
+    "chunks": [],
+    "assets": []
+  },
+  "templates": {},
+  "inputs": {
+    "LICENSE": "8486a10c4393cee1c25392769ddd3b2d6c242d6ec7928e1414efff7dfb2f07ef",
+    "src/ArcForges.Web.Site/Assets/site.css": "d4912dbd6dc5e22b2f51f771233b4670204bf6e9ffcf6fba178cd7b6fff7ec3a",
+    "third-party/tailwind.LICENSE.txt": "60e0b68c0f35c078eef3a5d29419d0b03ff84ec1df9c3f9d6e39a519a5ae7985",
+    "tooling/candidate.ts": "3aad8d9a0527757284d1f945a9c525231dff2651b4c27827be9a10318529e9fd",
+    "tooling/project.ts": "a74faaa2efef057e7822b30aa822ba89c5304ef16229ad2a5483f9382ecdbd30",
+    "tools/ArcForges.Web.Tooling/Candidate/CandidateCore.cs": "5d7a8852cd97cfdd52905acd6541771b9850c8b7dbb0a8b692a1d4e1e3ba7dba",
+    "worker/index.ts": "db4827a7f5557df48738c68de2091f8e60191d092086825b3c9169e7e07e7e51",
+    "wrangler.json": "b597ad91281c4d77c504dfeebace4aa7b8ce2f9bc724dbe40978643b23171c07"
+  },
+  "contracts": {},
+  "packageIdentities": {},
+  "noticeInputs": {
+    "third-party/tailwind.LICENSE.txt": "60e0b68c0f35c078eef3a5d29419d0b03ff84ec1df9c3f9d6e39a519a5ae7985"
+  },
+  "additionalNotices": [],
+  "components": [
+    {
+      "name": "tailwindcss",
+      "version": "4.3.3",
+      "spdx": "MIT",
+      "repository": "https://github.com/tailwindlabs/tailwindcss",
+      "commit": "c2b24dd15fed1c59dd521bd86082f520c9f5ad0d",
+      "packagePath": null,
+      "emitted": true,
+      "role": "public stylesheet: the Tailwind v4.3.3 preflight and the reviewed packages/ui styles, carried byte for byte in src/ArcForges.Web.Site/Assets/site.css"
+    }
+  ],
+  "buildSbomSha256": "411a6bf4bdc72a087a003a5db8f8caae6fb2e36dce730cae628c11f204e79ec4",
+  "runtimeSbom": {
+    "bomFormat": "CycloneDX",
+    "specVersion": "1.5",
+    "version": 1,
+    "components": []
+  },
+  "evidence": {
+    "baselineCommit": "80900a1430c0fbb483e4a220e20980e3c18728b3",
+    "reviewedOn": "2026-10-08",
+    "oracle": "The public candidate is the C# static Site (ArcForges.Web.Site) regenerated and compared byte for byte by the candidate verifier. The React prerender was compared with it before its removal (docs/web-40-site-parity.md). The only third-party public resource is the Tailwind v4.3.3 stylesheet; no browser module, no Contracts member and no npm browser package is shipped.",
+    "retired": "browser-resources-r11: the React/Vite/Rolldown browser graph, its templates and its npm browser packages (Buf protobuf-es, Connect-ES, React, React Router, Vite and Rolldown) are no longer shipped."
+  }
+}

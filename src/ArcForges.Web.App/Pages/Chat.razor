@@ -1,0 +1,107 @@
+@page "/chat"
+@implements IDisposable
+@inject HelloProbe Hello
+
+<PageTitle>Chat probe — ArcForges</PageTitle>
+
+<section class="example">
+    <p class="eyebrow">Chat profile</p>
+    <h1>Say hello, <em>to the server.</em></h1>
+    <p class="hero-copy">Each message is one anonymous gRPC-Web call. Nothing is sent until you choose to send.</p>
+    <noscript>
+        <p class="no-script">Enable JavaScript to send a message.</p>
+    </noscript>
+    <form class="field" @onsubmit="SendAsync" @onsubmit:preventDefault="true">
+        <label>
+            Name <input @bind="_name" @bind:event="oninput" />
+        </label>
+        <Button type="submit" aria-disabled="@(_pending ? "true" : "false")">@(_pending ? "Sending…" : "Send")</Button>
+        <button type="button" class="button" aria-disabled="@(_pending ? "false" : "true")" tabindex="@(_pending ? null : "-1")" @onclick="Cancel">Cancel</button>
+    </form>
+    <ol class="transcript" aria-live="polite" aria-label="Messages">
+        @foreach (var entry in _entries)
+        {
+            <li @key="entry.Id"><span class="kind">@entry.Kind</span>@entry.Text</li>
+        }
+    </ol>
+</section>
+
+@code {
+    /// <summary>The transcript keeps the last twenty entries.</summary>
+    public const int MaxEntries = 20;
+
+    private sealed record Entry(int Id, string Kind, string Text);
+
+    private readonly List<Entry> _entries = [];
+    private string _name = "ArcForges";
+    private bool _pending;
+    private int _counter;
+    private CancellationTokenSource? _active;
+
+    private void Add(string kind, string text)
+    {
+        _entries.Add(new Entry(++_counter, kind, text));
+        if (_entries.Count > MaxEntries)
+        {
+            _entries.RemoveRange(0, _entries.Count - MaxEntries);
+        }
+    }
+
+    /// <summary>
+    /// Sends one greeting. A second send while one is pending does nothing. Send is aria-disabled, not disabled, while a
+    /// message is pending: a disabled control drops keyboard focus, and this guard is what stops a second send.
+    /// </summary>
+    private async Task SendAsync()
+    {
+        if (_active is not null)
+        {
+            return;
+        }
+        var controller = new CancellationTokenSource();
+        _active = controller;
+        _pending = true;
+        Add("you", _name);
+        StateHasChanged();
+        try
+        {
+            var reply = await Hello.SayHelloAsync(_name, controller.Token);
+            Add("server", reply);
+        }
+        catch (Exception exception)
+        {
+            // A typed failure keeps its kind; any other exception is unexpected, and a cancelled send is cancelled.
+            var kind = exception is ProbeFailureException failure
+                ? failure.Kind
+                : controller.IsCancellationRequested ? FailureKind.Cancelled : FailureKind.Unexpected;
+            Add("notice", FailureText.For(kind));
+        }
+        finally
+        {
+            if (ReferenceEquals(_active, controller))
+            {
+                _active = null;
+            }
+            controller.Dispose();
+            _pending = false;
+        }
+    }
+
+    /// <summary>
+    /// Cancel is always rendered (option a of the 2026-10-09 focus adjudication). While idle it is aria-disabled and takes no
+    /// tab stop, so focus never falls to the body when a message ends; a click is refused.
+    /// </summary>
+    private void Cancel()
+    {
+        if (!_pending)
+        {
+            return;
+        }
+        _active?.Cancel();
+    }
+
+    /// <summary>Leaving the page cancels the message that is still pending.</summary>
+    public void Dispose()
+    {
+        _active?.Cancel();
+    }
+}

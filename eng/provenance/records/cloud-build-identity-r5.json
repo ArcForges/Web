@@ -1,0 +1,93 @@
+{
+  "schemaVersion": 1,
+  "id": "cloud-build-identity-r5",
+  "kind": "source",
+  "sourceRepository": "https://github.com/ArcForges/Cloud",
+  "sourceCommit": "c5a5f2ed71870961237fadd2f20061abe48e34a0",
+  "sourcePaths": [
+    "tooling/build-identity.ts",
+    "tests/provenance/build-identity.test.ts",
+    "eng/version-sources.json"
+  ],
+  "licence": {
+    "spdx": "AGPL-3.0-only",
+    "category": "agpl-compatible",
+    "evidence": [
+      {
+        "path": "tooling/build-identity.ts",
+        "sha256": "6fb789e7756648ed090b35f48027c869983fddc86c5d116e0845b95c3ea556e3",
+        "finding": "Exact merged authored file inspected under its explicit SPDX header and complete owner AGPL terms."
+      },
+      {
+        "path": "tests/provenance/build-identity.test.ts",
+        "sha256": "bbda8c8ef09c922ac3232b2327ef6d3bc66b89f7d3365d6065a16bde6f9ecb26",
+        "finding": "Exact merged authored file inspected under its explicit SPDX header and complete owner AGPL terms."
+      },
+      {
+        "path": "eng/version-sources.json",
+        "sha256": "43d81ed1a3a85df761a4659bbba9bff5cba16ab8ae308a1ec64ca4409d7e2d51",
+        "finding": "Exact merged authored file inspected under its explicit SPDX header and complete owner AGPL terms."
+      },
+      {
+        "path": "LICENSE",
+        "sha256": "8486a10c4393cee1c25392769ddd3b2d6c242d6ec7928e1414efff7dfb2f07ef",
+        "finding": "Complete upstream AGPL terms equal receiving owner terms."
+      }
+    ],
+    "scope": "Reviewed AGPL-to-AGPL adaptation of the merged Cloud resolver/catalog/independence tests. Owner and imports are local, the published npm producer pin replaces the .NET pin, and npm workspace links/owned workspace releases are excluded from external dependency inventory. Image-specific argument mapping is omitted. The sealed static report is independently verified against source, locked packages and actual CI run/attempt. No sibling source becomes a build input.",
+    "copyingPermission": null
+  },
+  "attribution": [
+    "Build identity tooling adapted from ArcForges Cloud, Copyright ArcForges contributors, AGPL-3.0-only."
+  ],
+  "targets": [
+    {
+      "path": "tooling/build-identity.ts",
+      "sha256": "6fb789e7756648ed090b35f48027c869983fddc86c5d116e0845b95c3ea556e3",
+      "normalization": "lf"
+    },
+    {
+      "path": "tests/provenance/build-identity.test.ts",
+      "sha256": "bbda8c8ef09c922ac3232b2327ef6d3bc66b89f7d3365d6065a16bde6f9ecb26",
+      "normalization": "lf"
+    },
+    {
+      "path": "eng/version-sources.json",
+      "sha256": "43d81ed1a3a85df761a4659bbba9bff5cba16ab8ae308a1ec64ca4409d7e2d51",
+      "normalization": "lf"
+    }
+  ],
+  "artifactTargets": [],
+  "disposition": "Improve",
+  "verification": {
+    "kind": "immutable-source-and-byte-review",
+    "command": "Verify named targets against the reviewed hashes, then npm run policy and npm run test.",
+    "expected": "All three admitted resolver, test and catalog targets match the reviewed Cloud-to-Web transformation hashes. Nine-axis independence, actual candidate metadata, dirty/CI rejection, npm workspace exclusion and browser readback pass. No sibling build dependency exists. Published multi-subject ContractSet and malformed/empty/wrong-owner/dirty/duplicate negative cases pass.",
+    "artifacts": []
+  },
+  "notice": {
+    "required": true,
+    "text": "Build identity tooling adapted from ArcForges Cloud, Copyright ArcForges contributors, AGPL-3.0-only.",
+    "files": [
+      "eng/provenance/NOTICE.txt"
+    ],
+    "distribution": "source-and-applicable-artifacts",
+    "reason": "Reviewed AGPL-to-AGPL adaptation of the merged Cloud resolver/catalog/independence tests. Owner and imports are local, the published npm producer pin replaces the .NET pin, and npm workspace links/owned workspace releases are excluded from external dependency inventory. Image-specific argument mapping is omitted. The sealed static report is independently verified against source, locked packages and actual CI run/attempt. No sibling source becomes a build input."
+  },
+  "lifetime": {
+    "status": "permanent",
+    "owner": "Web Licensing and Provenance Owner",
+    "removalTrigger": null
+  },
+  "generation": null,
+  "review": {
+    "owner": "Licensing and Provenance Owner",
+    "reviewer": "w-deku-20261008-rev-web-40",
+    "reviewedOn": "2026-10-09",
+    "decision": "approved",
+    "rationale": "Successor of cloud-build-identity-r4 for WEB.40 unit U5. tooling/build-identity.ts reads the Contracts identity from eng/contracts/ArcForges.Contracts.PublicApi/1.0.0-ci.287.1 (the NuGet CON.07 publication record) and pins it against Directory.Packages.props, because the npm package @arcforges/api-client is retired. tests/provenance/build-identity.test.ts and eng/version-sources.json are bound by this record.",
+    "baselineCommit": "80900a1430c0fbb483e4a220e20980e3c18728b3",
+    "reconciliation": false
+  },
+  "supersedes": "cloud-build-identity-r4"
+}

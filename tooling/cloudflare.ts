@@ -1,10 +1,12 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
+import { spawnSync } from "node:child_process";
 import { join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { setTimeout as delay } from "node:timers/promises";
-import { candidate, digest, json, npm, root, run, save, verify } from "./project.ts";
+import { verifyCandidate } from "./candidate.ts";
+import { candidate, digest, json, root, run, save } from "./project.ts";
 
 const statePath = join(root, "artifacts/deployment.json");
 type Identity = { source: string; version: string };
@@ -83,8 +85,23 @@ export async function waitForDelivery(
   }
   throw new Error(`Public assets did not converge; no redeployment was attempted. ${lastError}`);
 }
+// Local dry run: the same sealed-candidate verification as the deployment, then wrangler's own dry run, which bundles
+// the Worker and lists the assets without any upload. It needs no credentials and changes nothing remote.
+async function dryRun() {
+  await verifyCandidate();
+  const output = run(process.execPath, [
+    join(root, "node_modules/wrangler/bin/wrangler.js"),
+    "deploy",
+    "--dry-run",
+    "--config",
+    join(candidate, "wrangler.json"),
+  ]);
+  process.stdout.write(output);
+  console.log("Dry run only: nothing was uploaded.");
+}
+
 async function deploy() {
-  const manifest = await verify();
+  const manifest = await verifyCandidate();
   assert(!manifest.dirty, "Commit the source before deployment");
   assert.equal(
     process.env.GITHUB_REF,
@@ -158,7 +175,7 @@ async function deploy() {
 }
 async function smoke() {
   assert.notEqual(process.env.CI, "true", "Live browser tests are local opt-in only.");
-  const manifest = await verify();
+  const manifest = await verifyCandidate();
   const state = (await json(statePath)) as Deployment;
   assert.equal(state.source, manifest.source);
   assert.equal(state.version, manifest.version);
@@ -212,10 +229,24 @@ async function smoke() {
       );
     }
   });
-  console.log("Verifying the real domain in Chromium, Firefox and WebKit.");
-  process.stdout.write(
-    npm(["exec", "--no", "--", "playwright", "test", "--config", "playwright.live.config.ts"]),
+  // The local opt-in C# browser suite (tests/browser) reads the deployed domain. It never runs on CI (P2-017).
+  console.log("Verifying the real domain in local Chromium through the C# browser suite.");
+  const browserSuite = spawnSync(
+    "dotnet",
+    ["test", join(root, "tests/browser/ArcForges.Web.Browser.Tests/ArcForges.Web.Browser.Tests.csproj"), "-c", "Release"],
+    {
+      cwd: root,
+      encoding: "utf8",
+      windowsHide: true,
+      env: {
+        ...process.env,
+        ARCFORGES_LOCAL_BROWSER: "1",
+        ARCFORGES_BROWSER_BASE_URL: state.url,
+      },
+    },
   );
+  process.stdout.write(browserSuite.stdout ?? "");
+  assert.equal(browserSuite.status, 0, "The local browser suite failed.");
   await save(statePath, {
     ...state,
     verified: true,
@@ -228,5 +259,6 @@ async function smoke() {
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
   if (process.argv[2] === "deploy") await deploy();
   else if (process.argv[2] === "smoke") await smoke();
-  else throw new Error("Use deploy or smoke.");
+  else if (process.argv[2] === "dry-run") await dryRun();
+  else throw new Error("Use deploy, smoke or dry-run.");
 }

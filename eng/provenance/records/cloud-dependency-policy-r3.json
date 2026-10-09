@@ -1,0 +1,93 @@
+{
+  "schemaVersion": 1,
+  "id": "cloud-dependency-policy-r3",
+  "kind": "source",
+  "sourceRepository": "https://github.com/ArcForges/Cloud",
+  "sourceCommit": "3f1a778cf9766cb795e9a2671f43a98e155f6108",
+  "sourcePaths": [
+    "tooling/dependency-policy.ts",
+    "tooling/dependency-policy.test.ts",
+    "docs/dependency-policy.md"
+  ],
+  "licence": {
+    "spdx": "AGPL-3.0-only",
+    "category": "agpl-compatible",
+    "evidence": [
+      {
+        "path": "tooling/dependency-policy.ts",
+        "sha256": "34fb81f70d0f3676c137c0634a273bed89e0da6f26477e840e86649ff55fb106",
+        "finding": "Explicit AGPL SPDX for source/tests, with the contributor guide under the same owner root grant; identical recipient AGPL boundary and retained attribution."
+      },
+      {
+        "path": "tooling/dependency-policy.test.ts",
+        "sha256": "e81e3aeb9444850949f782c5697627db861aa3361e475ef8a73132c3ae56f9dc",
+        "finding": "Explicit AGPL SPDX for source/tests, with the contributor guide under the same owner root grant; identical recipient AGPL boundary and retained attribution."
+      },
+      {
+        "path": "docs/dependency-policy.md",
+        "sha256": "822b4b57ad3409ad4fa8dcced7799b17af896248c64acf5c0cee95b9cb8e0cdb",
+        "finding": "Explicit AGPL SPDX for source/tests, with the contributor guide under the same owner root grant; identical recipient AGPL boundary and retained attribution."
+      },
+      {
+        "path": "LICENSE",
+        "sha256": "8486a10c4393cee1c25392769ddd3b2d6c242d6ec7928e1414efff7dfb2f07ef",
+        "finding": "Complete source and recipient AGPL-3.0-only terms are identical."
+      }
+    ],
+    "scope": "Reviewed AGPL-to-AGPL copy of the Cloud dependency admission checker, offline refusal tests and contributor guide. AI relocates tooling files under eng; relative checker imports remain valid. Target bytes equal the exact upstream source. No sibling checkout is a build input and no generated public client or runtime code is copied.",
+    "copyingPermission": null
+  },
+  "attribution": [
+    "Dependency admission tooling and guide copied from ArcForges Cloud, Copyright ArcForges contributors, AGPL-3.0-only. Exact source commit and target hashes are retained."
+  ],
+  "targets": [
+    {
+      "path": "tooling/dependency-policy.ts",
+      "sha256": "34fb81f70d0f3676c137c0634a273bed89e0da6f26477e840e86649ff55fb106",
+      "normalization": "lf"
+    },
+    {
+      "path": "tooling/dependency-policy.test.ts",
+      "sha256": "e81e3aeb9444850949f782c5697627db861aa3361e475ef8a73132c3ae56f9dc",
+      "normalization": "lf"
+    },
+    {
+      "path": "docs/dependency-policy.md",
+      "sha256": "822b4b57ad3409ad4fa8dcced7799b17af896248c64acf5c0cee95b9cb8e0cdb",
+      "normalization": "lf"
+    }
+  ],
+  "artifactTargets": [],
+  "disposition": "Copy",
+  "verification": {
+    "kind": "source-and-byte-review",
+    "command": "Compare each LF-normalized target with its declared immutable Cloud source; run the source provenance audit and targeted offline dependency tests.",
+    "expected": "Identical source hashes, preserved AGPL terms and notices, no sibling build dependency; dependency policy refusal fixtures pass.",
+    "artifacts": []
+  },
+  "notice": {
+    "required": true,
+    "text": "Dependency admission tooling and guide copied from ArcForges Cloud, Copyright ArcForges contributors, AGPL-3.0-only. Exact source commit and target hashes are retained.",
+    "files": [
+      "eng/provenance/NOTICE.txt"
+    ],
+    "distribution": "source-and-applicable-artifacts",
+    "reason": "Reviewed AGPL-to-AGPL copy of the Cloud dependency admission checker, offline refusal tests and contributor guide. AI relocates tooling files under eng; relative checker imports remain valid. Target bytes equal the exact upstream source. No sibling checkout is a build input and no generated public client or runtime code is copied."
+  },
+  "lifetime": {
+    "status": "permanent",
+    "owner": "Web Licensing and Provenance Owner",
+    "removalTrigger": null
+  },
+  "generation": null,
+  "review": {
+    "owner": "Licensing and Provenance Owner",
+    "reviewer": "w-deku-20261008-rev-web-40",
+    "reviewedOn": "2026-10-09",
+    "decision": "approved",
+    "rationale": "Successor of cloud-dependency-policy-r2 for WEB.40 unit U5. tooling/dependency-policy.ts and its test admit no first-party npm package, because @arcforges/proto and @arcforges/api-client are retired; the naming authority and the CON.07 identity are NuGet publication bytes (contracts-publication-r1). Bytes of the other Cloud-origin targets are unchanged.",
+    "baselineCommit": "a469064ffe0c497d4dd611d58bfaa1ac158656ff",
+    "reconciliation": true
+  },
+  "supersedes": "cloud-dependency-policy-r2"
+}

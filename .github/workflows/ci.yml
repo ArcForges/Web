@@ -17,6 +17,30 @@ concurrency:
 env:
   CI: "true"
   WRANGLER_SEND_METRICS: "false"
+  DOTNET_CLI_TELEMETRY_OPTOUT: "1"
+  DOTNET_NOLOGO: "1"
+  DOTNET_SKIP_FIRST_TIME_EXPERIENCE: "1"
+  # The C# product projects. The browser test project (tests/browser) is local opt-in tooling and is never restored
+  # or built in CI (validation policy). win.slnx is not used here: the explicit project list is the CI authority.
+  CSHARP_PROJECTS: >-
+    src/ArcForges.Web.Ui/ArcForges.Web.Ui.csproj
+    src/ArcForges.Web.Site/ArcForges.Web.Site.csproj
+    src/ArcForges.Web.App/ArcForges.Web.App.csproj
+    src/ArcForges.Web.Operations/ArcForges.Web.Operations.csproj
+    tools/ArcForges.Web.Tooling/ArcForges.Web.Tooling.csproj
+    tests/ArcForges.Web.Tooling.Tests/ArcForges.Web.Tooling.Tests.csproj
+    tests/ArcForges.Web.Site.Tests/ArcForges.Web.Site.Tests.csproj
+    tests/ArcForges.Web.Ui.Tests/ArcForges.Web.Ui.Tests.csproj
+    tests/ArcForges.Web.App.Tests/ArcForges.Web.App.Tests.csproj
+    tests/ArcForges.Web.Operations.Tests/ArcForges.Web.Operations.Tests.csproj
+    tests/ArcForges.Web.Policy.Tests/ArcForges.Web.Policy.Tests.csproj
+  CSHARP_TEST_PROJECTS: >-
+    tests/ArcForges.Web.Tooling.Tests/ArcForges.Web.Tooling.Tests.csproj
+    tests/ArcForges.Web.Site.Tests/ArcForges.Web.Site.Tests.csproj
+    tests/ArcForges.Web.Ui.Tests/ArcForges.Web.Ui.Tests.csproj
+    tests/ArcForges.Web.App.Tests/ArcForges.Web.App.Tests.csproj
+    tests/ArcForges.Web.Operations.Tests/ArcForges.Web.Operations.Tests.csproj
+    tests/ArcForges.Web.Policy.Tests/ArcForges.Web.Policy.Tests.csproj
 
 jobs:
   source:
@@ -39,6 +63,19 @@ jobs:
           cache: ${{ matrix.os == 'ubuntu-latest' && 'npm' || '' }}
           package-manager-cache: false
       - run: npm ci --ignore-scripts
+      # The candidate tests (tests/provenance/csharp-candidate.test.ts) run the built C# tool. Its Release build is produced
+      # here from the locked restore, so this job never depends on stale bin/ output from an earlier local run.
+      - name: Set up the pinned .NET SDK for the candidate tests
+        if: runner.os == 'Linux'
+        uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6
+        with:
+          dotnet-version: "10.0.401"
+      - name: Build the C# tool for the candidate tests
+        if: runner.os == 'Linux'
+        run: |
+          set -euo pipefail
+          dotnet restore tools/ArcForges.Web.Tooling/ArcForges.Web.Tooling.csproj --locked-mode
+          dotnet build tools/ArcForges.Web.Tooling/ArcForges.Web.Tooling.csproj --no-restore -c Release
       - run: npm run check
         if: runner.os == 'Linux'
       - name: Set up the IDE project evaluation toolchain
@@ -57,7 +94,80 @@ jobs:
           path: |
             artifacts/evidence/licence-*.json
             artifacts/evidence/source-provenance.json
-            artifacts/evidence/browser-graph.json
+          if-no-files-found: error
+          retention-days: 30
+
+  csharp:
+    name: C# restore, build, test and publish (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 45
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Set up the pinned .NET SDK
+        uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6
+        with:
+          dotnet-version: "10.0.401"
+      - name: Restore with the locked NuGet closure
+        run: |
+          set -euo pipefail
+          for project in $CSHARP_PROJECTS; do
+            dotnet restore "$project" --locked-mode
+          done
+      # The formatting gate of the C# sources (WEB.40 U5 replaces the removed Prettier and Biome gates). The text rules
+      # (final newline, no trailing whitespace) of the audited C#, MSBuild, npm and Worker inputs are enforced by the
+      # policy suite in the Test step, and the Worker type check runs in the source job (npm run typecheck).
+      - name: Check the C# formatting gate
+        run: |
+          set -euo pipefail
+          for project in $CSHARP_PROJECTS; do
+            dotnet format "$project" --verify-no-changes --no-restore
+          done
+      - name: Build
+        run: |
+          set -euo pipefail
+          for project in $CSHARP_PROJECTS; do
+            dotnet build "$project" --no-restore -c Release
+          done
+      - name: Test (no browser E2E; the browser project is not built here)
+        run: |
+          set -euo pipefail
+          for project in $CSHARP_TEST_PROJECTS; do
+            dotnet test "$project" --no-build -c Release
+          done
+      - name: Publish the Account and Chat profiles
+        run: |
+          set -euo pipefail
+          dotnet publish src/ArcForges.Web.App/ArcForges.Web.App.csproj --no-restore -c Release -o artifacts/profiles/app
+      - name: Publish the Operations profile skeleton
+        run: |
+          set -euo pipefail
+          dotnet publish src/ArcForges.Web.Operations/ArcForges.Web.Operations.csproj --no-restore -c Release -o artifacts/profiles/operations
+      - name: Build the static Site twice and compare the bytes
+        run: |
+          set -euo pipefail
+          tool=tools/ArcForges.Web.Tooling/bin/Release/net10.0/ArcForges.Web.Tooling.dll
+          dotnet "$tool" site build --out artifacts/site --source-ref "$GITHUB_SHA"
+          dotnet "$tool" site build --out artifacts/site-repeat --source-ref "$GITHUB_SHA"
+          diff -r artifacts/site artifacts/site-repeat
+          rm -rf artifacts/site-repeat
+      - name: Retain the C# candidate outputs
+        if: runner.os == 'Linux'
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: web-csharp-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            artifacts/site
+            artifacts/profiles
           if-no-files-found: error
           retention-days: 30
 
@@ -109,22 +219,38 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        language: [javascript-typescript, actions]
+        language: [javascript-typescript, actions, csharp]
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           fetch-depth: 0
           persist-credentials: false
+      - name: Set up the pinned .NET SDK for CodeQL
+        if: matrix.language == 'csharp'
+        uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6
+        with:
+          dotnet-version: "10.0.401"
       - uses: github/codeql-action/init@1c5b675653bb5c22dbe9b12b556ec555138e09fd # v4
         with:
           languages: ${{ matrix.language }}
-          build-mode: none
+          # C# is built explicitly with the locked restore below, so CodeQL observes the real compilation.
+          build-mode: ${{ matrix.language == 'csharp' && 'manual' || 'none' }}
+      - name: Restore and build the C# projects for CodeQL
+        if: matrix.language == 'csharp'
+        run: |
+          set -euo pipefail
+          for project in $CSHARP_PROJECTS; do
+            dotnet restore "$project" --locked-mode
+          done
+          for project in $CSHARP_PROJECTS; do
+            dotnet build "$project" --no-restore -c Release
+          done
       - uses: github/codeql-action/analyze@1c5b675653bb5c22dbe9b12b556ec555138e09fd # v4
         with:
           category: /language:${{ matrix.language }}
 
   candidate:
-    name: Build static candidate
+    name: Build and verify the C# static candidate and profile bundle
     needs: [source, quality]
     runs-on: ubuntu-latest
     timeout-minutes: 20
@@ -141,9 +267,44 @@ jobs:
           node-version-file: .node-version
           cache: npm
       - run: npm ci --ignore-scripts
-      - run: npm run build
-      - name: Build, measure and gate the Account and Chat production profiles
-        run: npm run build:profiles
+      - name: Set up the pinned .NET SDK
+        uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6
+        with:
+          dotnet-version: "10.0.401"
+      # WEB.40 deploy switch: the candidate is the C# static Site (tools/ArcForges.Web.Tooling, candidate build), sealed and
+      # verified before upload. The Worker JavaScript and the build identity are emitted by Node from the reviewed sources,
+      # because only Node can type-strip worker/index.ts and derive the identity from git.
+      - name: Restore the locked tooling and the Blazor profile application
+        run: |
+          set -euo pipefail
+          dotnet restore tools/ArcForges.Web.Tooling/ArcForges.Web.Tooling.csproj --locked-mode
+          dotnet build tools/ArcForges.Web.Tooling/ArcForges.Web.Tooling.csproj --no-restore -c Release
+          dotnet restore src/ArcForges.Web.App/ArcForges.Web.App.csproj --locked-mode
+          dotnet publish src/ArcForges.Web.App/ArcForges.Web.App.csproj --no-restore -c Release -o artifacts/publish/app
+      # The Blazor profile budgets (eng/policy/profile-budgets.json): every initial resource of the published application
+      # stays within its reviewed baseline plus the allowed regression. A breach fails the candidate before any bundle.
+      - name: Enforce the Blazor profile budgets
+        run: |
+          set -euo pipefail
+          dotnet tools/ArcForges.Web.Tooling/bin/Release/net10.0/ArcForges.Web.Tooling.dll profiles budget --publish artifacts/publish/app --budgets eng/policy/profile-budgets.json
+      - name: Emit the Worker and the build identity from the reviewed sources
+        run: |
+          set -euo pipefail
+          mkdir -p artifacts/inputs
+          node tooling/candidate.ts worker artifacts/inputs/index.js
+          node tooling/candidate.ts identity "0.1.0-ci.${GITHUB_RUN_NUMBER}.${GITHUB_RUN_ATTEMPT}" artifacts/inputs/build-info.json
+      - name: Build the sealed candidate twice and compare the bytes
+        run: |
+          set -euo pipefail
+          tool=tools/ArcForges.Web.Tooling/bin/Release/net10.0/ArcForges.Web.Tooling.dll
+          version="0.1.0-ci.${GITHUB_RUN_NUMBER}.${GITHUB_RUN_ATTEMPT}"
+          for out in artifacts/candidate artifacts/candidate-repeat; do
+            dotnet "$tool" candidate build --out "$out" --repo "$GITHUB_WORKSPACE" --source-ref "$GITHUB_SHA" --version "$version" --identity artifacts/inputs/build-info.json --worker artifacts/inputs/index.js --dirty false
+          done
+          diff -r artifacts/candidate artifacts/candidate-repeat
+          rm -rf artifacts/candidate-repeat
+      - name: Verify the sealed candidate before upload
+        run: node tooling/candidate.ts verify artifacts/candidate
       - id: upload
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
@@ -151,8 +312,13 @@ jobs:
           path: artifacts/candidate
           if-no-files-found: error
           retention-days: 30
-      # CLOUD.71: the profile bundle written by build:profiles above (one deterministic, digest-named archive of the
-      # two profile builds), carried to the deployment job unchanged. It stays outside the sealed candidate directory.
+      # CLOUD.71: the profile bundle (one deterministic, digest-named archive of the Blazor application's publish), carried
+      # to the deployment job unchanged. It stays outside the sealed candidate directory.
+      - name: Build the Account and Chat profile bundle
+        run: |
+          set -euo pipefail
+          dotnet tools/ArcForges.Web.Tooling/bin/Release/net10.0/ArcForges.Web.Tooling.dll profiles bundle --publish artifacts/publish/app --out artifacts/profiles
+          dotnet tools/ArcForges.Web.Tooling/bin/Release/net10.0/ArcForges.Web.Tooling.dll profiles verify --bundle "$(ls artifacts/profiles/web-profiles-*.tar)"
       - id: upload-profiles
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
@@ -165,13 +331,14 @@ jobs:
   verify:
     name: Verify
     if: always()
-    needs: [source, quality, dependency-review, codeql, candidate]
+    needs: [source, csharp, quality, dependency-review, codeql, candidate]
     runs-on: ubuntu-latest
     timeout-minutes: 2
     steps:
       - name: Require every applicable check
         env:
           SOURCE: ${{ needs.source.result }}
+          CSHARP: ${{ needs.csharp.result }}
           QUALITY: ${{ needs.quality.result }}
           REVIEW: ${{ needs.dependency-review.result }}
           CODEQL: ${{ needs.codeql.result }}
@@ -179,11 +346,14 @@ jobs:
           EVENT: ${{ github.event_name }}
         run: |
           test "$SOURCE" = success
+          test "$CSHARP" = success
           test "$QUALITY" = success
           test "$CODEQL" = success
           test "$CANDIDATE" = success
           if [ "$EVENT" = pull_request ]; then test "$REVIEW" = success; else test "$REVIEW" = skipped; fi
 
+  # Deployment step, outside validation (brief section 10). It ships the same sealed C# candidate that the candidate job
+  # built and verified, after verifying it again here; the Cloudflare upload guards are unchanged (main push only).
   deploy:
     name: Deploy Cloudflare
     if: >-
@@ -208,6 +378,15 @@ jobs:
           node-version-file: .node-version
           cache: npm
       - run: npm ci --ignore-scripts
+      - name: Set up the pinned .NET SDK
+        uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6
+        with:
+          dotnet-version: "10.0.401"
+      - name: Build the candidate verifier
+        run: |
+          set -euo pipefail
+          dotnet restore tools/ArcForges.Web.Tooling/ArcForges.Web.Tooling.csproj --locked-mode
+          dotnet build tools/ArcForges.Web.Tooling/ArcForges.Web.Tooling.csproj --no-restore -c Release
       - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
         with:
           artifact-ids: ${{ needs.candidate.outputs.artifact-id }}
@@ -227,9 +406,19 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
+          set -euo pipefail
           VERSION=$(node --input-type=module -e 'import fs from "node:fs"; console.log(JSON.parse(fs.readFileSync("artifacts/candidate/manifest.json")).version)')
+          # The Site archive (web-site-<sha256>.tar) is the candidate's one sealed root member, verified by npm run deploy above.
+          # It is published here beside web-profiles, and only by this main-push release. It is not a deployed asset.
+          shopt -s nullglob
+          site_archives=(artifacts/candidate/web-site-*.tar)
+          shopt -u nullglob
+          test "${#site_archives[@]}" = 1
+          site_archive="${site_archives[0]}"
+          site_digest=$(sha256sum "$site_archive" | cut -d ' ' -f 1)
+          test "$(basename "$site_archive")" = "web-site-${site_digest}.tar"
           tar -czf "artifacts/web-${VERSION}.tar.gz" -C artifacts/candidate .
-          gh release create "web-${VERSION}" "artifacts/web-${VERSION}.tar.gz" artifacts/deployment.json artifacts/profiles/web-profiles-*.tar --target "$GITHUB_SHA" --title "Web ${VERSION}" --prerelease --generate-notes
+          gh release create "web-${VERSION}" "artifacts/web-${VERSION}.tar.gz" artifacts/deployment.json artifacts/profiles/web-profiles-*.tar "$site_archive" --target "$GITHUB_SHA" --title "Web ${VERSION}" --prerelease --generate-notes
       - name: Preserve deployment evidence
         if: always()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7

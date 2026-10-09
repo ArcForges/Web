@@ -234,6 +234,19 @@ export function verifyContractSources(
   assert.deepEqual([...seen].sort(), Object.keys(schemaSources).sort());
 }
 
+export const contractsPackage = "ArcForges.Contracts.PublicApi";
+export const contractsRecord = "eng/contracts/ArcForges.Contracts.PublicApi/1.0.0-ci.287.1";
+/** The one central NuGet pin of the Contracts publication (Directory.Packages.props). */
+export function contractsPackageVersion(props: string) {
+  const pins = [
+    ...props.matchAll(
+      /<PackageVersion\s+Include="ArcForges\.Contracts\.PublicApi"\s+Version="([^"]+)"\s*\/>/gu,
+    ),
+  ];
+  assert.equal(pins.length, 1, "Exactly one central pin of the Contracts publication");
+  return pins[0]?.[1] ?? "";
+}
+
 export function expectedIdentity(version: string) {
   const git = (...args: string[]) =>
     execFileSync("git", args, {
@@ -254,25 +267,15 @@ export function expectedIdentity(version: string) {
   const read = (name: string) => {
     if (name === "release/app.json")
       return JSON.stringify({ versions: [{ subject: "Web", version }] });
-    if (name === "packages/contracts/source.json")
-      return readFileSync(
-        path.join(root, "node_modules/@arcforges/api-client/source.json"),
-        "utf8",
-      );
-    if (name === "packages/contracts/build-identity.json")
-      return readFileSync(
-        path.join(root, "node_modules/@arcforges/api-client/build-identity.json"),
-        "utf8",
-      );
     return readFileSync(path.join(root, name), "utf8");
   };
-  // The consumed producer receipt must match the independently pinned site package.
-  const contracts = object(JSON.parse(read("packages/contracts/source.json")));
-  const pinned = JSON.parse(readFileSync(path.join(root, "apps/site/package.json"), "utf8"))
-    .dependencies["@arcforges/api-client"];
+  // The consumed Contracts publication is the NuGet package the Web profiles reference. Its committed record is the
+  // CON.07 publication copy, and it must match the exact package version pinned in Directory.Packages.props.
+  const contracts = object(JSON.parse(read(`${contractsRecord}/source.json`)));
+  const pinned = contractsPackageVersion(read("Directory.Packages.props"));
   assert.equal(contracts.version, pinned);
-  const identity = object(JSON.parse(read("packages/contracts/build-identity.json")));
-  assert.equal(object(identity.artifact).id, "@arcforges/api-client");
+  const identity = object(JSON.parse(read(`${contractsRecord}/build-identity.json`)));
+  assert.equal(object(identity.artifact).id, contractsPackage);
   assert.equal(object(identity.artifact).version, pinned);
   assert.equal(object(identity.build).sourceCommit, contracts.commit);
   verifyContractSources(object(identity.axes).ContractSet, contracts);

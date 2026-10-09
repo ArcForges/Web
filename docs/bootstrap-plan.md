@@ -1,5 +1,7 @@
 # Web bootstrap plan
 
+Superseded in part on 2026-10-08 by WEB.40 (P2-021): the React and Node/TypeScript stack described here is replaced by the C#-first stack in `docs/development.md`. This plan is history.
+
 Historical implementation plan. Its former CI/runtime acceptance requirements are superseded by [the current validation policy](validation-policy.md). Retained results are historical, not instructions to repeat them.
 
 ## Collected baseline

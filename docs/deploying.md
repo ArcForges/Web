@@ -2,7 +2,7 @@
 
 ## Current setup
 
-The public Hello site uses **Workers Static Assets** and a small importless Worker that redirects `www.arcforges.com` to `https://arcforges.com` with HTTP 308 before serving assets. It preserves the path and query. There is no paid AI binding, request-time SSR or C# host in Web. Wrangler deploys `artifacts/candidate/assets` and the private `artifacts/candidate/worker/index.js` module from the same verified candidate, with `no_bundle: true`, an `ASSETS` binding and `run_worker_first: true`. The Worker is `arcforges-web`; `workers_dev` and preview URLs remain explicitly disabled.
+The public Hello site uses **Workers Static Assets** and a small importless Worker that redirects `www.arcforges.com` to `https://arcforges.com` with HTTP 308 before serving assets. It preserves the path and query. There is no paid AI binding, request-time SSR or C# host in Web. The public Site is the C# static generator output (`src/ArcForges.Web.Site`, first-party Razor HtmlRenderer, no runtime JavaScript). Wrangler deploys `artifacts/candidate/assets` (the C# Site output with its identity and legal files) and the private `artifacts/candidate/worker/index.js` module (emitted from the reviewed `worker/index.ts` source) from the same sealed candidate, with `no_bundle: true`, an `ASSETS` binding and `run_worker_first: true`. The Worker is `arcforges-web`; `workers_dev` and preview URLs remain explicitly disabled.
 
 Cloudflare manages the existing apex Custom Domain, `www.arcforges.com/*` Web route and proxied www DNS record. Keep all three. The configuration intentionally omits `routes`, does not recreate DNS/domain mappings and requires no new Cloudflare permissions for this redirect change. The separate Cloud Worker retains `arcforges.com/api/*`.
 
@@ -23,12 +23,20 @@ The token stays in CI. The browser never receives Cloudflare management credenti
 ## Automatic sequence
 
 1. Linux and Windows restore the exact lock; Linux validates source and Windows evaluates IDE declarations. Dependency auditing, history secret scanning and CodeQL run; dependency review additionally runs for PRs.
-2. Linux builds one candidate containing the prerendered assets and private redirect Worker, generates required CSP/notices/SBOM/provenance metadata and seals the candidate.
-3. `Verify` requires applicable checks. Main deployment consumes the workflow candidate by artifact ID; its entry point performs one promotion integrity/identity check without rebuilding.
+2. The candidate job publishes the Blazor WebAssembly application, emits the Worker and the build identity from the reviewed sources (`tooling/candidate.ts`), then builds the sealed candidate with the C# tool (`candidate build`) twice, compares the bytes, and verifies it (`candidate verify`). The Account and Chat profile bundle (`profiles bundle`) is built and verified beside it.
+3. `Verify` requires applicable checks. Main deployment consumes the workflow candidate by artifact ID. Before any upload, its entry point verifies the seal again (`candidate verify`: the exact member set, the wrangler configuration, the pinned Worker, the regenerated Site compared byte for byte, the static page graph, and the licence, notice, SBOM and policy receipt against the repository), then re-derives the build identity. It does not rebuild.
 4. Deployment confirms the current main commit and intended domain mapping, then runs Wrangler. No DNS mapping is recreated.
-5. Successful provider completion records `status: deployed` in `artifacts/deployment.json` and creates a prerelease with the original candidate archive and deployment record. It does not claim live HTTP or browser acceptance.
+5. Successful provider completion records `status: deployed` in `artifacts/deployment.json` and creates a prerelease with the original candidate archive, the Site archive, the profile bundle and the deployment record. It does not claim live HTTP or browser acceptance.
 
 There are no browser installations, local/live E2E, public-file hash downloads, readiness polling or real Cloud calls in CI. The optional local diagnostic commands reject CI execution. See [validation policy](validation-policy.md).
+
+## Local dry run
+
+`node tooling/cloudflare.ts dry-run` runs the same sealed-candidate verification as the deployment, then `wrangler deploy --dry-run` against the candidate configuration. It needs no credential, performs no upload and changes no remote setting. Build the candidate first with the commands in the candidate job of `.github/workflows/ci.yml`.
+
+The Blazor profile bundle (`web-profiles-<sha256>.tar`) keeps its name pattern, its manifest-first layout, its root `_headers` and its `account/` and `chat/` pages. Its files come from the publish of ArcForges.Web.App; its browser-graph check is the publish's static web assets manifest (every file's integrity). The archive is consumed by the Cloud proof deployment and is not deployed by this Web workflow.
+
+The sealed candidate also holds one deterministic Site archive at its root, `web-site-<sha256>.tar` (`candidate build`). It is written by the same ustar writer as the profile bundle, holds the C# Site files in ordinal path order with fixed metadata, and is named by the digest of its own bytes. The seal records that digest. `candidate verify` regenerates the Site and refuses any other bytes, a second archive, or a name that is not the digest. Only the main-push prerelease publishes it, beside `web-profiles-<sha256>.tar`. Wrangler deploys `artifacts/candidate/assets` only, so the Site archive is not a deployed asset and changes nothing that Cloudflare serves.
 
 PR, schedule and manually dispatched workflows validate but do not deploy. Main pushes deploy automatically once the credential is present. No second Cloudflare Git integration is required; enabling one would create an independent deployment path that bypasses this candidate process.
 

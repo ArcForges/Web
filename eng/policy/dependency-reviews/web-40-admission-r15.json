@@ -1,0 +1,851 @@
+{
+  "review": {
+    "owner": "Web dependency maintainer",
+    "reviewer": "w-deku-20261008-rev-web-40",
+    "date": "2026-10-09",
+    "rationale": "WEB.40 successor of web-40-admission-r14, recording the two changes of commit 389b9fd that the independent review of 6ff8e1e and 389b9fd required a receipt for. Reviewer w-deku-20261008-rev-web-40; reviewed base 389b9fd746eefb80496263ae83072adb04f1a6a2. No package, version, source, licence, contentHash, nuspecSha256, closure coordinate or bound input changed: packages, inputs, con07Identity, browserWasmPacks, nugetClosure and nugetPackDownloads are copied from r14 unchanged. (1) Scanner exception. .gitleaks.toml gains one [[allowlists]] block (scannerExceptions) with rule generic-api-key, AND over the exact path eng/contracts/ArcForges.Contracts.PublicApi/1.0.0-ci.287.1/source.json and one exact anchored line regex. It matches the key public/http/v1/native-auth.schema.json whose value e7807ae0... is the SHA-256 of the packaged schemas/public/http/v1/native-auth.schema.json inside arcforges.contracts.publicapi 1.0.0-ci.287.1, a verified false positive. The block adds one regex, scoped to that one path; it does not widen the r1 to r11 browser-resources exception. (2) Packs folder. NuGetClosureAdmissionTests.SatisfiedByPacksFolder skips the NuGet copy of a pack-download row only through an explicit PacksFolderRows entry for the current platform, and only when the packs folder holds the admitted version and its content marker (runtimes/browser-wasm/native/dotnet.native.wasm), not merely the folder. The Windows row covers the hosted windows-latest image, whose preinstalled wasm.tools workload supplies the 10.0.12 browser-wasm pack, so the SDK downloads no NuGet copy there. The Linux row records that the Ubuntu image carries no workload: the row is not satisfied there, so the NuGet copy is required and its digest verified. Every other row needs the NuGet copy and its digest on every platform. The redundant final Assert.All of the test is removed. (3) Correction of r14. The r14 rationale sentence that reads the convention as the restore 'whose .nupkg SHA-512 equals the row contentHash' is wrong. Each row's contentHash equals the contentHash in the package's .nupkg.metadata and in packages.lock.json. It is not the SHA-512 of the .nupkg file, which the .nupkg.sha512 sidecar records separately; this was confirmed for arcforges.contracts.publicapi 1.0.0-ci.287.1, newtonsoft.json 13.0.1 and microsoft.netcore.app.runtime.mono.browser-wasm 10.0.12. nuspecSha256 is the SHA-256 of the restored .nuspec entry bytes, UTF-8 BOM included, read from the NuGet packages folder. r14 is not edited. Verification is local only: gitleaks and Docker are not installed, so the history scan is an emulation. The hosted quality and csharp jobs at 389b9fd must be green, and the independent exact-head review of the scanner exception by w-deku-20261008-rev-web-40 remains a merge condition.",
+    "inputs": {
+      ".github/workflows/ci.yml": "936d1bc03be14b592eec22fc6ef8f1b9086dc6e4a1f5e2a012a848a38e932695",
+      ".node-version": "73fb1b615e2043a933be1c0895cde4358036acc28d785692509b822aa53c761f",
+      ".npmrc": "73814024102037fcc5a961119bcbf39f81e0a73af504735653d3a6086651cef1",
+      "Directory.Build.props": "2c1597403bd2a3eb04480ef96ba7accd57c0d2a9f7176ca1073a2d7a6fdcf3a0",
+      "Directory.Build.targets": "66716168ad9b701833e0d750f27acf4962fc23bdac4c8f121ea57635d5116c35",
+      "Directory.Packages.props": "95e73db26cdb9ba15ccd3c752d804be4ee083f85fdf589acf837121a2c3975b7",
+      "NuGet.config": "cb93c65e28718aa9075fce221e9f9cea9e72d3fe1b30462383448a591f5b3aa1",
+      "eng/provenance/profiles/browser-resources-r11.json": "e9c496ff9b97757b4845b08abe07eec456bcc103b8454fd2447b7dbacbd53177",
+      "eng/provenance/profiles/browser-resources-r12.json": "5dd1d44a13562b616f156648909d7f4d4d2e67d40bc802c70df392da46e0d6ee",
+      "eng/provenance/records/browser-resources-r11.json": "15f6bb8a2157107e197b85ae799c53fc8b934a0ac463d141e0fc7bb5922f3bf8",
+      "eng/provenance/records/browser-resources-r12.json": "6b470604b64d692d0eaa215be133506af065856dde0fde9ee8e702bba883bb88",
+      "global.json": "67381be18aa807c04218165844967cf58235875477f30495ba98c3648248a9d4",
+      "package-lock.json": "392b8874131b713ac07ab595ff541122fa3c2317f9ba81b34ffe6115f4363825",
+      "package.json": "60b8b8e853ae2ac0dfec58831d61c717b3e4fb26ed3848745b36e9a2ec370ea5",
+      "src/ArcForges.Web.App/ArcForges.Web.App.csproj": "3b7e2424cf6f9ce1d448cfe462ba825c7a4a486b77189c2f63ef665c52f9919b",
+      "src/ArcForges.Web.App/packages.lock.json": "6ae92b481b6a892a9b4952f7e4b8da56b7caac8f6a6206151b017108e2c99229",
+      "src/ArcForges.Web.Operations/ArcForges.Web.Operations.csproj": "ad7f8197fada085fb3ba6bee69f1d45716e3b79725ed7d388f0a9080ae290077",
+      "src/ArcForges.Web.Operations/packages.lock.json": "75bd9b2ebbe6ed307c134473be0319fd536a7733ce00fe1237148299e5f59239",
+      "src/ArcForges.Web.Site/ArcForges.Web.Site.csproj": "3262ccbf711251e32859c732422b472975f3e4269b31814f9df298f1be698344",
+      "src/ArcForges.Web.Site/packages.lock.json": "61d7150f179a77464386591f7a8c38cdbadb95b9c29fff18fe2ef912bef91931",
+      "src/ArcForges.Web.Ui/ArcForges.Web.Ui.csproj": "2c922134e6471da2db5194204b52b7722a341a54d6eee4db17b5c6459c631fa6",
+      "src/ArcForges.Web.Ui/packages.lock.json": "dfa414cbeec347e07835b0ff8f19f8b020f967f57d0267edb6eb206e4c2b65f8",
+      "tests/ArcForges.Web.App.Tests/ArcForges.Web.App.Tests.csproj": "d9044cf90b86c7a380fc1a5a24a1539ad94507b307dc2ba045e4c32d722f98c6",
+      "tests/ArcForges.Web.App.Tests/packages.lock.json": "5939781e73182199cd09e6bf6baf91a74bf2111e67a2379c073afdcb53ba75ff",
+      "tests/ArcForges.Web.Operations.Tests/ArcForges.Web.Operations.Tests.csproj": "85d50eb3e78de52b2f2fc38cbeed1b5ec8d0875344bbe5dc3a279697a2c25f6c",
+      "tests/ArcForges.Web.Operations.Tests/packages.lock.json": "e7446b75088edc5a49877ec5b4927c0d7bf65e523a1cc76a8c626a547bc7917b",
+      "tests/ArcForges.Web.Policy.Tests/ArcForges.Web.Policy.Tests.csproj": "bce3090ee3c4fc71a4d90802f75e15ebefdf2027f4dcc5b86e9cb485fbe24742",
+      "tests/ArcForges.Web.Policy.Tests/packages.lock.json": "d7f4dfec2064957427d7daabf5a99a95fead21d916f1b958976fd81c22d6dc3f",
+      "tests/ArcForges.Web.Site.Tests/ArcForges.Web.Site.Tests.csproj": "46e0e121cd17ffbe4e16bf3c83795c4129ad990c020c038ae9192184c4ee4be0",
+      "tests/ArcForges.Web.Site.Tests/packages.lock.json": "15eb52424732fb8bf0a7479acf0c323b9a36c7e1503c3369bf92f402319b55e0",
+      "tests/ArcForges.Web.Tooling.Tests/ArcForges.Web.Tooling.Tests.csproj": "5e9db68756a4b34f65529305d47dcdf620ba1e3afb518c12e46457f091f08d37",
+      "tests/ArcForges.Web.Tooling.Tests/packages.lock.json": "90f22f0780280e371cc5f892a0e41d1a68b9886b3543ed3293ed276d5eebe1a7",
+      "tests/ArcForges.Web.Ui.Tests/ArcForges.Web.Ui.Tests.csproj": "ebc006964e176e7c71b7a36b3e94a030fa6a2d807450ab6ef8e829c7ebe2177e",
+      "tests/ArcForges.Web.Ui.Tests/packages.lock.json": "482a8749cf737188e1106d77c1d657ed5c1c9626317be6e337c59e2b3e46793b",
+      "tests/browser/ArcForges.Web.Browser.Tests/ArcForges.Web.Browser.Tests.csproj": "6d113146859ece321fad7c614ae1680a5219ce8ab22af01c7d1a60291d2bd2a7",
+      "tests/browser/ArcForges.Web.Browser.Tests/packages.lock.json": "931e944d1c7c4862d63a42da064af96b46e45e3f87203a45844fef12fc1708cd",
+      "tools/ArcForges.Web.Tooling/ArcForges.Web.Tooling.csproj": "91bf31b448f0d9b06fe73d4daebb5971e09d727fc1a0541db5047734df3f9fe4",
+      "tools/ArcForges.Web.Tooling/packages.lock.json": "045a81bc88f39433f4e088019d028ef57c8ad60dd9bc496e50ff1d504b09c3e6",
+      "wrangler.json": "b597ad91281c4d77c504dfeebace4aa7b8ce2f9bc724dbe40978643b23171c07"
+    },
+    "checks": [
+      "locked-restore",
+      "licence-provenance",
+      "security",
+      "class-compilation",
+      "compatibility",
+      "sbom",
+      "framework-posture"
+    ],
+    "runtimeAssessment": "The deployed public candidate is the C# static Site with no runtime JavaScript; the Worker stays the thin TypeScript adapter (worker/index.ts), emitted by Node type stripping. Node remains build and deploy tooling for wrangler only. The candidate job enforces the Blazor profile budgets and seals the Site; the deploy job ships the same sealed bytes under the unchanged main-push guards. No hosted browser, device, macOS or live-service check is added.",
+    "maintenance": "The npm closure is pinned exactly and admitted by this receipt; any change needs a successor receipt that names this file. The Contracts identity is the NuGet publication record eng/contracts/ArcForges.Contracts.PublicApi/1.0.0-ci.287.1, bound by eng/version-sources.json and Directory.Packages.props; any change needs a successor record. Published Contracts npm versions stay immutable on the registry and Web no longer consumes them. Historical receipts stay immutable.",
+    "previous": "eng/policy/dependency-reviews/web-40-admission-r14.json",
+    "immutableHistory": "Admitted review records are retained in Git history. A dependency change requires a new reviewed source commit and updated input-bound rationale; never amend an already accepted provenance record."
+  },
+  "packages": {
+    "@cloudflare/kv-asset-handler@0.5.0": "sha512-jxQYkj8dSIzc0cD6cMMNdOc1UVjqSqu8BZdor5s8cGjW2I8BjODt/kWPVdY+u9zj3ms75Q5qaZgnxUad83+eAg==",
+    "@cloudflare/unenv-preset@2.16.2": "sha512-JBP1+Z7ZSNG/d4mRP+y8VC5dka3tZVMLEZRvS+rzQ4DGV1EoxRFQckcJTTkXbHSQiTj0DtNI01Zwb/V2fX0mvQ==",
+    "@cloudflare/workerd-darwin-64@1.20260926.1": "sha512-VCIpwgJu5Dm1o+VHLclNOKIdpttEqss7oDHS5DYxgVoonM9Dxxxr1xCQvJbh6IXFuQ1DDrbm5krjte5NsTgX3Q==",
+    "@cloudflare/workerd-darwin-arm64@1.20260926.1": "sha512-oVuLXfCnr1Xu9sBMNYrEPcFZQNMcviNcacz9l+oqQiLHc5UrVp++lpKbsuWstCfh+/c39Pp37TVeaNBLA8+ReA==",
+    "@cloudflare/workerd-linux-64@1.20260926.1": "sha512-BjmiDvYBVBG5248gCHSZS3yONbcm3/3qKTu9RaQA8o7jQHJfXx9JnWbhkld2KsbXnRGEGHFwpLLidIpIGtQYUA==",
+    "@cloudflare/workerd-linux-arm64@1.20260926.1": "sha512-28bdfQDIFcpaKXMPisADy8BchpIsX+tEAhD+bhfEBXukFGFr8F3ouyiG3HzN3CqAh/OYvifJizzFZtptUPCy7w==",
+    "@cloudflare/workerd-windows-64@1.20260926.1": "sha512-ehdL3ataKdEmlnW9oom6OZUR8n3XsTL/zl8+KGREpLi5sMSW0mek0PrF4wK9SX51f3Alnlu8tF8eKBg+mc3xFw==",
+    "@cspotcode/source-map-support@0.8.1": "sha512-IchNf6dN4tHoMFIn/7OE8LWZ19Y6q/67Bmf6vnGREv8RSbBVb9LPJxEcnwrcwX6ixSvaiGoomAUvu4YSxXrVgw==",
+    "@jridgewell/trace-mapping@0.3.9": "sha512-3Belt6tdc8bPgAtbcmdtNJlirVoTmEb5e2gC94PnkwEW9jI6CAHUeoG85tjWP5WquqfavoMtMwiG4P926ZKKuQ==",
+    "@emnapi/runtime@1.11.3": "sha512-Xz4Tpyki7XyrpbUK1jR1AhdAdaXyhhY4lZ3neLodmhpuWfy2PAQN5B46sAiU4liOXGLkHypn/qU+jvfWSCYYLA==",
+    "@esbuild/aix-ppc64@0.28.1": "sha512-Svl7tq8k/08+p6CXPpRjQ1fKX+1odH/BQbb48fV6fj3CWHhsoIOoY87w1oHXm0qEpkIK3ZfVgp0hed3XBXzXMQ==",
+    "@esbuild/android-arm@0.28.1": "sha512-0k2F129Xdio1TdJfzJ8sy1Q47vUD2NnwdhiAf7drUN1EBTfPf4hsFCtmMgu/6m8JSzsBrlmVjudMBQqOfG8usQ==",
+    "@esbuild/android-arm64@0.28.1": "sha512-34EGEbCIAgosYz6goLcopX6Mo7NyGv9tfwEM2/7Ce2VcVRk568iSvniGWcUXIy7wEDR1wzolcxcriFVrWYcwBg==",
+    "@esbuild/android-x64@0.28.1": "sha512-dbwY7ltSMDWsRatcRpCnES4F+im88OCUgGZjy52shC7GqHRE/cYlxNbB4Z4UpJswpcc4Qxd2oE/ufM0p61IKng==",
+    "@esbuild/darwin-arm64@0.28.1": "sha512-TZbWkQY7kvTAXbXUT7uVACR5cMHsDiSz9z7ZKAX/RTq/WJEk3QyRr0wZpNhBDX+/0CtdqUIJlOiodQcta6tY3Q==",
+    "@esbuild/darwin-x64@0.28.1": "sha512-zfdzgK9ACBNZLI/CyHTOx81SyNbM6YXn7rxSgX97VjyiPl9W1i4Ka4fgKECEoFCKGpvBj5qArWIGgQjOwkgskQ==",
+    "@esbuild/freebsd-arm64@0.28.1": "sha512-wG2EA8ENdEI0qhkSZMjfqrdY+ziCYCPMmtZjjIwOmXFjmyzEHn+UUxk5of+SYsjtfs3VpnlC7QLzSI5hY/rOAw==",
+    "@esbuild/freebsd-x64@0.28.1": "sha512-i7dZ9vQgnvSCzi/rYCXNgtF/U+eKZNJBzu3eTQbRgHnM7tNSizLOkRFAl3qzVc/Op/u5YkHHa4pf/3DOYHthLQ==",
+    "@esbuild/linux-arm@0.28.1": "sha512-qVXBOHQS+d5Y722GwJzJUtOLlX7km3CraOaGormF1pDtPd2C/l1SHRPgjLunLGe51Sh5YYWKMFDyV4SxgMQYTQ==",
+    "@esbuild/linux-arm64@0.28.1": "sha512-yHs+0uc8+nvEAfAfxrWQKK5peSNzBc4PegcMO0EJ2hT71uA7vB8Ihg2e77R2P7SG5uYjPbHlLLmve4LLLRCf0g==",
+    "@esbuild/linux-ia32@0.28.1": "sha512-d1z4ZuP0ajrfz/FhGT4vv278rX8KnPPJx8i5+AtK7TYbx9Le9F1hyzurZpkEyjkGa9dUGhQow4C1NmeGvqxN2w==",
+    "@esbuild/linux-loong64@0.28.1": "sha512-M5sRjUVZrkm1OAPR3dlOYzNmN+loZKGVi1VUQGrwuqLcbR6qeAz+famMhjASeH3YVKvZz+zT1jlh/keC3Rj/lg==",
+    "@esbuild/linux-mips64el@0.28.1": "sha512-mRObBZeHh2OxcBFPWE/FjylkRgZdYuiTR3vaTozquCGOH14iP9oN4x4Ge81CoIDYQrXmIxpFumJBu5MtZpnQJQ==",
+    "@esbuild/linux-ppc64@0.28.1": "sha512-slScBsMAb3GFDcdrCgLwZtPYRoH2H/youv10QiZyRjmsP48fznoveWytSgCI/R0ZcUgpc0ZhIUEx6LHts8yrfQ==",
+    "@esbuild/linux-riscv64@0.28.1": "sha512-kw0owk1o0GFETUJyW0jc0G4Yzs0BHZn0JDZ8JRT088vjJYX777BAs1fDGxAC+q831qOs2DTC96mNsG2opdfyyQ==",
+    "@esbuild/linux-s390x@0.28.1": "sha512-/lAIjX8aYFRByhh6L5rYtPEDRqa9de/4V/juOXcta5frjvzXO4/sqEtyytse0g3zZFuWu5cDN0MkLz2qRDD2Ag==",
+    "@esbuild/linux-x64@0.28.1": "sha512-u/anNYF2mmVOEDwLtnQ1wOr3EZ9sTNGLWrsYGYwHWzGA3Si84IOkHXlbWTD1NB+9/1lcnweYKO54uhxZydNzfA==",
+    "@esbuild/netbsd-arm64@0.28.1": "sha512-oks0DYbLwWMmaakTsCb+zL4E+aHRVLom9IJZOAthMQEPiQmydXHkziYEsGYRx0uNV/IjEKGAV941JzH02pflqw==",
+    "@esbuild/netbsd-x64@0.28.1": "sha512-aeL6lAnN89Hz43Mlh1G8ARasbuoYvSITDEx0tHh5b7jJnHcssqgjy9Yx430GDpmCa6OyrKoS0aNRjKundRizGg==",
+    "@esbuild/openbsd-arm64@0.28.1": "sha512-MEFJe5C3R8pwXdZ5Y21oo6m7ePiS0d9pWucn99O/wvyJZChoIQKrQDxKrGeW8F5+T0okTHesAmDeiHDTIq0V/Q==",
+    "@esbuild/openbsd-x64@0.28.1": "sha512-i/ZLIOafE0Z8cI/XANJAixoJL/uRAoS2xOA3rb0xN+KK0K177cMAsQYkzHtBrtMXAKuAc7HGgcWiZ/sRC1Nxgw==",
+    "@esbuild/openharmony-arm64@0.28.1": "sha512-ge+Z7EXFNt2BO1oAMsVpiQ8EwndV9i1xXerAeTIK7AtPs3bKFXQM7nlRxDSIUIMeueR1CNXxqztLzdNeReKBJg==",
+    "@esbuild/sunos-x64@0.28.1": "sha512-BEjgtECkL3vY+SaSQ6nzVfiALUeFxpawyp8Jmf5PtYhf1Ug40N1h/hxlhts+f1FvSvarEigdxS3BlSMI2PJLcQ==",
+    "@esbuild/win32-arm64@0.28.1": "sha512-lCv9eK/H6ZJWbE7bh2nw54CZ9M2nupBxJcTsdk/QQnWkdSjKGuxmmH8/GWrlT1eMmZfn4dGcCjRte397WqfQXA==",
+    "@esbuild/win32-ia32@0.28.1": "sha512-zvb/mB2bSCoJOpoCBgYKKpX6YM6mJBlBUVUtVj41DlZJVEB6/0CKlRYxP5wWl1C1ILiCoAU5wZZ4q1P3qeS6Eg==",
+    "@esbuild/win32-x64@0.28.1": "sha512-bm4Mowrv+GXMlpWX++EcXw/iLyd1o3+bJkC2DkWXYVvgZCqD/bSj9ctZeAMC3cIxgjRVR2Dufaiu4YPxr5gW1A==",
+    "@img/colour@1.1.0": "sha512-Td76q7j57o/tLVdgS746cYARfSyxk8iEfRxewL9h4OMzYhbW4TAcppl0mT4eyqXddh6L/jwoM75mo7ixa/pCeQ==",
+    "@img/sharp-darwin-arm64@0.35.5": "sha512-QRUlFQ0WxvdWyqqG/WtI3iupfD5rBzmCHXSdPsY91sAtVtTo7Q4cb6zOccZ3gqEqkr0f1As1ehLqmEpDsRf+lg==",
+    "@img/sharp-darwin-x64@0.35.5": "sha512-+BR255RhDlpygUpOc/Jdt1nT6DQ3XG/ERo5wbcdOf5Q320dKtPCKPLR1LJs9VGXRaMa8l1uUa0tkCNOXiAxZUw==",
+    "@img/sharp-freebsd-wasm32@0.35.5": "sha512-Y/z91nEZ4uIBX5X3nfTovjU9lHNKFYbL2lpHCLVNmXQK03VIZvXBBt0KxbPGp2SdGSF+2mQU4e+hQaWOt86iAw==",
+    "@img/sharp-libvips-darwin-arm64@1.3.4": "sha512-5R89nBYiRdUlSWJxPhO+GVtaXzXSxKnRu/xqMn3KTA3L9EB9Oy/P+Nn2f2vlhPuUdy/Zusb2DarbyTpGCfEDuw==",
+    "@img/sharp-libvips-darwin-x64@1.3.4": "sha512-iR2OKH80yi0U+dUplyh3/xdpFvps6YkCwsXenIJxqxR1v9o+xtKTGbS9H7cps+2Vxjc8B1j96p75NmTGjIhtpQ==",
+    "@img/sharp-libvips-linux-arm@1.3.4": "sha512-LmRtTsOHuvM2+wlO2Db37dx5MiZhB0FvSunciw48YjdOkZz9KAiRbm8ujeMOA1INqmei5NapFxYEK1D1ZSidmw==",
+    "@img/sharp-libvips-linux-arm64@1.3.4": "sha512-Y3dgX/6lE2QhQb+Gxy0WZxfg9MEm/JBjamZpS2IklP7xIQoKN4hzAm7KcMVGtaVDt3neE9OKBC7vAfonA/Lr1A==",
+    "@img/sharp-libvips-linux-ppc64@1.3.4": "sha512-Le6boB8Tai0Nis+gIxIpKx68UDVVIqdR8Tin5Yf1z2LJJQLDJvCDRqRu+jC2qCoD+eIomonmOwB4smBRxfVpYQ==",
+    "@img/sharp-libvips-linux-riscv64@1.3.4": "sha512-aHkkIEHPRdQEegJN20MLmGtxYD9R2wQr3Cwpddnu5+YKMt6Uzax7S9h5gpZTo8wyrGuZSlfQ63OevL5mTyOC7Q==",
+    "@img/sharp-libvips-linux-s390x@1.3.4": "sha512-ra/mB6MikESDUO7Yg+Mi95bFBb9GsObURuhnOv3OqknjGe9sZrG8tCe9q0xSIGrtLgvgw0gKnFWcK4blSgQOuQ==",
+    "@img/sharp-libvips-linux-x64@1.3.4": "sha512-GJ//SSXbnwSDes02umB3nDJLFcQzw8a18V8fyhqr6tV515tOEMdImjjxj1AoafMRz56F3PHgftnj1QEKSU1zkw==",
+    "@img/sharp-libvips-linuxmusl-arm64@1.3.4": "sha512-hvulFwtjUcagsis6BBxHwGFwWoNZjgYmULGVrZcyfNbjA8hKILbRxGg15/7w5HDyXHXUos/j6baAWqnCyQ2DWA==",
+    "@img/sharp-libvips-linuxmusl-x64@1.3.4": "sha512-6zXKeE/p39I1AmA3cJG35eyBGNqNddLnUXjhwBnsGjFPWqf5VKkDBEqaEkPDoTEtkxwi2vv8Tcr2mDyP4So7Fg==",
+    "@img/sharp-linux-arm@0.35.5": "sha512-LEaXK2WdXVK5ykcw0buWyPMsmLLL2vpHLD6yrNSW+JGEL3BZPA4tpKN6iaMc4AxTTAoaX/sU1rOL51lcIz48ZQ==",
+    "@img/sharp-linux-arm64@0.35.5": "sha512-LYVx5JTsOM2CBzmxreh+nl64/3H6Xb09iSLknqH47z2T2DFFxDeFLP5y4dJwe6H7uGQlHPyEEtIqyo3DYsRwdQ==",
+    "@img/sharp-linux-ppc64@0.35.5": "sha512-QVxAAq8evVRI9ia2vqgwrmWucn5Dfv+JdWzj75pD8omHLPSP7f8p20O8jxzjCcuCEQEOtYOZUmX1hkiZ0kdevA==",
+    "@img/sharp-linux-riscv64@0.35.5": "sha512-LtdreXguaavKODPIfzJ4kffx7UNt1omwtK0rch4EBbbSTXPnxWmYSayXdLJw0fJzQ97kHt1gL/yh4tvU+nCyRQ==",
+    "@img/sharp-linux-s390x@0.35.5": "sha512-UZasTOFiYzotTsGOCu42BfUzP6Tu6Do/947iRm1RsLKvlllxwGcn4RN27LibGWceix4Y+Pmw3jsnTcCQIgWjqA==",
+    "@img/sharp-linux-x64@0.35.5": "sha512-SxFtLTeJInhAA9Q836kux2vZNeOBQEx658qvbboZScr0wIARym3IcGmW7KpVD5sbVg0Ojy+udFQdayYIZyoNog==",
+    "@img/sharp-linuxmusl-arm64@0.35.5": "sha512-9HbMclmI1zlNkFRs3z9/eBtDjfD0sGlrX1z6b1qwmiFY5ElDLh4BC0LPBdVp7z1DXFiKlIcznf+ZlsuZzLxQqg==",
+    "@img/sharp-linuxmusl-x64@0.35.5": "sha512-4KOphqB035HrVdqLZfCgMzzERrQkkzOwRhl4OAkRO1YCldbaFjySXMaK534Mo0V+LndnlJk+sbUyLeU0ULyD1A==",
+    "@img/sharp-wasm32@0.35.5": "sha512-Ptsga1su4tQx+LLF1ECS9U6nz5kmrXKo6XVbtR48Ke3ZRxxgaWBu7IDtEe1quo8hiupwm6WFqxVlXaSf7IINGQ==",
+    "@img/sharp-webcontainers-wasm32@0.35.5": "sha512-hfhF/FmoQyTUkA0bIKFOtw536BQSeBMe6BF6QyWlrPxT754+TFLaZ7sKKTfvvM0yJgKgaYTwnFCIZ/GuDw5SUA==",
+    "@img/sharp-win32-arm64@0.35.5": "sha512-X4t7g+7ZA5DKblCBEXGjUqqemj4vczING/5viFwAL8h4N3qYeyjwdCvRLHi4EdOUI+2Z7UFlp1VM+p/AuEtm6Q==",
+    "@img/sharp-win32-ia32@0.35.5": "sha512-5Zm82LoBc43nhwNybZlG7Y1KO//Zhsn306fQl29ZOuStHLGTo3BWL83q3cznX0poxSAMuYL1On/BHBxkBeKr6A==",
+    "@img/sharp-win32-x64@0.35.5": "sha512-x76eH0vEiHlcMQu8Y8IenntaACtddpT6W0wmXtWrnKcnKI7ME5DdgqhAD6SEWOEl1v2zDvkZDhFA9KnURwpfqg==",
+    "@jridgewell/resolve-uri@3.1.2": "sha512-bRISgCIjP20/tbWSPWMEi54QVPRZExkuD9lJL+UIxUKtwVJA8wW1Trb1jMs1RFXo1CBTNZ/5hpC9QvmKWdopKw==",
+    "@jridgewell/sourcemap-codec@1.6.0": "sha512-T7jf+5zgsZHwNJ4lvQ7/aezbyk0nNX+zJVWpmHA7VYsEx7a7qr5Rg5IbtJFqkgze5Y2sruq1RUY8Q837Od7iFw==",
+    "@poppinss/colors@4.1.6": "sha512-H9xkIdFswbS8n1d6vmRd8+c10t2Qe+rZITbbDHHkQixH5+2x1FDGmi/0K+WgWiqQFKPSlIYB7jlH6Kpfn6Fleg==",
+    "@poppinss/dumper@0.6.5": "sha512-NBdYIb90J7LfOI32dOewKI1r7wnkiH6m920puQ3qHUeZkxNkQiFnXVWoE6YtFSv6QOiPPf7ys6i+HWWecDz7sw==",
+    "@poppinss/exception@1.2.3": "sha512-dCED+QRChTVatE9ibtoaxc+WkdzOSjYTKi/+uacHWIsfodVfpsueo3+DKpgU5Px8qXjgmXkSvhXvSCz3fnP9lw==",
+    "@sindresorhus/is@7.2.0": "sha512-P1Cz1dWaFfR4IR+U13mqqiGsLFf1KbayybWwdd2vfctdV6hDpUkgCY0nKOLLTMSoRd/jJNjtbqzf13K8DCCXQw==",
+    "@speed-highlight/core@1.2.24": "sha512-qeW2e1l78afw8VhRPfPQ1Gjj+KU5XFQ/OFV5ti6eTa9bruO7mJyZtA4vw0ofqmA3tKCkROE9xLk3VZoeRc98nw==",
+    "@types/node@24.13.5": "sha512-TXyindR+lBr22aJIdMQzCFHPHR6cR4js838mRDCSz5hOKWZvZwsXSSiXDmjRj4iJmgl+sR9O+1mkoVBSMadNug==",
+    "@typescript/typescript-aix-ppc64@7.0.2": "sha512-MTKKkWB7p/0E9xi1d1tHtZ5PiLkGEMIq88pK2CubZjOsLtYTLqhgIgi6zepFa+9GHZ6h05NMCkQxGKiPXMxXtQ==",
+    "@typescript/typescript-darwin-arm64@7.0.2": "sha512-gowzar9MwS/aRWp6f3a4KUqzRjAZjOsmGNCM6LcTgXum+dBfgsBVMN+AgvOCCbguXyick6LJhpBszxMebJ8syA==",
+    "@typescript/typescript-darwin-x64@7.0.2": "sha512-SZ9xZInqApNlNGc9s0W1VSsktYSOe9cFqNOIqmN1Gs8SmkjKZYFt017G4VwPxASInODuAdbTW7sXiFUf893RgA==",
+    "@typescript/typescript-freebsd-arm64@7.0.2": "sha512-W5NH4y/J0plIIS5b2xvTEkU7JFxyqdMAOgf+Ilhl0vHQXKO5dZoxd+C/jEtq56c4F3wk71RB4BMRQ2XdI+bwYQ==",
+    "@typescript/typescript-freebsd-x64@7.0.2": "sha512-UMGDx5sTpzNw3WiPebH7l90IWfJggEd+egHt/q6p7/Cm3zqoV7VxkGXt+3DxPIw8CcmvAB0j3sVVfbhX+M4Tpw==",
+    "@typescript/typescript-linux-arm@7.0.2": "sha512-gffT3xPz9sR7j/YJExkyPntrI0P2EP9XbOyWzth2/Gs0RstK+90RBcO0ncXoXy/beYll1SXw846Nf2zdnEz0QQ==",
+    "@typescript/typescript-linux-arm64@7.0.2": "sha512-Qh4eU4/y3yDjnfjjyPYihMj5/ODIlmt+Bzu17OI+fiSRDW57QmU5SiN63exPRNJPKUzcc1INa1NXdrJ+MqHjUQ==",
+    "@typescript/typescript-linux-loong64@7.0.2": "sha512-uEHck9i8hoAzXPiYRib1O7miOnz23SxIeVl6F4LXox+qov1K35jHcEW6VHKvZI+pyvl7fZEP4MCU5LYvIq1GuQ==",
+    "@typescript/typescript-linux-mips64el@7.0.2": "sha512-R4KvAMnE43W5Qeqb0Ly56O3mWMWIAgsMyz36DCaycd5nbg/9kzm0liw3JocfRqyJY0KPmzFjbswozXyW0DnIYA==",
+    "@typescript/typescript-linux-ppc64@7.0.2": "sha512-DORx5b3sd/4S7eayxm4FQv+A7CrkUIGRaHiwI8oiHTAI1fAPWhF4J0vAlkC8biAlHSVVwxMQ3tjZ2/DVbnQiiA==",
+    "@typescript/typescript-linux-riscv64@7.0.2": "sha512-wf0jqEDOjrPRnKwYRyyJDRo11KMbvMFrU+q4zqKyChODBzvlkbhNQfKvLxQCcwTpdDaXSHZTVuh0JoCrKCUMHQ==",
+    "@typescript/typescript-linux-s390x@7.0.2": "sha512-IkwJc3L7yhytWd/ewjyxNDfOmswCm9GWMJT/ue/dU4aZNbwZeYAetq42VyLmsmSjvoX7z74X6ZaYCtzAr0EuGw==",
+    "@typescript/typescript-linux-x64@7.0.2": "sha512-EYdf2cNg7rgCWJnxCdJ+F3V39O8ihb37eHAu1LK8oAFizgTQbPOK7zHHXbPt8rX24COqODXeI3sIf0fCXG7H/A==",
+    "@typescript/typescript-netbsd-arm64@7.0.2": "sha512-+polYF4MF04aPpO5FTkHran9yUQDSXqy5GiSDKpsll5jy3l3+g9QLhpf39T+ePtefhXLOGrLl0QIjkQP6VnelA==",
+    "@typescript/typescript-netbsd-x64@7.0.2": "sha512-8YIT0EHM/3dq10ZOVF/A7pc/YSMtbcecct4rWtexrnSCHOPcpC2KTLXfTCR6vDpnSiY12heNb1GiN/wu+T/FyA==",
+    "@typescript/typescript-openbsd-arm64@7.0.2": "sha512-APT8+ClYnuYm1u9+kgGXoMj2VzWzcymwh2gNSQVySHfkRDGOTVkoWLjCmOQSaO+PoqQ57B0flRp9SA+7GnnkzQ==",
+    "@typescript/typescript-openbsd-x64@7.0.2": "sha512-yX7s+Q0Dln0Dt9tEzZsAjXXR/+ytBM7AlglaqyeMPxQszJ1JhlJdZ6jLA+IzldHtflX81em7lDao1xXu+aRRkg==",
+    "@typescript/typescript-sunos-x64@7.0.2": "sha512-dLJDGaLZ1D4HPQn62u1n8mBDkJREwMsAkCdkwd4Ieqw+x3TUyTsqY0YiBCtE6H6OzzgGk3iuZ3vFWRS+E8/d1g==",
+    "@typescript/typescript-win32-arm64@7.0.2": "sha512-Gyl1Vy6OsWesLzmq+EP0Fb7b4Nid5232AvcA2SFcdYreldpNtYFFofPjnt62y9hQy7VTaZp65ICJjuAQRaVcIQ==",
+    "@typescript/typescript-win32-x64@7.0.2": "sha512-0BQ3HkAHHlKLSp1qRvf3SUhGpGsDuhB/jgFw75guyqbxJqEaS0Cw/VFO8i2nHglJUzQCRtMMR/IBAKE3ETMC4g==",
+    "blake3-wasm@2.1.5": "sha512-F1+K8EbfOZE49dtoPtmxUQrpXaBIl3ICvasLh+nJta0xkz+9kF/7uet9fLnwKqhDrmj6g+6K3Tw9yQPUg2ka5g==",
+    "cookie@1.1.1": "sha512-ei8Aos7ja0weRpFzJnEA9UHJ/7XQmqglbRwnf2ATjcB9Wq874VKH9kfjjirM6UhU2/E5fFYadylyhFldcqSidQ==",
+    "detect-libc@2.1.2": "sha512-Btj2BOOO83o3WyH59e8MgXsxEQVcarkUOpEYrubB0urwnN10yQ364rsiByU11nZlqWYZm05i/of7io4mzihBtQ==",
+    "error-stack-parser-es@1.0.5": "sha512-5qucVt2XcuGMcEGgWI7i+yZpmpByQ8J1lHhcL7PwqCwu9FPP3VUXzT4ltHe5i2z9dePwEHcDVOAfSnHsOlCXRA==",
+    "esbuild@0.28.1": "sha512-HrJrvZv5ayxBzPfwphOoNzkzOIIlifzk0KJrGK2c8R4+LKpMtpYLQeUdjnwjWv/LZlkH2laZk+4w78pi99D4Vw==",
+    "fsevents@2.3.3": "sha512-5xoDfX+fL7faATnagmWPpbFtwh/R77WmMMqqHGS65C3vvB0YHrgF+B1YmZ3441tMj5n63k0212XNoJwzlhffQw==",
+    "kleur@4.1.5": "sha512-o+NO+8WrRiQEE4/7nwRJhN1HWpVmJm511pBHUxPLtp0BUISzlBplORYSmTclCnJvQq2tKu/sgl3xVpkc7ZWuQQ==",
+    "miniflare@5.20260926.1-alpha": "sha512-vc4lgl8YVxR2aundPnVPTIcL46UQKK+ebW7yinXNE1Y9joFS0JoakMazr7r3M8DXRvaemKS8EEmszkv/b05qUw==",
+    "undici@7.29.1": "sha512-RYONW2MeafgYlkVOKYKkA/Ag7BmXqgIWCa8t1m0JcxrQg9pI9lEqRhAOruOBCbAohOa/gkCF+iPi9hrgvTzu6Q==",
+    "path-to-regexp@6.3.0": "sha512-Yhpw4T9C6hPpgPeA28us07OJeqZ5EzQTkbfwuhsUg0c237RomFoETJgmp2sa3F/41gfLE6G5cqcYwznmeEeOlQ==",
+    "pathe@2.0.3": "sha512-WUjGcAqP1gQacoQe+OBJsFA7Ld4DyXuUIjZ5cc75cLHvJ7dtNsTugphxIADwspS+AraAUePCKrSVtPLFj/F88w==",
+    "semver@7.8.5": "sha512-Y7/KDsb8LjooZpwaqGyulO6DQlksgCncchHGk+sZIY4SBvUocMBEFH5Ur1fI4dV+Jvl0w6cjvucaIi40puRioA==",
+    "sharp@0.35.5": "sha512-Ywn4OnzGukp7CDMrp08RQ50YKmuwG47brZgIVPTvBaaAfQlRlygrRqSrxdCiL9M+LlzLBiJ68IR1QqvzHyjC7g==",
+    "supports-color@10.2.2": "sha512-SS+jx45GF1QjgEXQx4NJZV9ImqmO2NPz5FNsIHrsDjh2YsHnawpan7SNQ1o8NuhrbHZy9AZhIoCUiCeaW/C80g==",
+    "tslib@2.8.1": "sha512-oJFu94HQb+KVduSUQL7wnpmqnfmLsOA/nAh6b6EH0wCEoK0/mPeXU6c3wKDV83MkOuHPRHtSXKKU99IBazS/2w==",
+    "typescript@7.0.2": "sha512-8FYau96o3NKOhbjKi/qNvG/W5jhzxkbdm5sj9AbZ/5T5sWqn3hJgLfGx27sRKZWTvyzCP8dLRBTf5tBTSRVUNA==",
+    "undici-types@7.18.2": "sha512-AsuCzffGHJybSaRrmr5eHr81mwJU3kjw6M+uprWvCXiNeN9SOGwQ3Jn8jb8m3Z6izVgknn1R0FTCEAP2QrLY/w==",
+    "unenv@2.0.0-rc.24": "sha512-i7qRCmY42zmCwnYlh9H2SvLEypEFGye5iRmEMKjcGi7zk9UquigRjFtTLz0TYqr0ZGLZhaMHl/foy1bZR+Cwlw==",
+    "workerd@1.20260926.1": "sha512-YojhsWBuZwk3Jk9OC0QfTgVbLeQOD1tK1olC9ZXAUcmeip8z4NE/xtttpxCsuTvQBRqppvy7Tkac0kxPYMjIXA==",
+    "wrangler@4.143.1": "sha512-ilQJRMRcMgdk82XWIg7hlgeB1I2CoOWmSiJeoqZufoNCWUiJTN5DaYPYb6M/oIXBXk3+IQIxNDgdtPUuxcxdeg==",
+    "ws@8.21.0": "sha512-Vsp28b7DRcimFQvrqu2Wek3z1iYxDCWqHYB8Qsnk/S4RfaCQzPGPyBNuVjJV3cd6UiKtUtp6sNM77gWvzcCH+g==",
+    "youch@4.1.0-beta.10": "sha512-rLfVLB4FgQneDr0dv1oddCVZmKjcJ6yX6mS4pU82Mq/Dt9a3cLZQ62pDBL4AUO+uVrCvtWz3ZFUL2HFAFJ/BXQ==",
+    "youch-core@0.3.3": "sha512-ho7XuGjLaJ2hWHoK8yFnsUGy2Y5uDpqSTq1FkHLK4/oqKtyUU1AFbOOxY4IpC9f0fTLjwYbslUz0Po5BpD1wrA=="
+  },
+  "supersedes": "eng/policy/dependency-reviews/web-40-admission-r14.json",
+  "reviewedBase": "389b9fd746eefb80496263ae83072adb04f1a6a2",
+  "scannerExceptions": [
+    {
+      "file": ".gitleaks.toml",
+      "introducedBy": "389b9fd746eefb80496263ae83072adb04f1a6a2",
+      "findingCommit": "2a5e17f",
+      "findingPath": "eng/contracts/ArcForges.Contracts.PublicApi/1.0.0-ci.287.1/source.json",
+      "findingLine": 9,
+      "findingKey": "public/http/v1/native-auth.schema.json",
+      "findingValuePrefix": "e7807ae0",
+      "rule": "generic-api-key",
+      "digest": "e7807ae0ab6b4530d817941a922d7df90e4feb525c68d81a245a4c089ad3d296",
+      "digestDefinition": "SHA-256 of schemas/public/http/v1/native-auth.schema.json in arcforges.contracts.publicapi 1.0.0-ci.287.1",
+      "status": "verified false positive",
+      "allowlist": {
+        "description": "Reviewed public schema digest in the CON.07 Contracts publication record: the key name contains auth, and the value is the SHA-256 of the packaged public schema (verified against the NuGet package bytes)",
+        "condition": "AND",
+        "targetRules": [
+          "generic-api-key"
+        ],
+        "regexTarget": "line",
+        "paths": [
+          "^eng/contracts/ArcForges\\.Contracts\\.PublicApi/1\\.0\\.0-ci\\.287\\.1/source\\.json$"
+        ],
+        "regexes": [
+          "^\\s*\"public/http/v1/native-auth\\.schema\\.json\": \"e7807ae0ab6b4530d817941a922d7df90e4feb525c68d81a245a4c089ad3d296\",?$"
+        ]
+      }
+    }
+  ],
+  "packsFolderRows": [
+    {
+      "key": "microsoft.netcore.app.runtime.mono.browser-wasm/10.0.12",
+      "platform": "Windows",
+      "packsFolder": "Microsoft.NETCore.App.Runtime.Mono.browser-wasm",
+      "version": "10.0.12",
+      "marker": "runtimes/browser-wasm/native/dotnet.native.wasm",
+      "reason": "The hosted windows-2025-vs2026 image (runner image 20260925.250.1, CI job 113727560820) preinstalls the wasm.tools workload into C:\\Program Files\\dotnet, which holds this pack at the bundled version 10.0.12 (the same run's build lists the 10.0.12 Emscripten workload packs in that folder), so the SDK adds no NuGet download. A local machine whose packs folder lacks 10.0.12 restores the NuGet copy and it is verified by digest there."
+    },
+    {
+      "key": "microsoft.netcore.app.runtime.mono.browser-wasm/10.0.12",
+      "platform": "Linux",
+      "packsFolder": "Microsoft.NETCore.App.Runtime.Mono.browser-wasm",
+      "version": "10.0.12",
+      "marker": "runtimes/browser-wasm/native/dotnet.native.wasm",
+      "reason": "The Ubuntu hosted image carries no WebAssembly workload, so this row is checked there and not satisfied: the SDK adds the implicit pack as a NuGet download, restores it and the test verifies its digest. The NuGet copy is skipped only when a 10.0.12 packs copy with the marker exists locally, and in that case the SDK does not download the pack either."
+    }
+  ],
+  "con07Identity": {
+    "ledger": "Plan ledger/tasks/con-07.md, status complete, recorded 2026-10-02",
+    "version": "1.0.0-ci.287.1",
+    "mergeCommit": "ca45f36cccbdd31380f76b8f6cdecc958fdcb430",
+    "publicationRun": "https://github.com/ArcForges/Contracts/actions/runs/36966686225",
+    "verifiedAt": "2026-10-08",
+    "method": "nuget.org flat-container index (version listed) and nuspec (repository commit, licence, SHA-256) per package",
+    "packages": [
+      {
+        "id": "ArcForges.Contracts.PublicApi",
+        "versionListed": true,
+        "repositoryCommit": "ca45f36cccbdd31380f76b8f6cdecc958fdcb430",
+        "licence": "Apache-2.0",
+        "nuspecSha256": "f18300e6b837a6e8ccafb56d77de97fe74ed6437f6a2952ba82e9d3eff6e121f"
+      },
+      {
+        "id": "ArcForges.Contracts.Foundation",
+        "versionListed": true,
+        "repositoryCommit": "ca45f36cccbdd31380f76b8f6cdecc958fdcb430",
+        "licence": "Apache-2.0",
+        "nuspecSha256": "72f9ffbff6488f970b48d7b35458c0e0eb4223865caea9adc16fc7105a393ad8"
+      },
+      {
+        "id": "ArcForges.Contracts.CloudInternal",
+        "versionListed": true,
+        "repositoryCommit": "ca45f36cccbdd31380f76b8f6cdecc958fdcb430",
+        "licence": "Apache-2.0",
+        "nuspecSha256": "affe7a268a8acae0e9a3ea168b615f215f921b3ac481a73bfe3c0886c85fb647"
+      },
+      {
+        "id": "ArcForges.Contracts.LocalRpc.Chat",
+        "versionListed": true,
+        "repositoryCommit": "ca45f36cccbdd31380f76b8f6cdecc958fdcb430",
+        "licence": "Apache-2.0",
+        "nuspecSha256": "af38382283e1c7d1e425050a650aeb02c63bdff8543c3b68666161d80bf0c045",
+        "nuspecSha256Status": "unverified: the 1.0.0-ci.287.1 nuspec is not in the local NuGet packages folder; the 2026-10-08 value is kept and is not re-derived under the raw-bytes convention"
+      },
+      {
+        "id": "ArcForges.Contracts.LocalRpc.Platform",
+        "versionListed": true,
+        "repositoryCommit": "ca45f36cccbdd31380f76b8f6cdecc958fdcb430",
+        "licence": "Apache-2.0",
+        "nuspecSha256": "d9a60fe72441f5928d02aed3a92c3d9835f45af750f1511999d185e7b1a38e3b",
+        "nuspecSha256Status": "unverified: the 1.0.0-ci.287.1 nuspec is not in the local NuGet packages folder; the 2026-10-08 value is kept and is not re-derived under the raw-bytes convention"
+      },
+      {
+        "id": "ArcForges.Contracts.LocalRpc.Sandbox",
+        "versionListed": true,
+        "repositoryCommit": "ca45f36cccbdd31380f76b8f6cdecc958fdcb430",
+        "licence": "Apache-2.0",
+        "nuspecSha256": "d0aa13ae853055a5a18efb918d9136cded089b73704c7ef82917ef636c0589da",
+        "nuspecSha256Status": "unverified: the 1.0.0-ci.287.1 nuspec is not in the local NuGet packages folder; the 2026-10-08 value is kept and is not re-derived under the raw-bytes convention"
+      },
+      {
+        "id": "ArcForges.Contracts.LocalRpc.Scope",
+        "versionListed": true,
+        "repositoryCommit": "ca45f36cccbdd31380f76b8f6cdecc958fdcb430",
+        "licence": "Apache-2.0",
+        "nuspecSha256": "3533ec3b77ed0cedfaa8478ddad887038c3764309134fc871d80e2f2f184baa9",
+        "nuspecSha256Status": "unverified: the 1.0.0-ci.287.1 nuspec is not in the local NuGet packages folder; the 2026-10-08 value is kept and is not re-derived under the raw-bytes convention"
+      },
+      {
+        "id": "ArcForges.Cli",
+        "versionListed": true,
+        "repositoryCommit": "ca45f36cccbdd31380f76b8f6cdecc958fdcb430",
+        "licence": "Apache-2.0",
+        "nuspecSha256": "cdae97a78340ce8276efe8d67373fbdaf2c1498203819c6045db9d2132abd490",
+        "nuspecSha256Status": "unverified: the 1.0.0-ci.287.1 nuspec is not in the local NuGet packages folder; the 2026-10-08 value is kept and is not re-derived under the raw-bytes convention"
+      },
+      {
+        "id": "ArcForges.Contracts.Events",
+        "versionListed": true,
+        "repositoryCommit": "ca45f36cccbdd31380f76b8f6cdecc958fdcb430",
+        "licence": "Apache-2.0",
+        "nuspecSha256": "a732f6d69c500d569ab44966de8182d95495fad9d4df874a12838df85841b65c"
+      },
+      {
+        "id": "ArcForges.Contracts.Validation",
+        "versionListed": true,
+        "repositoryCommit": "ca45f36cccbdd31380f76b8f6cdecc958fdcb430",
+        "licence": "Apache-2.0",
+        "nuspecSha256": "6fc4636e918c1510556afede34b23f73e8132613832e6e2f98058c4282c24d08"
+      },
+      {
+        "id": "ArcForges.Sdk.Client",
+        "versionListed": true,
+        "repositoryCommit": "ca45f36cccbdd31380f76b8f6cdecc958fdcb430",
+        "licence": "Apache-2.0",
+        "nuspecSha256": "0d1d2efe6a3c6b7c27fbad668e30a096354636c07013369efc33f608c78488a7",
+        "nuspecSha256Status": "unverified: the 1.0.0-ci.287.1 nuspec is not in the local NuGet packages folder; the 2026-10-08 value is kept and is not re-derived under the raw-bytes convention"
+      },
+      {
+        "id": "ArcForges.Sdk.Contracts",
+        "versionListed": true,
+        "repositoryCommit": "ca45f36cccbdd31380f76b8f6cdecc958fdcb430",
+        "licence": "Apache-2.0",
+        "nuspecSha256": "bc55aa1371a4ce334c64b54150011444fe5880d4cd264e73fc1ff1136889c9ff"
+      }
+    ],
+    "admittedClosureRows": [
+      "arcforges.contracts.foundation/1.0.0-ci.287.1",
+      "arcforges.contracts.publicapi/1.0.0-ci.287.1",
+      "google.protobuf/3.36.1",
+      "grpc.core.api/2.84.0"
+    ]
+  },
+  "browserWasmPacks": {
+    "sdk": "10.0.401 (BundledNETCoreAppPackageVersion 10.0.12)",
+    "admitted": [
+      "microsoft.net.runtime.webassembly.sdk/10.0.12",
+      "microsoft.netcore.app.runtime.mono.browser-wasm/10.0.12"
+    ],
+    "refused": [
+      {
+        "id": "Microsoft.AspNetCore.App.Runtime.browser-wasm",
+        "reason": "no such package on nuget.org (flat-container BlobNotFound on 2026-10-08); not admitted"
+      }
+    ],
+    "localPacksFolder": "C:\\Program Files\\dotnet\\packs holds 10.0.11 browser-wasm packs from the local workload; the admitted 10.0.12 packs are the locked NuGet coordinates"
+  },
+  "nugetClosure": {
+    "anglesharp.css/1.0.1": {
+      "contentHash": "6S13xNHH+SUGPZd6EO1MhkuDbpEnFroUM6A8DZpLJHQnLRTvtBJb3Ydu65s618E4gWF9FSWmM5jhKk4RIfwT2A==",
+      "licence": "MIT",
+      "nuspecSha256": "60ac56de204d91e27e538b57e00b56f7c31eac756fce5b9a9c2e8e6b9dec74e1",
+      "source": "https://api.nuget.org/v3-flatcontainer/anglesharp.css/1.0.1/anglesharp.css.nuspec",
+      "classification": "Transitive dependency of the xUnit v3 or bUnit test closure, reached only from tests/**; test-only and never in a published output."
+    },
+    "anglesharp.diffing/1.1.1": {
+      "contentHash": "Uzz5895TpRyMA4t8GExmq4TxXqi3+bZTgb3kJgH+tdwrSuo9CO6Dlmv+Oqyhb2pNRfbnReLUzhlHAuT7c+3jSg==",
+      "licence": "MIT",
+      "nuspecSha256": "bb89bd205ef7a42d55c289a90251564734ea28d387c7d4e0ce43b5b989de15e4",
+      "source": "https://api.nuget.org/v3-flatcontainer/anglesharp.diffing/1.1.1/anglesharp.diffing.nuspec",
+      "classification": "Transitive dependency of the xUnit v3 or bUnit test closure, reached only from tests/**; test-only and never in a published output."
+    },
+    "anglesharp/1.7.0": {
+      "contentHash": "v1R++46dblGRBo2/fKFUfgtZOaFnDGQhqBM0AarxgZSJuumj1e1vexBbjlTv2hx3Olr3qeoJa2yUoWyv5fuJ5A==",
+      "licence": "MIT",
+      "nuspecSha256": "ef30ecc9d4d7fe9bae40cc1c02fdc1d8653f578c7da486efda3e1b6e0b2476ef",
+      "source": "https://api.nuget.org/v3-flatcontainer/anglesharp/1.7.0/anglesharp.nuspec",
+      "classification": "Test-only HTML5 parser: a direct reference of tests/ArcForges.Web.Site.Tests (the WEB.40 normalised-DOM parity gate, 2026-10-09 adjudication) and a transitive dependency of the bUnit closure. Reached only from tests/**; never in a published output."
+    },
+    "arcforges.build.policy/1.0.0-ci.94.1": {
+      "contentHash": "PCpeEXikk2m87zhMF6L8tbHe2QrI87mO4Nc5lJBenEDhOePwwV4TkArc6IaM1G11Pm8ojVjurLAIoPW22ozb/A==",
+      "licence": "AGPL-3.0-only",
+      "nuspecSha256": "bd85acc0b99828a7e9c52751a9d57059fbaa7130986871a562e37b7f6b971c7c",
+      "source": "https://api.nuget.org/v3-flatcontainer/arcforges.build.policy/1.0.0-ci.94.1/arcforges.build.policy.nuspec",
+      "classification": "Direct first-party AGPL build-policy package (GOV.03 inheritance) referenced with PrivateAssets all in every managed project; build-time analyzers and metadata only, never a published output."
+    },
+    "arcforges.contracts.foundation/1.0.0-ci.287.1": {
+      "contentHash": "Jwe5Z6K57vDsKmcxQFbbwyQZQUQsOkzYH26ogQIRb/biRtaGxLCtOsNg4felCuNTJt9bwRmC6AGx3eJyCoCk/g==",
+      "licence": "Apache-2.0",
+      "nuspecSha256": "72f9ffbff6488f970b48d7b35458c0e0eb4223865caea9adc16fc7105a393ad8",
+      "source": "https://api.nuget.org/v3-flatcontainer/arcforges.contracts.foundation/1.0.0-ci.287.1/arcforges.contracts.foundation.nuspec",
+      "classification": "Transitive Apache-2.0 foundation package of the CON.07 Contracts candidate 1.0.0-ci.287.1 (merge ca45f36), required by ArcForges.Contracts.PublicApi; consumed as an exact published package."
+    },
+    "arcforges.contracts.publicapi/1.0.0-ci.287.1": {
+      "contentHash": "/chAZbT/NTs4yyQBV5dgh37/dWBTKt3PHCikIidI9T90LheydsJoCWxKHGC6Tjzw0rqA62rYxnQfXGzKhTea5Q==",
+      "licence": "Apache-2.0",
+      "nuspecSha256": "f18300e6b837a6e8ccafb56d77de97fe74ed6437f6a2952ba82e9d3eff6e121f",
+      "source": "https://api.nuget.org/v3-flatcontainer/arcforges.contracts.publicapi/1.0.0-ci.287.1/arcforges.contracts.publicapi.nuspec",
+      "classification": "Direct Apache-2.0 Contracts publication of the CON.07 candidate 1.0.0-ci.287.1 (merge ca45f36), referenced by ArcForges.Web.Ui for the generated SayHello messages and the gRPC-Web service bindings. Consumed as an exact published package, never as source; identity verified in the web-40-admission-r2 receipt."
+    },
+    "bunit/2.9.0": {
+      "contentHash": "Jz9ywwpjjYHppFDw4bIMkk5cNOy0vN74p3PzJFVIlCZicK8vpAovM5LsuNDLKE4bpwISNKrjwSrsw4SIVzT+0g==",
+      "licence": "MIT",
+      "nuspecSha256": "fb50d54a04677cab1b9386dcc4e4cff2fb3babfc9c2f0e5d0e6158f48ad64441",
+      "source": "https://api.nuget.org/v3-flatcontainer/bunit/2.9.0/bunit.nuspec",
+      "classification": "Direct bUnit component-test package for ArcForges.Web.Ui.Tests; test-only and never in a published output."
+    },
+    "deque.axecore.commons/4.13.0": {
+      "contentHash": "roq2z6OmKY4KVXGj1lSigUbjE7DnIcYLqPOVcnWrusS6CI7oB6/He8Oo3ZO/TCOlnaTS1hkJOuKPwL+PyhyC6w==",
+      "licence": "MPL-2.0",
+      "testOnly": true,
+      "nuspecSha256": "6d1ad9cf06acab6eb22fe449e1aead325803b14ec00efd57224cdc1b376883c1",
+      "source": "https://api.nuget.org/v3-flatcontainer/deque.axecore.commons/4.13.0/deque.axecore.commons.nuspec",
+      "classification": "Test-only axe-core script carrier (MPL-2.0 is recorded by the WEB.40 2026-10-09 adjudication). File-level weak copyleft, accepted only for a row marked testOnly: no product project restores it, and it is never shipped or compiled into a product output. Referenced only through Deque.AxeCore.Playwright by tests/browser."
+    },
+    "deque.axecore.playwright/4.13.0": {
+      "contentHash": "tqzqVEsQfVg4fmx9/AkbgYjVMYHHOGI7WkTznKuP8ayi0uaBcd+2skOfxnVdUBlEhpHdu9stzxOZ6uPVhIS2JA==",
+      "licence": "MIT",
+      "nuspecSha256": "6a77936de180b932c71a289bac7d638be4485e6b8a83a463429a72f7b8b44a8a",
+      "source": "https://api.nuget.org/v3-flatcontainer/deque.axecore.playwright/4.13.0/deque.axecore.playwright.nuspec",
+      "classification": "Test-only accessibility package (WEB.40 P2-021 item 8): axe-core run through Microsoft.Playwright for .NET. Referenced only by tests/browser (local opt-in, never built in CI). axe-core is injected only into the page under test. Its Microsoft.Playwright 1.20.2 dependency resolves to the centrally pinned 1.62.0."
+    },
+    "google.protobuf/3.36.1": {
+      "contentHash": "77AqPEoaY1ODE+syYBHti0jXiwQq0J/fUr/fRyYhNlc9oKtH5dZZEr/OLKtdKNVG83PRnCYB2r8B80ZrObzOGQ==",
+      "licence": "BSD-3-Clause",
+      "nuspecSha256": "d6a4a567ce4889e25d098fd39d13a65ce05c847e8574818edc0d1eee6277eb40",
+      "source": "https://api.nuget.org/v3-flatcontainer/google.protobuf/3.36.1/google.protobuf.nuspec",
+      "classification": "Transitive BSD-3-Clause protobuf runtime required by the generated Contracts bindings (ArcForges.Contracts.PublicApi and Foundation)."
+    },
+    "grpc.core.api/2.84.0": {
+      "contentHash": "p2SOMl6q/GZ4/5MLkgboC/z55g4zKUEruRn/g46QgppjQBVnsLZVBU/9VO7n60ll38G3Eo8Zu9b7x+W01GKFVg==",
+      "licence": "Apache-2.0",
+      "nuspecSha256": "bba00f5d5be8423dd351662e313648b0abd13100ef67d55f6fc29de44c544a96",
+      "source": "https://api.nuget.org/v3-flatcontainer/grpc.core.api/2.84.0/grpc.core.api.nuspec",
+      "classification": "Transitive Apache-2.0 gRPC core API required by the generated Contracts service bindings (ArcForges.Contracts.PublicApi)."
+    },
+    "grpc.net.client.web/2.84.0": {
+      "contentHash": "6KB6IFGx+KfGMaN06nATBVgvgsOEVf12/nJHvdAPsY2mULmWCSn4moFUT8UnCnQ19C3tpGbc2CnB1/e0hVUmaA==",
+      "licence": "Apache-2.0",
+      "nuspecSha256": "da47ce027ddbbbf7c0b1f242b1efe64a5aeaa2959da54716a100fcc6e4520efb",
+      "source": "https://api.nuget.org/v3-flatcontainer/grpc.net.client.web/2.84.0/grpc.net.client.web.nuspec",
+      "classification": "Apache-2.0 gRPC-Web handler of the Account and Chat profiles (binary application/grpc-web+proto unary; WEB.40 step 3)."
+    },
+    "grpc.net.client/2.84.0": {
+      "contentHash": "My6Fms2YCyAbihTBZZ3kLS39iTY2pkMAzGDBTC6XhPOujg70eB07AEJ7tPiW3tZ70bhFzHcc3+d4j3DaIPF3aA==",
+      "licence": "Apache-2.0",
+      "nuspecSha256": "32a43f3448ab90bb71c946533db4d5135cef4728a3ee29bf88d9a0cbf1e67413",
+      "source": "https://api.nuget.org/v3-flatcontainer/grpc.net.client/2.84.0/grpc.net.client.nuspec",
+      "classification": "Apache-2.0 gRPC client channel of the Account and Chat profiles; the generated Contracts hello client runs over it (WEB.40 step 3)."
+    },
+    "grpc.net.common/2.84.0": {
+      "contentHash": "DPxm/H8G/lDRrz997wM0M2zN/PGqVeZKDakhBbtABEbv6WIW4HI9g3BvntBQT6ZUROuGacMzfyyF9e5kiTVFfQ==",
+      "licence": "Apache-2.0",
+      "nuspecSha256": "f621aa566e63340b572a4f0bd2b996b934407c77b8cdf121f38578e93ee796cb",
+      "source": "https://api.nuget.org/v3-flatcontainer/grpc.net.common/2.84.0/grpc.net.common.nuspec",
+      "classification": "Apache-2.0 shared gRPC .NET types required by Grpc.Net.Client (WEB.40 step 3)."
+    },
+    "microsoft.applicationinsights/2.23.0": {
+      "contentHash": "nWArUZTdU7iqZLycLKWe0TDms48KKGE6pONH2terYNa8REXiqixrMOkf1sk5DHGMaUTqONU2YkS4SAXBhLStgw==",
+      "licence": "MIT",
+      "nuspecSha256": "184c649613d487d2b11466882ad83e375bf94f6aa228afae78dd4005bb0bb2a0",
+      "source": "https://api.nuget.org/v3-flatcontainer/microsoft.applicationinsights/2.23.0/microsoft.applicationinsights.nuspec",
+      "classification": "Transitive dependency of the xUnit v3 or bUnit test closure, reached only from tests/**; test-only and never in a published output."
+    },
+    "microsoft.aspnetcore.app.internal.assets/10.0.12": {
+      "contentHash": "+sIBo9AMBZH46qHWHQdfzcGMt+RuBaPYrUMOAM9VjA7MQ9QtIez3lq1C3E05+Yroa94KKt3DSWaxmCI4H28a9Q==",
+      "licence": "MIT",
+      "nuspecSha256": "54e463a46bb9c12338e654dcd6e2cf1fa956a29e2b826e84d07b86348581e6d6",
+      "source": "https://api.nuget.org/v3-flatcontainer/microsoft.aspnetcore.app.internal.assets/10.0.12/microsoft.aspnetcore.app.internal.assets.nuspec",
+      "classification": "MIT ASP.NET Core internal assets package restored for the Blazor WebAssembly profile build; framework plumbing, never a Web source (WEB.40 step 3)."
+    },
+    "microsoft.aspnetcore.authorization/10.0.10": {
+      "contentHash": "FxWC2bc788/51CiSiMkKW5gQyqrSSs1991BhphS6ZARMGii+3Qr355Q9OSB/nBpdHVjIopfegAhreZ6UPpO9WA==",
+      "licence": "MIT",
+      "nuspecSha256": "b3129f87c7f0054d30bd3ec2e3c7d4c5d8591dde38df9808f47a1fcdd52294fd",
+      "source": "https://api.nuget.org/v3-flatcontainer/microsoft.aspnetcore.authorization/10.0.10/microsoft.aspnetcore.authorization.nuspec",
+      "classification": "Transitive dependency of the admitted WebAssembly or Ui closure; its runtime class ships only if the browser publish output of an admitted profile includes it."
+    },
+    "microsoft.aspnetcore.components.analyzers/10.0.10": {
+      "contentHash": "ZBJobkEDv6yWftw3ycZMkuV9YpvJOBmjWpg2UbQ0Ol4THObhKai0PNl/SGFBmpw03JKCPA63RgplQOA1LQbRDg==",
+      "licence": "MIT",
+      "nuspecSha256": "4513a4977113b2abc1f2b6679b03b79ac7ffa5504d386a2b2f0f39eab4016679",
+      "source": "https://api.nuget.org/v3-flatcontainer/microsoft.aspnetcore.components.analyzers/10.0.10/microsoft.aspnetcore.components.analyzers.nuspec",
+      "classification": "Transitive analyzer package; build-time only, adds no runtime output."
+    },
+    "microsoft.aspnetcore.components.authorization/10.0.10": {
+      "contentHash": "em2xVQkvtn3BHFT3J9pp4K3yDgPnp0S5a+gcGxb6xkjqy+81yDa8XEEaQnkruCVRusFMltORFFmnlrnHa/A90w==",
+      "licence": "MIT",
+      "nuspecSha256": "9fff5973fa96969c1cef96589379bb004f077dffd6732b673ba001d9a9165726",
+      "source": "https://api.nuget.org/v3-flatcontainer/microsoft.aspnetcore.components.authorization/10.0.10/microsoft.aspnetcore.components.authorization.nuspec",
+      "classification": "Transitive dependency of the xUnit v3 or bUnit test closure, reached only from tests/**; test-only and never in a published output."
+    },
+    "microsoft.aspnetcore.components.forms/10.0.10": {
+      "contentHash": "09cKk0/t83Y5DN5ne4J9Y+OiLJEQ+XBFGIoD0UXAnae8yQEkFa/OYbX0bBGkx0k5r5ndta/CMdlMk3lCG81R0g==",
+      "licence": "MIT",
+      "nuspecSha256": "14b8a3dc38324f0af1bd43917389a11f65134478181e7ae4add9f457f3666962",
+      "source": "https://api.nuget.org/v3-flatcontainer/microsoft.aspnetcore.components.forms/10.0.10/microsoft.aspnetcore.components.forms.nuspec",
+      "classification": "Transitive dependency of the admitted WebAssembly or Ui closure; its runtime class ships only if the browser publish output of an admitted profile includes it."
+    },
+    "microsoft.aspnetcore.components.web/10.0.10": {
+      "contentHash": "8+cyStKhSy94Q2L/2zmgk0H1f+GKvBGEvTImT0qdsCqeNbT7ilGDKTIJ1PiugsPtSNLuUEABUqMpA3rE1yAKFg==",
+      "licence": "MIT",
+      "nuspecSha256": "f87599d2398ca96444534e5ac2a69d37212d057b2569912a20075d63e89f7c11",
+      "source": "https://api.nuget.org/v3-flatcontainer/microsoft.aspnetcore.components.web/10.0.10/microsoft.aspnetcore.components.web.nuspec",
+      "classification": "Transitive dependency of the admitted WebAssembly or Ui closure; its runtime class ships only if the browser publish output of an admitted profile includes it."
+    },
+    "microsoft.aspnetcore.components.webassembly.authentication/10.0.10": {
+      "contentHash": "D2GIsqVJ2+tVDViJmbEF4tc+gxhdAl5xkBAMZHWCJV7Pt+oBkU2omBSRbgVTq3N2OgreVNSp7w+FrZNgu97d5A==",
+      "licence": "MIT",
+      "nuspecSha256": "7fb21a70c4bec90f286d35f4ee16addcb0867828c173cb9040a5b53a7204966e",
+      "source": "https://api.nuget.org/v3-flatcontainer/microsoft.aspnetcore.components.webassembly.authentication/10.0.10/microsoft.aspnetcore.components.webassembly.authentication.nuspec",
+      "classification": "Transitive dependency of the xUnit v3 or bUnit test closure, reached only from tests/**; test-only and never in a published output."
+    },
+    "microsoft.aspnetcore.components.webassembly/10.0.10": {
+      "contentHash": "0Zib7U6HmGw4Noj/+yJz1YuEJwo3XOV0iLezXDLFsrHTaC8L+KUOR/1+1tX7AAeipDG6jP3gPZOwpirk6G3LYQ==",
+      "licence": "MIT",
+      "nuspecSha256": "20a20d43da60671546db4fc23ac99f0dc23f8df470660c3b60d61a4338d891fa",
+      "source": "https://api.nuget.org/v3-flatcontainer/microsoft.aspnetcore.components.webassembly/10.0.10/microsoft.aspnetcore.components.webassembly.nuspec",
+      "classification": "Direct Blazor WebAssembly runtime package of the Account, Chat and Operations standalone profiles; its runtime class is present only in those browser profile outputs."
+    },
+    "microsoft.aspnetcore.components/10.0.10": {
+      "contentHash": "wlCBFU9YxqhUc2kVbl/FCGNFSbRjS312WVk9YRVjs/OcZ+Yqa9QsD7z+UcBzNNAbcPpEM98f/PaaD6lHt5rmIg==",
+      "licence": "MIT",
+      "nuspecSha256": "d087b5911f3dff47e1e0ffdb73e86403d5881009cd0139f4d21206ed3f16fc9e",
+      "source": "https://api.nuget.org/v3-flatcontainer/microsoft.aspnetcore.components/10.0.10/microsoft.aspnetcore.components.nuspec",
+      "classification": "Transitive dependency of the admitted WebAssembly or Ui closure; its runtime class ships only if the browser publish output of an admitted profile includes it."
+    },
+    "microsoft.aspnetcore.metadata/10.0.10": {
+      "contentHash": "nmZYV9OQ69r3EDOj0SW1JLgD4uFHfMNDKb8mk8Mf4y0Enw3AzkMD85zPuAk5FqmEz8PS0WagR/tJCwLg8xpI3Q==",
+      "licence": "MIT",
+      "nuspecSha256": "e50c6e8ebe919bf9285078b1c477149e62e2802e6ea093c0de3d0740d7d08d2a",
+      "source": "https://api.nuget.org/v3-flatcontainer/microsoft.aspnetcore.metadata/10.0.10/microsoft.aspnetcore.metadata.nuspec",
+      "classification": "Transitive dependency of the admitted WebAssembly or Ui closure; its runtime class ships only if the browser publish output of an admitted profile includes it."
+    },
+    "microsoft.bcl.asyncinterfaces/6.0.0": {
+      "contentHash": "UcSjPsst+DfAdJGVDsu346FX0ci0ah+lw3WRtn18NUwEqRt70HaOQ7lI72vy3+1LxtqI3T5GWwV39rQSrCzAeg==",
+      "licence": "MIT",
+      "nuspecSha256": "3a965c424d56f1cee169d88cc9c04f2c04f01bd65f20147b26ac093d761beec9",
+      "source": "https://api.nuget.org/v3-flatcontainer/microsoft.bcl.asyncinterfaces/6.0.0/microsoft.bcl.asyncinterfaces.nuspec",
+      "classification": "Transitive dependency of the xUnit v3 or bUnit test closure, reached only from tests/**; test-only and never in a published output."
+    },
+    "microsoft.extensions.caching.abstractions/10.0.10": {
+      "contentHash": "4ZFBNE+jzR+CrWWlhOesnmywCW7pYKT0dxyAQRdL11yJwxe4jvcAu31eorFtEkoFeCDcUTeNssgPv2yaRRptaQ==",
+      "licence": "MIT",
+      "nuspecSha256": "f711589381828be613ead1bc3dd1f0f1fedb2dc06c7eb63893aa57be75f3822a",
+      "source": "https://api.nuget.org/v3-flatcontainer/microsoft.extensions.caching.abstractions/10.0.10/microsoft.extensions.caching.abstractions.nuspec",
+      "classification": "Transitive dependency of the xUnit v3 or bUnit test closure, reached only from tests/**; test-only and never in a published output."
+    },
+    "microsoft.extensions.caching.memory/10.0.10": {
+      "contentHash": "N1w5H7uK6gCTnCBZAWzE0/EQYSPysij/uYwDqntqBVvBa6bjMmBKitsnEFd6yh/SX3wLm67nO6+OnZ84K+gZWg==",
+      "licence": "MIT",
+      "nuspecSha256": "384c576df52ad0bf752492e7d9c795d08a297f064f1d6ea0c6cc5533bc94e2c5",
+      "source": "https://api.nuget.org/v3-flatcontainer/microsoft.extensions.caching.memory/10.0.10/microsoft.extensions.caching.memory.nuspec",
+      "classification": "Transitive dependency of the xUnit v3 or bUnit test closure, reached only from tests/**; test-only and never in a published output."
+    },
+    "microsoft.extensions.configuration.abstractions/10.0.10": {
+      "contentHash": "5Vnd2I75DmZCVEjSynIdJ/0EGafgnLQwgR3t2C2/fkjx/nRG+cLwxLLdInoHeCEpkD5K4Ov/g9ZCRYrl4TRsaA==",
+      "licence": "MIT",
+      "nuspecSha256": "9782906731f192523e01dde11f749492c342738614c73f2fb794b13232eb5e8c",
+      "source": "https://api.nuget.org/v3-flatcontainer/microsoft.extensions.configuration.abstractions/10.0.10/microsoft.extensions.configuration.abstractions.nuspec",
+      "classification": "Transitive dependency of the admitted WebAssembly or Ui closure; its runtime class ships only if the browser publish output of an admitted profile includes it."
+    },
+    "microsoft.extensions.configuration.binder/10.0.10": {
+      "contentHash": "GqmN2o1CkJvk7uWp+p4CwBYW0w/zfoEbvsiFDbO2G8l1Uz+mrDAbAcZiXhU2lufKPby1cjAUdd5GTWpebYOkOA==",
+      "licence": "MIT",
+      "nuspecSha256": "4c56d948cb232dafa93210efb3417fb8867eb1a2d4e7ae983ec1b8f931b2b2c6",
+      "source": "https://api.nuget.org/v3-flatcontainer/microsoft.extensions.configuration.binder/10.0.10/microsoft.extensions.configuration.binder.nuspec",
+      "classification": "Transitive dependency of the admitted WebAssembly or Ui closure; its runtime class ships only if the browser publish output of an admitted profile includes it."
+    },
+    "microsoft.extensions.configuration.fileextensions/10.0.10": {
+      "contentHash": "ZOhZYwvbXGTgGVRwswIirofEMVHuWdxjdh0JeUZXwaF9cgcjXdz/t0ELtgaevw7ezTyv47yPNCgGreWtLkn3IQ==",
+      "licence": "MIT",
+      "nuspecSha256": "5499a83d28a055d0faa12093446b4812ab53b56cbd992577e97488a9bbe8524a",
+      "source": "https://api.nuget.org/v3-flatcontainer/microsoft.extensions.configuration.fileextensions/10.0.10/microsoft.extensions.configuration.fileextensions.nuspec",
+      "classification": "Transitive dependency of the admitted WebAssembly or Ui closure; its runtime class ships only if the browser publish output of an admitted profile includes it."
+    },
+    "microsoft.extensions.configuration.json/10.0.10": {
+      "contentHash": "uvJ6sHwjgrkMEJOgiC76G0mcZGXerwyyWkwX34EOjCbxKG6TCtfAoqDKAMsCvEBf9HxjlGQEgqsSMOGCmGBf+A==",
+      "licence": "MIT",
+      "nuspecSha256": "325fdf5addefb211ec3de14dbb522e467d2041fd60979722cc8b151f0714a2c9",
+      "source": "https://api.nuget.org/v3-flatcontainer/microsoft.extensions.configuration.json/10.0.10/microsoft.extensions.configuration.json.nuspec",
+      "classification": "Transitive dependency of the admitted WebAssembly or Ui closure; its runtime class ships only if the browser publish output of an admitted profile includes it."
+    },
+    "microsoft.extensions.configuration/10.0.10": {
+      "contentHash": "plJWK2zpWuuyxI8F8s2scx6Je7N1Ajjs6HvYUGKwRnDMWIVIz9FHwAkiT7ASgrvAOd10T0FPVlh9BzAJJME+jg==",
+      "licence": "MIT",
+      "nuspecSha256": "f71c929fe65083b11410622a1f7f1777432dfe8a6b8cb043d9de08ec53493b3c",
+      "source": "https://api.nuget.org/v3-flatcontainer/microsoft.extensions.configuration/10.0.10/microsoft.extensions.configuration.nuspec",
+      "classification": "Transitive dependency of the admitted WebAssembly or Ui closure; its runtime class ships only if the browser publish output of an admitted profile includes it."
+    },
+    "microsoft.extensions.dependencyinjection.abstractions/10.0.10": {
+      "contentHash": "z/2xXlFw2aLGjHyEm6E0tQ+In6VfzQzTrtArbQ2c0TQE16ZbyDCMGPvaUT9I0s8rgy9sRWlU2P9waW37qV04qA==",
+      "licence": "MIT",
+      "nuspecSha256": "0c95e70ef7abddd0120b259dd80f5677c22b4f638fb8c5aa50846c03c65a7569",
+      "source": "https://api.nuget.org/v3-flatcontainer/microsoft.extensions.dependencyinjection.abstractions/10.0.10/microsoft.extensions.dependencyinjection.abstractions.nuspec",
+      "classification": "Transitive dependency of the admitted WebAssembly or Ui closure; its runtime class ships only if the browser publish output of an admitted profile includes it."
+    },
+    "microsoft.extensions.dependencyinjection/10.0.10": {
+      "contentHash": "ANyvsgkNBRvcJh2XLgn8veGmajf+8m0AbKK+HPWdRL1yraSNVVSmQhFntLtdz/C795jxqqup+k05cs/3jZQPOA==",
+      "licence": "MIT",
+      "nuspecSha256": "bddd1cd5168cdcc297ae2609203985005d8da2533f29930b75ea993b2d847e71",
+      "source": "https://api.nuget.org/v3-flatcontainer/microsoft.extensions.dependencyinjection/10.0.10/microsoft.extensions.dependencyinjection.nuspec",
+      "classification": "Transitive dependency of the admitted WebAssembly or Ui closure; its runtime class ships only if the browser publish output of an admitted profile includes it."
+    },
+    "microsoft.extensions.diagnostics.abstractions/10.0.10": {
+      "contentHash": "9uWiKpeOVac355STyChWR/pliFX/5CeLqChW9kKsaxyDH4EUTZxMkT4Jwp/J/peLm0GBFmSX5c0WCse3yCnq1Q==",
+      "licence": "MIT",
+      "nuspecSha256": "343d515100c9dd789f91cb1dffcd966ef482b688cdc5711c2b4de20adfb82474",
+      "source": "https://api.nuget.org/v3-flatcontainer/microsoft.extensions.diagnostics.abstractions/10.0.10/microsoft.extensions.diagnostics.abstractions.nuspec",
+      "classification": "Transitive dependency of the admitted WebAssembly or Ui closure; its runtime class ships only if the browser publish output of an admitted profile includes it."
+    },
+    "microsoft.extensions.diagnostics/10.0.10": {
+      "contentHash": "Kr/e7lUf4+N8tacbqJ2Ctwe/HarKdAc9ZkgKVVqvtJDBKbez+T/KnUwu82KSlnBp/SrpBcxc7u7xkE2oUZT/5Q==",
+      "licence": "MIT",
+      "nuspecSha256": "de354b4b7c973cdcf45cb30def81fe1c89ce76ce67460b6010719cef38c870a7",
+      "source": "https://api.nuget.org/v3-flatcontainer/microsoft.extensions.diagnostics/10.0.10/microsoft.extensions.diagnostics.nuspec",
+      "classification": "Transitive dependency of the admitted WebAssembly or Ui closure; its runtime class ships only if the browser publish output of an admitted profile includes it."
+    },
+    "microsoft.extensions.fileproviders.abstractions/10.0.10": {
+      "contentHash": "c5zqFCY9DiIpMovLd7/d/CTiEtrMOuQ639dhv3PABtKQIKNQikSHwQt8+N679uii9q+B55lgK28Uv64FOwEu8w==",
+      "licence": "MIT",
+      "nuspecSha256": "7c4a745071335ffaf8c632cef40da244796bed7c529948e73343bc52f74cbbed",
+      "source": "https://api.nuget.org/v3-flatcontainer/microsoft.extensions.fileproviders.abstractions/10.0.10/microsoft.extensions.fileproviders.abstractions.nuspec",
+      "classification": "Transitive dependency of the admitted WebAssembly or Ui closure; its runtime class ships only if the browser publish output of an admitted profile includes it."
+    },
+    "microsoft.extensions.fileproviders.physical/10.0.10": {
+      "contentHash": "jhJAyo38kSrH3ARvWUk0h8itogVnQu2DCZuPo+s0Z+tXes0ugTxMPaHYzap85785eHQmPFqD9TYERqBbtGxn/w==",
+      "licence": "MIT",
+      "nuspecSha256": "b331afc04c5bbb04bcc28b5775edd252d35a90c920aab28c3d2dd67bacbf6e6a",
+      "source": "https://api.nuget.org/v3-flatcontainer/microsoft.extensions.fileproviders.physical/10.0.10/microsoft.extensions.fileproviders.physical.nuspec",
+      "classification": "Transitive dependency of the admitted WebAssembly or Ui closure; its runtime class ships only if the browser publish output of an admitted profile includes it."
+    },
+    "microsoft.extensions.filesystemglobbing/10.0.10": {
+      "contentHash": "jSOCVxEwCd4Aq925kJVz1kSO1EpX2OHYKL04qVREXkDU7Ce3pVDdHPYm+fEy8y/th2kJf/DAstRHpJAqoNWP8w==",
+      "licence": "MIT",
+      "nuspecSha256": "c1d9e67b4fe7973d1f880b1cd6cc08252d6bd7452b0a129a8e255e8b63f4a4b2",
+      "source": "https://api.nuget.org/v3-flatcontainer/microsoft.extensions.filesystemglobbing/10.0.10/microsoft.extensions.filesystemglobbing.nuspec",
+      "classification": "Transitive dependency of the admitted WebAssembly or Ui closure; its runtime class ships only if the browser publish output of an admitted profile includes it."
+    },
+    "microsoft.extensions.localization.abstractions/10.0.10": {
+      "contentHash": "j1DygDJR1wP3LG3d7a1rTFPUZcPfhMggcmDEGKhK2iLK0TuAIaW9bHiq1f9k650gdsXsANTm71hEg/k9msNnAQ==",
+      "licence": "MIT",
+      "nuspecSha256": "d3c0179cdf2b411b2fb0c3659b200e83c63696b3f32acf8fc85853f8dfef939c",
+      "source": "https://api.nuget.org/v3-flatcontainer/microsoft.extensions.localization.abstractions/10.0.10/microsoft.extensions.localization.abstractions.nuspec",
+      "classification": "Transitive dependency of the xUnit v3 or bUnit test closure, reached only from tests/**; test-only and never in a published output."
+    },
+    "microsoft.extensions.logging.abstractions/10.0.10": {
+      "contentHash": "zkFxGYUvdxAvIKTyXHrmW+Sux53D4SezD9dMyZ6hrwwzPQJNuwCRy1f5W7AvYTqacEGhWF2XderRQG1OvbV8og==",
+      "licence": "MIT",
+      "nuspecSha256": "bedb09d9a04ea6d879e6566e886f200ae741a364d1d5b234e09376217a948e56",
+      "source": "https://api.nuget.org/v3-flatcontainer/microsoft.extensions.logging.abstractions/10.0.10/microsoft.extensions.logging.abstractions.nuspec",
+      "classification": "Transitive dependency of the admitted WebAssembly or Ui closure; its runtime class ships only if the browser publish output of an admitted profile includes it."
+    },
+    "microsoft.extensions.logging/10.0.10": {
+      "contentHash": "Tf6z5HsL0VDYRTfvsoNrTGHGheCwkTsZBA2FFh5ATJUbkAwug+FFNISJK2gjpUNemlAOoWllAK52HOWCjto3EQ==",
+      "licence": "MIT",
+      "nuspecSha256": "48ddb1f3a4421752024d12b2fa1745b46a069acaecfc775677a9c91c8c5129bc",
+      "source": "https://api.nuget.org/v3-flatcontainer/microsoft.extensions.logging/10.0.10/microsoft.extensions.logging.nuspec",
+      "classification": "Transitive dependency of the admitted WebAssembly or Ui closure; its runtime class ships only if the browser publish output of an admitted profile includes it."
+    },
+    "microsoft.extensions.options.configurationextensions/10.0.10": {
+      "contentHash": "tnBmu/LwF25ZQK+HBNCu2xrwnkKoB/XEbJyooGGoYxHrhvxbSKi7eOFiJ4AXBy/QU4vtCvCJfoi8k9Ej72qzOQ==",
+      "licence": "MIT",
+      "nuspecSha256": "5fdf2d674cbbb97544ffa98a32d8a39d0ce0c8dacc2a902618fc0f15b68029d6",
+      "source": "https://api.nuget.org/v3-flatcontainer/microsoft.extensions.options.configurationextensions/10.0.10/microsoft.extensions.options.configurationextensions.nuspec",
+      "classification": "Transitive dependency of the admitted WebAssembly or Ui closure; its runtime class ships only if the browser publish output of an admitted profile includes it."
+    },
+    "microsoft.extensions.options/10.0.10": {
+      "contentHash": "srnhnk7nE8krBiIXp71LvBmKBtraBONWSRzdjJgRv1Ko9Mp8IVNqv4vIS9hGeVteBig8aQkva9ZG+sC+o5sVcA==",
+      "licence": "MIT",
+      "nuspecSha256": "ee55c6f0fca958a27d90d3c9a9d974ff1b8dd7e625565bb8219d84c3bed4e894",
+      "source": "https://api.nuget.org/v3-flatcontainer/microsoft.extensions.options/10.0.10/microsoft.extensions.options.nuspec",
+      "classification": "Transitive dependency of the admitted WebAssembly or Ui closure; its runtime class ships only if the browser publish output of an admitted profile includes it."
+    },
+    "microsoft.extensions.primitives/10.0.10": {
+      "contentHash": "5wu/GrYVd8mG2DVUw3vFJzF+O336TyTGg/Kmcgw9bfwYhCoFiV5lR5QeEmKecJyrW4W54nMfD3p3589E8a7czQ==",
+      "licence": "MIT",
+      "nuspecSha256": "7c5215df6da89c10f7a9813d8f5c8968a7ac6870afb71129fd045c37f5861bbe",
+      "source": "https://api.nuget.org/v3-flatcontainer/microsoft.extensions.primitives/10.0.10/microsoft.extensions.primitives.nuspec",
+      "classification": "Transitive dependency of the admitted WebAssembly or Ui closure; its runtime class ships only if the browser publish output of an admitted profile includes it."
+    },
+    "microsoft.extensions.validation/10.0.10": {
+      "contentHash": "d77zBZk+Z4uo6hEuLvMY+yMjLkn2T/vX5c2sB0sdoSxQVZk7qvec6SuORp2/uZp7UchX4hNp+VJm4GsoSE0waA==",
+      "licence": "MIT",
+      "nuspecSha256": "7adbba31b1b3c50bb1822413d5a6e6cc23c0e4308a26bf123fd298bbc90c50de",
+      "source": "https://api.nuget.org/v3-flatcontainer/microsoft.extensions.validation/10.0.10/microsoft.extensions.validation.nuspec",
+      "classification": "Transitive dependency of the admitted WebAssembly or Ui closure; its runtime class ships only if the browser publish output of an admitted profile includes it."
+    },
+    "microsoft.jsinterop.webassembly/10.0.10": {
+      "contentHash": "FjPAGQWbCP85FWY2Wl9opHSsY+u9nZb8Ui6eTVHEMY/RJateOhW78jEtC4QOQ/6slkS1MKyIAF6ZHIrUR1fX/w==",
+      "licence": "MIT",
+      "nuspecSha256": "574f8356e9862d801b4340fca77f264263c9675a71bf5147265ec89ea65303a6",
+      "source": "https://api.nuget.org/v3-flatcontainer/microsoft.jsinterop.webassembly/10.0.10/microsoft.jsinterop.webassembly.nuspec",
+      "classification": "Transitive dependency of the admitted WebAssembly or Ui closure; its runtime class ships only if the browser publish output of an admitted profile includes it."
+    },
+    "microsoft.jsinterop/10.0.10": {
+      "contentHash": "VivWvz1iFR3Ntf/e5/xci6o/MF2tcHiprNkhRlL+gMkBoDjQJCioiO+Gwp/DP8scuzqbp3b9C3wh+zuy4pD4AA==",
+      "licence": "MIT",
+      "nuspecSha256": "7fe75cbe54982483c6821fca3761cfcb247afe165c8a55af297c9b6e079bb9ca",
+      "source": "https://api.nuget.org/v3-flatcontainer/microsoft.jsinterop/10.0.10/microsoft.jsinterop.nuspec",
+      "classification": "Transitive dependency of the admitted WebAssembly or Ui closure; its runtime class ships only if the browser publish output of an admitted profile includes it."
+    },
+    "microsoft.net.illink.tasks/10.0.12": {
+      "contentHash": "xi+BDjFpW+Sb+MHFHaH6Y/gV9I8BluFwRXc1QyCdoZbIK26eNiBeFuMTe/FMwc33G1wdHCyDg7CVTmb8OdQrMQ==",
+      "licence": "MIT",
+      "nuspecSha256": "bf5762457b552fed442157eb53c6c6693ded498ecfd5581a77cbdb3898bda628",
+      "source": "https://api.nuget.org/v3-flatcontainer/microsoft.net.illink.tasks/10.0.12/microsoft.net.illink.tasks.nuspec",
+      "classification": "Transitive dependency of the admitted WebAssembly or Ui closure; its runtime class ships only if the browser publish output of an admitted profile includes it."
+    },
+    "microsoft.net.sdk.webassembly.pack/10.0.12": {
+      "contentHash": "MIeBVeWkbKdggl3kmmIUnx8ZNEgjD2m1gTN/0W+TDRn6zcL1WZdq5hXhGQ0wjuSlw/8tvwwCg79PemfkJ3+5JA==",
+      "licence": "MIT",
+      "nuspecSha256": "5bb5f25804b65c8047d50b124eb17c491a374bf3202f9f44c85940fae9c42562",
+      "source": "https://api.nuget.org/v3-flatcontainer/microsoft.net.sdk.webassembly.pack/10.0.12/microsoft.net.sdk.webassembly.pack.nuspec",
+      "classification": "Transitive dependency of the admitted WebAssembly or Ui closure; its runtime class ships only if the browser publish output of an admitted profile includes it."
+    },
+    "microsoft.playwright/1.62.0": {
+      "contentHash": "cos6dmHPcMpS6bXw2WEgoXb8KXwMhs3c5L0P/cUf2rdUpjVA3g3u+KiSpVp2VCzsXymRpy2tFHqm+Wnz7s5VhQ==",
+      "licence": "MIT",
+      "nuspecSha256": "4467841e7a008d302cc7f6e06f601ff8d3a6afc4b74ae292e2937596d4883ed5",
+      "source": "https://api.nuget.org/v3-flatcontainer/microsoft.playwright/1.62.0/microsoft.playwright.nuspec",
+      "classification": "Apache-2.0 Microsoft.Playwright for .NET: test-only local opt-in browser tooling, never CI and never shipped (P2-021 item 8)."
+    },
+    "microsoft.testing.extensions.telemetry/2.4.0": {
+      "contentHash": "JeP1RFqBa11fWmBk8xEfZcMKr4rxWSyI6OZ+659V069CaMkTEOQBW2UdSSeNz3absOsygcn7JJkzerC4LGnZ9w==",
+      "licence": "MIT",
+      "nuspecSha256": "5a13a0f3b3da2e1ea48c7faac4f0d3a8ca570a562ec4928e8e59d8f10efa9738",
+      "source": "https://api.nuget.org/v3-flatcontainer/microsoft.testing.extensions.telemetry/2.4.0/microsoft.testing.extensions.telemetry.nuspec",
+      "classification": "Transitive dependency of the xUnit v3 or bUnit test closure, reached only from tests/**; test-only and never in a published output."
+    },
+    "microsoft.testing.extensions.trxreport.abstractions/2.4.0": {
+      "contentHash": "uRb+4qM42dFDg4kWJZ2kFEcwESNVCRZJjItp5vETorN3rSJGysP617LqYirOcrCYmxg+obPreHMM5JcsNDKtBw==",
+      "licence": "MIT",
+      "nuspecSha256": "f99165b201b607209e5f03db0b2be881d020d45da108028c011fa2b2f6b57b99",
+      "source": "https://api.nuget.org/v3-flatcontainer/microsoft.testing.extensions.trxreport.abstractions/2.4.0/microsoft.testing.extensions.trxreport.abstractions.nuspec",
+      "classification": "Transitive dependency of the xUnit v3 or bUnit test closure, reached only from tests/**; test-only and never in a published output."
+    },
+    "microsoft.testing.platform.msbuild/2.4.0": {
+      "contentHash": "qr5M6h16YHMJLFDcWELFVMMpGte2BUmveBZKT5YoBV+bmuJRPu9bv/Zqke4yQuOEKRNxoAETrG5jr+/6Rnr3Hg==",
+      "licence": "MIT",
+      "nuspecSha256": "1fe1b7f9981ae944b65a9cf851ca791bd5e0dd66dedd5d114f838aeecf5bea4c",
+      "source": "https://api.nuget.org/v3-flatcontainer/microsoft.testing.platform.msbuild/2.4.0/microsoft.testing.platform.msbuild.nuspec",
+      "classification": "Transitive dependency of the xUnit v3 or bUnit test closure, reached only from tests/**; test-only and never in a published output."
+    },
+    "microsoft.testing.platform/2.4.0": {
+      "contentHash": "dp1N3P1ujb0ztwFgqz2o/ItEvq+pm19/AiA+Xq7Zpcy7oPMcxDBZLYGtf0LlU1MveEBJuKVjZhI+LnkfcH/0jQ==",
+      "licence": "MIT",
+      "nuspecSha256": "66933f17979c2b024e80d6c8b4144150ecc5773153ee6a485aa430645da96b5d",
+      "source": "https://api.nuget.org/v3-flatcontainer/microsoft.testing.platform/2.4.0/microsoft.testing.platform.nuspec",
+      "classification": "Transitive dependency of the xUnit v3 or bUnit test closure, reached only from tests/**; test-only and never in a published output."
+    },
+    "microsoft.win32.registry/5.0.0": {
+      "contentHash": "dDoKi0PnDz31yAyETfRntsLArTlVAVzUzCIvvEDsDsucrl33Dl8pIJG06ePTJTI3tGpeyHS9Cq7Foc/s4EeKcg==",
+      "licence": "MIT",
+      "nuspecSha256": "eb8c4b9d4ebe62d8528dec6ab2a752c2e3488f28f882a6c45a33dcc21eacc58e",
+      "source": "https://api.nuget.org/v3-flatcontainer/microsoft.win32.registry/5.0.0/microsoft.win32.registry.nuspec",
+      "classification": "Transitive dependency of the xUnit v3 or bUnit test closure, reached only from tests/**; test-only and never in a published output."
+    },
+    "newtonsoft.json/13.0.1": {
+      "contentHash": "ppPFpBcvxdsfUonNcvITKqLl3bqxWbDCZIzDWHzjpdAHRFfZe0Dw9HmA0+za13IdyrgJwpkDTDA9fHaxOrt20A==",
+      "licence": "MIT",
+      "nuspecSha256": "4ffea71f07d70dff4c57529871f8fc377bf85e62e93b24f1ae5409ff73570c5e",
+      "source": "https://api.nuget.org/v3-flatcontainer/newtonsoft.json/13.0.1/newtonsoft.json.nuspec",
+      "classification": "Transitive MIT JSON library of Deque.AxeCore.Commons, test-only: reached only from tests/browser (local opt-in). No product project references it; the architecture policy refuses its use in product C# source."
+    },
+    "system.componentmodel.annotations/5.0.0": {
+      "contentHash": "dMkqfy2el8A8/I76n2Hi1oBFEbG1SfxD2l5nhwXV3XjlnOmwxJlQbYpJH4W51odnU9sARCSAgv7S3CyAFMkpYg==",
+      "licence": "MIT",
+      "nuspecSha256": "81b52aa34460e41f850b163546fa6e72e007499e2b8ed7396c217944b2ec778f",
+      "source": "https://api.nuget.org/v3-flatcontainer/system.componentmodel.annotations/5.0.0/system.componentmodel.annotations.nuspec",
+      "classification": "MIT component-model annotations package required by Microsoft.Playwright for .NET; test-only closure of the local opt-in browser tests (WEB.40 step 3)."
+    },
+    "system.io.abstractions/17.0.24": {
+      "contentHash": "hA7bacntMiZv1Yf9xtjwl/GP3GT1mG84QxhAk7ijAUD0pJhJaVVwXScE13vMpXnNtlaRDW6SeyZdWg2j2qrh4w==",
+      "licence": "MIT",
+      "nuspecSha256": "c9d330f98c4f078404906c2705a4f47b142a0aac500022e1813939cbb276e251",
+      "source": "https://api.nuget.org/v3-flatcontainer/system.io.abstractions/17.0.24/system.io.abstractions.nuspec",
+      "classification": "Transitive MIT file-system abstraction of Deque.AxeCore.Playwright, test-only: reached only from tests/browser (local opt-in). Its net6.0 dependency group is empty, so no further package is restored for net10.0."
+    },
+    "system.security.accesscontrol/6.0.1": {
+      "contentHash": "IQ4NXP/B3Ayzvw0rDQzVTYsCKyy0Jp9KI6aYcK7UnGVlR9+Awz++TIPCQtPYfLJfOpm8ajowMR09V7quD3sEHw==",
+      "licence": "MIT",
+      "nuspecSha256": "2fb3325fbcea2d5eee1eb5666fd391fac8498f7acefe34f922aaceafea5e9df3",
+      "source": "https://api.nuget.org/v3-flatcontainer/system.security.accesscontrol/6.0.1/system.security.accesscontrol.nuspec",
+      "classification": "Transitive dependency of the xUnit v3 or bUnit test closure, reached only from tests/**; test-only and never in a published output."
+    },
+    "xunit.analyzers/2.1.0": {
+      "contentHash": "X7QXEcZQGz0G/HL4HUyK+aAvNa/IMGbOCnFIq4jD/Evktq12xANKwzOUr7b08vCmC1LXu/47qHWOdjm3KfaJ0A==",
+      "licence": "Apache-2.0",
+      "nuspecSha256": "8d8fb2ff8c8a1505020e13d190a093af179b994eebce42ce03457ed9497e7b68",
+      "source": "https://api.nuget.org/v3-flatcontainer/xunit.analyzers/2.1.0/xunit.analyzers.nuspec",
+      "classification": "Transitive dependency of the xUnit v3 or bUnit test closure, reached only from tests/**; test-only and never in a published output."
+    },
+    "xunit.v3.assert/4.0.1": {
+      "contentHash": "nC7d3cY06Oo7hkdwWPZkBR0Ud75xNhgx0P7i0GmMMZC3puCGlc4szFiT30biH03IN/eDnr8h+nv3A1UD17bk/A==",
+      "licence": "Apache-2.0",
+      "nuspecSha256": "3f2aef448f6c8e12cb7fa5d6ba111ea5311f530862a3e5fd9a63f153bec1f3af",
+      "source": "https://api.nuget.org/v3-flatcontainer/xunit.v3.assert/4.0.1/xunit.v3.assert.nuspec",
+      "classification": "Transitive dependency of the xUnit v3 or bUnit test closure, reached only from tests/**; test-only and never in a published output."
+    },
+    "xunit.v3.common/4.0.1": {
+      "contentHash": "Qf25TVdadDQYf9zVxSd7L9RNQhuP0jCUHmo96XTmIKLxGefylIEV63jRbXBPFzdXmV09TCdcurk+AQ9LiWS2Hg==",
+      "licence": "Apache-2.0",
+      "nuspecSha256": "bdf4e653bae8f75b5392928a37bf108fcad4d2a5308524420828e82f3e79ded5",
+      "source": "https://api.nuget.org/v3-flatcontainer/xunit.v3.common/4.0.1/xunit.v3.common.nuspec",
+      "classification": "Transitive dependency of the xUnit v3 or bUnit test closure, reached only from tests/**; test-only and never in a published output."
+    },
+    "xunit.v3.core.mtp-v2/4.0.1": {
+      "contentHash": "7qfTfrIfS2wybpSVyRLmhXHbSudD2eNw66LfukixmKsRCTcfvOrLsx0qGL/lObcEh3Z2F4SIXgoFnLIiB8yfjQ==",
+      "licence": "Apache-2.0",
+      "nuspecSha256": "51c8cc20af9bb6071e1df8454579c9048597f5c169db3470dc5057be9844f1da",
+      "source": "https://api.nuget.org/v3-flatcontainer/xunit.v3.core.mtp-v2/4.0.1/xunit.v3.core.mtp-v2.nuspec",
+      "classification": "Transitive dependency of the xUnit v3 or bUnit test closure, reached only from tests/**; test-only and never in a published output."
+    },
+    "xunit.v3.extensibility.core/4.0.1": {
+      "contentHash": "J0d5OfFcp920nZxCRIvU14+TZhiSPQR0wvqEMZ3MRiJLPu1VmYlcRNkmcSW0i1DwkB81gAHc+fHUQf/cU64MYg==",
+      "licence": "Apache-2.0",
+      "nuspecSha256": "0def7df8a35e99e328a1b8799e169592b961ee06a3f7aac556a42ee8464cecf8",
+      "source": "https://api.nuget.org/v3-flatcontainer/xunit.v3.extensibility.core/4.0.1/xunit.v3.extensibility.core.nuspec",
+      "classification": "Transitive dependency of the xUnit v3 or bUnit test closure, reached only from tests/**; test-only and never in a published output."
+    },
+    "xunit.v3.mtp-v2/4.0.1": {
+      "contentHash": "s88KiWwDDYgOWV3A+ViJiqCe9cLU/Rt6Gb5TfOC7Abv/HKSoj4IHVPcOQk7jPt7HhZHHEts5IuaVpB30eO5B1w==",
+      "licence": "Apache-2.0",
+      "nuspecSha256": "9134992ab09b0b8545f7fa31f6ab3c84a659b58493c7afca586a4977ee8998e2",
+      "source": "https://api.nuget.org/v3-flatcontainer/xunit.v3.mtp-v2/4.0.1/xunit.v3.mtp-v2.nuspec",
+      "classification": "Direct xUnit v3 Microsoft.Testing.Platform package for the tests/** projects; test-only and never in a published output."
+    },
+    "xunit.v3.runner.common/4.0.1": {
+      "contentHash": "p9AyfBpj2e5Iws8B57SbLiSngg7mEdvegHInKR4T2cjt2mis9h8htVgCnmu//agZO4zri6p6VQOj5EkHHTy3gA==",
+      "licence": "Apache-2.0",
+      "nuspecSha256": "2c80dbdeee78193f042e5b5e32c06d3b1d828659fb156c132f82574a5330799f",
+      "source": "https://api.nuget.org/v3-flatcontainer/xunit.v3.runner.common/4.0.1/xunit.v3.runner.common.nuspec",
+      "classification": "Transitive dependency of the xUnit v3 or bUnit test closure, reached only from tests/**; test-only and never in a published output."
+    },
+    "xunit.v3.runner.inproc.console/4.0.1": {
+      "contentHash": "Hqwfd6ehMIhPmVWUQ2dgmknzuLFTWeyp8ES1q3D4YR5bQVyiXDcaIoaFwqAz2zgLr49WaW4Mz7VVncP7u/Q8/Q==",
+      "licence": "Apache-2.0",
+      "nuspecSha256": "621fc57c6e5ab43360c5933415c98727f36abf658d1a7d9793159a2b827d4a5f",
+      "source": "https://api.nuget.org/v3-flatcontainer/xunit.v3.runner.inproc.console/4.0.1/xunit.v3.runner.inproc.console.nuspec",
+      "classification": "Transitive dependency of the xUnit v3 or bUnit test closure, reached only from tests/**; test-only and never in a published output."
+    }
+  },
+  "nugetPackDownloads": {
+    "microsoft.netcore.app.runtime.mono.browser-wasm/10.0.12": {
+      "contentHash": "7RAMnN/ZL6fjSocFEGSsIeGjZeT2uShNo0+JkkGf7b70i80YLc6rsDVovpifvWhmw8HWOqzXUlLOAcUTCFtzGA==",
+      "licence": "MIT",
+      "nuspecSha256": "6eb69422b052d9619c40ba521b5e1f0c52ebcbc3394c4a76ac232494ac924439",
+      "source": "https://api.nuget.org/v3-flatcontainer/microsoft.netcore.app.runtime.mono.browser-wasm/10.0.12/microsoft.netcore.app.runtime.mono.browser-wasm.nuspec",
+      "declaredBy": "implicit: added by the .NET 10.0.401 SDK for Microsoft.NET.Sdk.BlazorWebAssembly projects (ArcForges.Web.App) at the SDK bundled runtime version 10.0.12; restored to the NuGet cache and recorded in obj/project.assets.json, not in packages.lock.json",
+      "classification": "Mono browser-wasm runtime pack, the WebAssembly runtime for the standalone Blazor profiles. Build-time download only, never shipped as a Web source. RunAOTCompilation is false, so no MonoAOT pack is admitted."
+    },
+    "microsoft.net.runtime.webassembly.sdk/10.0.12": {
+      "contentHash": "U7JTnY0XDO4c1fJH4XU3nyNMbf5lmJy9wo/mIWk9TAY4BfB5KKkJoOVr+Ab4VY52A3pVFc+4kMnbwPbhGgpMqQ==",
+      "licence": "MIT",
+      "nuspecSha256": "954d8efea4619301fcb2321397f6ca63b7fa44ceecf1509cd9130dc1677013ee",
+      "source": "https://api.nuget.org/v3-flatcontainer/microsoft.net.runtime.webassembly.sdk/10.0.12/microsoft.net.runtime.webassembly.sdk.nuspec",
+      "declaredBy": "ArcForges.Web.App.csproj PackageDownload Version [10.0.12]",
+      "classification": "WebAssembly SDK targets pack at the SDK bundled runtime version. Build-time download only."
+    }
+  }
+}

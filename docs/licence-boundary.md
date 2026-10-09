@@ -20,7 +20,14 @@ targets reject wrong effective values before build/pack. Source and evaluated
 reports include the exact commit, dirty state, inventory and findings under
 `artifacts/evidence/licence-*.json`; CI uploads the reports.
 
-The three npm scopes and the JavaScript IDE adapter are covered. Windows CI evaluates the IDE adapter using .NET SDK 10.0.401; normal npm development remains independent of that optional IDE toolchain. The final static candidate retains its licence/provenance checks. Browser and public-download verification are removed from CI under [validation policy](validation-policy.md).
+The local opt-in accessibility re-proof (WEB.40 U6, `tests/browser`, P2-021 item 8) admits four test-only NuGet packages through the
+dependency policy: Deque.AxeCore.Playwright 4.13.0 (MIT) and its dependencies Newtonsoft.Json 13.0.1 (MIT) and
+System.IO.Abstractions 17.0.24 (MIT), and Deque.AxeCore.Commons 4.13.0, which carries the axe-core script under MPL-2.0. The
+MPL-2.0 row is admitted only with `testOnly: true`; no product project restores it, it is never shipped or compiled into a product
+output, and the policy suite fails if a product project references a testOnly row. The axe-core script is injected only into the
+page under test. The AngleSharp 1.7.0 parser (MIT) is a direct reference of the Site parity test, which is also test-only.
+
+The npm inventory covers the root manifest only (wrangler, TypeScript and `@types/node`). The former first-party Contracts npm packages `@arcforges/proto` and `@arcforges/api-client` are retired (WEB.40 unit U5); the Contracts naming and identity bytes are recorded by `contracts-publication-r1`. The React workspaces and the JavaScript IDE adapter are retired (WEB.40 unit U5). Windows CI evaluates the owned C# projects with .NET SDK 10.0.401. The final static candidate retains its licence/provenance checks. Browser and public-download verification are removed from CI under [validation policy](validation-policy.md).
 
 These source/build-policy results do not establish product functionality or close
 later commercial gates. Local candidate identity and fixture/runtime evidence are

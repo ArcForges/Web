@@ -1,0 +1,310 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Port of the chat cases of tests/unit/app-routes.test.tsx: the Chat page rendered with bUnit over the same-origin gRPC-Web
+// probe. The server is a test-only double; every reply is a real gRPC-Web frame sequence from the generated protobuf type.
+using ArcForges.Contracts.Hello.V1;
+using ArcForges.Web.App.Pages;
+using ArcForges.Web.App.Probe;
+using ArcForges.Web.App.Tests.Fixtures;
+using ArcForges.Web.App.Tests.TestDoubles;
+using AngleSharp.Dom;
+using Bunit;
+using Xunit;
+
+namespace ArcForges.Web.App.Tests;
+
+public sealed class ChatPageTests
+{
+    private const string Unavailable = "The server is unavailable. Try again later.";
+
+    private static IElement SendButton(IRenderedComponent<Chat> cut) =>
+        cut.FindAll("button").Single(button => button.TextContent.Trim() is "Send" or "Sending…");
+
+    private static IElement CancelButton(IRenderedComponent<Chat> cut) =>
+        cut.FindAll("button").Single(button => button.TextContent.Trim() == "Cancel");
+
+    private static HttpResponseMessage Greeting(string name) =>
+        Responses.Raw(ProbeFixtures.HelloReply($"Hello, {name}!"), "application/grpc-web+proto");
+
+    private static string NameOf(CapturedRequest request) =>
+        SayHelloRequest.Parser.ParseFrom(request.Body.AsSpan(5).ToArray()).Name;
+
+    private static void WaitIdle(IRenderedComponent<Chat> cut) =>
+        cut.WaitForAssertion(() => Assert.DoesNotContain("Sending…", cut.Markup, StringComparison.Ordinal));
+
+    [Fact]
+    public void ChatSendsNothingUntilAskedThenShowsBothSidesOfOneAnonymousExchange()
+    {
+        var server = ScriptedServer.Always(() => Responses.Raw(ProbeFixtures.HelloReply("Hello, ArcForges!"), "application/grpc-web+proto"));
+        using var context = new BunitContext();
+        AccountPageTests.RegisterProbes(context, server);
+
+        var cut = context.Render<Chat>();
+        Assert.Equal(0, server.Count);
+        SendButton(cut).Click();
+        cut.WaitForAssertion(() => Assert.Contains("Hello, ArcForges!", cut.Markup, StringComparison.Ordinal));
+
+        Assert.Equal(1, server.Count);
+        var request = Assert.Single(server.Requests);
+        Assert.Equal($"{ProbeFixtures.Origin.Scheme}://{ProbeFixtures.Origin.Authority}{HelloProbe.HelloApiPath}", request.Url.ToString());
+        Assert.False(request.HasCookieHeader);
+        var items = cut.FindAll("li").Select(item => item.TextContent).ToList();
+        Assert.Equal(new[] { "youArcForges", "serverHello, ArcForges!" }, items);
+    }
+
+    [Fact]
+    public void ChatShowsTheServersTypedRefusalAsAFixedNoticeAndKeepsWorking()
+    {
+        var answers = new Queue<Func<HttpResponseMessage>>(
+        [
+            () => Responses.Raw(
+                ProbeFixtures.Trailers("grpc-status: 3\r\ngrpc-message: Name%20must%20not%20be%20empty.\r\n"),
+                "application/grpc-web+proto"),
+            () => Responses.Raw(ProbeFixtures.HelloReply("Hello, again!"), "application/grpc-web+proto"),
+        ]);
+        using var context = new BunitContext();
+        AccountPageTests.RegisterProbes(context, ScriptedServer.Always(() => answers.Dequeue()()));
+
+        var cut = context.Render<Chat>();
+        cut.Find("input").Input(string.Empty);
+        SendButton(cut).Click();
+        cut.WaitForAssertion(() => Assert.Contains("The server rejected the request.", cut.Markup, StringComparison.Ordinal));
+        Assert.DoesNotContain("must not be empty", cut.Markup, StringComparison.Ordinal);
+
+        cut.Find("input").Input("again");
+        WaitIdle(cut);
+        SendButton(cut).Click();
+        cut.WaitForAssertion(() => Assert.Contains("Hello, again!", cut.Markup, StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void ChatCanCancelAPendingMessageReportsItAsCancelledAndDoesNotDoubleSend()
+    {
+        var server = new ScriptedServer(async (_, token) =>
+        {
+            await Task.Delay(Timeout.Infinite, token);
+            return Greeting("unused");
+        });
+        using var context = new BunitContext();
+        AccountPageTests.RegisterProbes(context, server);
+
+        var cut = context.Render<Chat>();
+        SendButton(cut).Click();
+        cut.WaitForAssertion(() => Assert.Contains("Sending…", cut.Markup, StringComparison.Ordinal));
+        Assert.Equal("true", SendButton(cut).GetAttribute("aria-disabled"));
+        // A second submit while one is pending does not send again.
+        cut.Find("form").Submit();
+        Assert.Equal(1, server.Count);
+
+        CancelButton(cut).Click();
+        cut.WaitForAssertion(() => Assert.Contains("The request was cancelled.", cut.Markup, StringComparison.Ordinal));
+        // Cancel stays in the document after the message ends, idle again: aria-disabled and out of the tab order.
+        Assert.Equal("true", CancelButton(cut).GetAttribute("aria-disabled"));
+        Assert.Equal("-1", CancelButton(cut).GetAttribute("tabindex"));
+        Assert.Equal("false", SendButton(cut).GetAttribute("aria-disabled"));
+    }
+
+    [Fact]
+    public void SendStaysPresentAndFocusableThroughAPendingMessage()
+    {
+        // Focus on Send survives a send: the control is never disabled or removed (AX-02). bUnit re-parses the markup on
+        // every render, so element identity is asserted in a real browser (tests/browser LocalFocusBrowserTests); here the
+        // control must be present and reachable at each step.
+        var answer = new TaskCompletionSource<HttpResponseMessage>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var server = new ScriptedServer((_, _) => answer.Task);
+        using var context = new BunitContext();
+        AccountPageTests.RegisterProbes(context, server);
+
+        var cut = context.Render<Chat>();
+        Assert.Equal("false", SendButton(cut).GetAttribute("aria-disabled"));
+        SendButton(cut).Click();
+        cut.WaitForAssertion(() => Assert.Contains("Sending…", cut.Markup, StringComparison.Ordinal));
+        Assert.Single(cut.FindAll("button[type=submit]"));
+        Assert.False(SendButton(cut).HasAttribute("disabled"));
+        Assert.Equal("true", SendButton(cut).GetAttribute("aria-disabled"));
+        Assert.Equal(new[] { "input:Name", "button:Sending…", "button:Cancel" }, FocusOrder.TabSequence(cut));
+
+        answer.SetResult(Greeting("ArcForges"));
+        cut.WaitForAssertion(() => Assert.Contains("Hello, ArcForges!", cut.Markup, StringComparison.Ordinal));
+        Assert.Single(cut.FindAll("button[type=submit]"));
+        Assert.Equal("false", SendButton(cut).GetAttribute("aria-disabled"));
+        Assert.Equal(new[] { "input:Name", "button:Send" }, FocusOrder.TabSequence(cut));
+    }
+
+    [Fact]
+    public void APendingSendIgnoresAClickAndEnterSoItCannotSendTwice()
+    {
+        var server = new ScriptedServer(async (_, token) =>
+        {
+            await Task.Delay(Timeout.Infinite, token);
+            return Greeting("unused");
+        });
+        using var context = new BunitContext();
+        AccountPageTests.RegisterProbes(context, server);
+
+        var cut = context.Render<Chat>();
+        SendButton(cut).Click();
+        cut.WaitForAssertion(() => Assert.Contains("Sending…", cut.Markup, StringComparison.Ordinal));
+        // The control stays focusable, so a click on it reaches the handler, which refuses the second send.
+        SendButton(cut).Click();
+        cut.Find("form").Submit();
+        Assert.Equal(1, server.Count);
+        Assert.Single(cut.FindAll("li"));
+    }
+
+    [Fact]
+    public void ChatRendersUntrustedNamesAsTextAndKeepsOnlyTheLastTwentyEntries()
+    {
+        var echo = new ScriptedServer((request, _) => Task.FromResult(Greeting(NameOf(request))));
+        using var context = new BunitContext();
+        AccountPageTests.RegisterProbes(context, echo);
+
+        var cut = context.Render<Chat>();
+        cut.Find("input").Input("n");
+        for (var index = 0; index < 11; index++)
+        {
+            SendButton(cut).Click();
+            WaitIdle(cut);
+        }
+        Assert.Equal(20, cut.FindAll("li").Count);
+        Assert.Equal(11, echo.Count);
+
+        cut.Find("input").Input("<img src=x onerror=alert(1)>");
+        SendButton(cut).Click();
+        cut.WaitForAssertion(() => Assert.Contains("&lt;img src=x onerror=alert(1)&gt;", cut.Markup, StringComparison.Ordinal));
+        Assert.Empty(cut.FindAll("img"));
+    }
+
+    [Fact]
+    public async Task LeavingTheChatPageCancelsTheMessageThatIsStillPending()
+    {
+        // The double hands over the token of the request it is answering; the request is pending until it is cancelled.
+        var started = new TaskCompletionSource<CancellationToken>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var server = new ScriptedServer(async (_, token) =>
+        {
+            started.TrySetResult(token);
+            await Task.Delay(Timeout.Infinite, token);
+            return Greeting("unused");
+        });
+        using var context = new BunitContext();
+        AccountPageTests.RegisterProbes(context, server);
+
+        var cut = context.Render<Chat>();
+        SendButton(cut).Click();
+        var observed = await started.Task.WaitAsync(TimeSpan.FromSeconds(10), Xunit.TestContext.Current.CancellationToken);
+        Assert.False(observed.IsCancellationRequested);
+        // Leaving the page disposes the rendered component (bUnit disposes components through DisposeComponentsAsync; the
+        // context dispose only releases services), and the component cancels the message that is still pending.
+        await context.DisposeComponentsAsync();
+        Assert.True(observed.IsCancellationRequested);
+    }
+
+    [Fact]
+    public void ChatTabsFromTheNameFieldToSendAndReachesCancelOnlyWhileAMessageIsPending()
+    {
+        var server = new ScriptedServer(async (_, token) =>
+        {
+            await Task.Delay(Timeout.Infinite, token);
+            return Greeting("unused");
+        });
+        using var context = new BunitContext();
+        AccountPageTests.RegisterProbes(context, server);
+
+        var cut = context.Render<Chat>();
+        Assert.Equal(new[] { "input:Name", "button:Send" }, FocusOrder.TabSequence(cut));
+        FocusOrder.AssertNoPositiveTabIndex(cut);
+
+        SendButton(cut).Click();
+        cut.WaitForAssertion(() => Assert.Contains("Sending…", cut.Markup, StringComparison.Ordinal));
+        // Send stays reachable while the message is pending (aria-disabled, not disabled); Cancel joins it.
+        Assert.Equal(new[] { "input:Name", "button:Sending…", "button:Cancel" }, FocusOrder.TabSequence(cut));
+        FocusOrder.AssertNoPositiveTabIndex(cut);
+
+        CancelButton(cut).Click();
+        cut.WaitForAssertion(() => Assert.Contains("The request was cancelled.", cut.Markup, StringComparison.Ordinal));
+        Assert.Equal(new[] { "input:Name", "button:Send" }, FocusOrder.TabSequence(cut));
+    }
+
+    [Fact]
+    public void CancelStaysInTheDocumentWhileIdleAndAClickOnItIsRefused()
+    {
+        // Option (a) of the 2026-10-09 adjudication: Cancel is persistent. While idle it is aria-disabled and tabindex -1, so
+        // it is never a tab stop and never removed; focus cannot fall to the body when a message ends.
+        var server = ScriptedServer.Always(() => Responses.Raw(ProbeFixtures.HelloReply("Hello, ArcForges!"), "application/grpc-web+proto"));
+        using var context = new BunitContext();
+        AccountPageTests.RegisterProbes(context, server);
+
+        var cut = context.Render<Chat>();
+        var cancel = CancelButton(cut);
+        Assert.Equal("true", cancel.GetAttribute("aria-disabled"));
+        Assert.Equal("-1", cancel.GetAttribute("tabindex"));
+        Assert.False(cancel.HasAttribute("disabled"));
+
+        cancel.Click();
+        Assert.Equal(0, server.Count);
+        Assert.Empty(cut.FindAll("li"));
+        Assert.Equal("true", CancelButton(cut).GetAttribute("aria-disabled"));
+        Assert.Equal(new[] { "input:Name", "button:Send" }, FocusOrder.TabSequence(cut));
+    }
+
+    [Fact]
+    public void CancelBecomesTabbableWhileAMessageIsPendingAndReturnsToIdleWithoutBeingRemoved()
+    {
+        var server = new ScriptedServer(async (_, token) =>
+        {
+            await Task.Delay(Timeout.Infinite, token);
+            return Greeting("unused");
+        });
+        using var context = new BunitContext();
+        AccountPageTests.RegisterProbes(context, server);
+
+        var cut = context.Render<Chat>();
+        SendButton(cut).Click();
+        cut.WaitForAssertion(() => Assert.Contains("Sending…", cut.Markup, StringComparison.Ordinal));
+        Assert.Equal("false", CancelButton(cut).GetAttribute("aria-disabled"));
+        Assert.False(CancelButton(cut).HasAttribute("tabindex"));
+        Assert.Equal(new[] { "input:Name", "button:Sending…", "button:Cancel" }, FocusOrder.TabSequence(cut));
+
+        CancelButton(cut).Click();
+        cut.WaitForAssertion(() => Assert.Contains("The request was cancelled.", cut.Markup, StringComparison.Ordinal));
+        Assert.Equal("true", CancelButton(cut).GetAttribute("aria-disabled"));
+        Assert.Equal("-1", CancelButton(cut).GetAttribute("tabindex"));
+        Assert.Equal(new[] { "input:Name", "button:Send" }, FocusOrder.TabSequence(cut));
+        FocusOrder.AssertNoPositiveTabIndex(cut);
+        Assert.Equal(1, server.Count);
+    }
+
+    [Fact]
+    public void EnterInTheNameFieldSendsThroughTheFormsDefaultButtonAndTheReplyIsAnnouncedInTheTranscript()
+    {
+        // The keyboard path of the retired Hello greeting: Enter in the name field submits the form, and the reply is
+        // announced by the live transcript. Enter activates the form's default button, the first submit button in the form.
+        var server = ScriptedServer.Always(() => Responses.Raw(ProbeFixtures.HelloReply("Hello, ArcForges!"), "application/grpc-web+proto"));
+        using var context = new BunitContext();
+        AccountPageTests.RegisterProbes(context, server);
+
+        var cut = context.Render<Chat>();
+        var form = cut.Find("form");
+        Assert.NotNull(form.QuerySelector("input"));
+        Assert.Equal("Send", FocusOrder.DefaultButtonOf(form));
+
+        var transcript = cut.Find("ol.transcript");
+        Assert.Equal("polite", transcript.GetAttribute("aria-live"));
+        Assert.Equal("Messages", transcript.GetAttribute("aria-label"));
+
+        cut.Find("form").Submit();
+        cut.WaitForAssertion(() => Assert.Contains("Hello, ArcForges!", cut.Find("ol.transcript").TextContent, StringComparison.Ordinal));
+        Assert.Equal(1, server.Count);
+    }
+
+    [Fact]
+    public void TheTransportFailureIsUnavailableAndItIsAFixedNotice()
+    {
+        var server = new ScriptedServer((_, _) => throw new HttpRequestException("Failed to fetch"));
+        using var context = new BunitContext();
+        AccountPageTests.RegisterProbes(context, server);
+
+        var cut = context.Render<Chat>();
+        SendButton(cut).Click();
+        cut.WaitForAssertion(() => Assert.Contains(Unavailable, cut.Markup, StringComparison.Ordinal));
+    }
+}

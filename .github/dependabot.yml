@@ -8,39 +8,25 @@ updates:
     open-pull-requests-limit: 5
     versioning-strategy: increase
     groups:
-      react-and-router:
-        patterns:
-          [
-            "react",
-            "react-dom",
-            "react-router",
-            "@react-router/*",
-            "@types/react",
-            "@types/react-dom",
-          ]
       contracts:
-        patterns: ["@arcforges/*", "@bufbuild/*", "@connectrpc/*"]
+        patterns: ["@arcforges/*"]
       cloudflare:
         patterns: ["wrangler", "@cloudflare/*"]
       tooling:
         patterns: ["*"]
-        exclude-patterns:
-          [
-            "react",
-            "react-dom",
-            "react-router",
-            "@react-router/*",
-            "@types/react",
-            "@types/react-dom",
-            "@arcforges/*",
-            "@bufbuild/*",
-            "@connectrpc/*",
-            "wrangler",
-            "@cloudflare/*",
-          ]
+        exclude-patterns: ["@arcforges/*", "wrangler", "@cloudflare/*"]
     ignore:
       - dependency-name: "@types/node"
         versions: [">=25"]
+  - package-ecosystem: nuget
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 5
+    groups:
+      nuget:
+        patterns: ["*"]
   - package-ecosystem: github-actions
     directory: /
     schedule:

@@ -1,5 +1,7 @@
 # PRF.08 production profile and generated SDK proof
 
+Superseded in part on 2026-10-08 by WEB.40 (P2-021): the React/Vite `apps/app` profile proof is retired and replaced by the Blazor WebAssembly profiles (`docs/profile-bundle.md`). The record below is history.
+
 This is the record of what the PRF.08 implementation builds and what was and was not observed (Design WP-06.05, PG-23 foundation contribution only). It claims no deployed result: no Cloudflare resource, Worker route, Container, D1, session issuer or deployed ingress was used or exists for this task.
 
 ## What was built

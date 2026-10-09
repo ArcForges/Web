@@ -90,14 +90,14 @@ export function validatePolicy(policy: Policy) {
     "Native adoption requires AD-01 through AD-08",
   );
   assert(policy.native.evidence.length > 0, "Missing native closure evidence");
-  for (const [name, entry] of Object.entries(policy.firstParty)) {
-    assert(
-      ["@arcforges/proto", "@arcforges/api-client"].includes(name),
-      `Unadmitted internal/first-party package: ${name}`,
-    );
-    assert.equal(entry.publisher, "ArcForges/Contracts", `Wrong publisher: ${name}`);
-    assert.equal(entry.visibility, "public", `Internal package: ${name}`);
-  }
+  // The Contracts npm packages (@arcforges/proto and @arcforges/api-client) are retired by WEB.40 U5: the naming
+  // authority is vendored from its NuGet publication and the identity is the NuGet record. No first-party npm package
+  // is admitted, so a first-party entry is refused before its publisher is inspected.
+  assert.deepEqual(
+    Object.keys(policy.firstParty),
+    [],
+    "Unadmitted internal/first-party package: the Contracts npm packages are retired",
+  );
 }
 export function immutableCoordinates(closure: Record<string, Entry>) {
   const coordinates: Record<string, string> = {};

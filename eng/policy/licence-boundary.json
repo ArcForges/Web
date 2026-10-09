@@ -5,24 +5,56 @@
   "licenceBoundary": "AGPL",
   "projects": [
     {
-      "path": "ArcForges.Web.esproj",
-      "kind": "msbuild"
-    },
-    {
-      "path": "apps/app/package.json",
-      "kind": "npm"
-    },
-    {
-      "path": "apps/site/package.json",
-      "kind": "npm"
-    },
-    {
       "path": "package.json",
       "kind": "npm"
     },
     {
-      "path": "packages/ui/package.json",
-      "kind": "npm"
+      "path": "src/ArcForges.Web.App/ArcForges.Web.App.csproj",
+      "kind": "msbuild"
+    },
+    {
+      "path": "src/ArcForges.Web.Operations/ArcForges.Web.Operations.csproj",
+      "kind": "msbuild"
+    },
+    {
+      "path": "src/ArcForges.Web.Site/ArcForges.Web.Site.csproj",
+      "kind": "msbuild"
+    },
+    {
+      "path": "src/ArcForges.Web.Ui/ArcForges.Web.Ui.csproj",
+      "kind": "msbuild"
+    },
+    {
+      "path": "tests/ArcForges.Web.App.Tests/ArcForges.Web.App.Tests.csproj",
+      "kind": "msbuild"
+    },
+    {
+      "path": "tests/ArcForges.Web.Operations.Tests/ArcForges.Web.Operations.Tests.csproj",
+      "kind": "msbuild"
+    },
+    {
+      "path": "tests/ArcForges.Web.Policy.Tests/ArcForges.Web.Policy.Tests.csproj",
+      "kind": "msbuild"
+    },
+    {
+      "path": "tests/ArcForges.Web.Site.Tests/ArcForges.Web.Site.Tests.csproj",
+      "kind": "msbuild"
+    },
+    {
+      "path": "tests/ArcForges.Web.Tooling.Tests/ArcForges.Web.Tooling.Tests.csproj",
+      "kind": "msbuild"
+    },
+    {
+      "path": "tests/ArcForges.Web.Ui.Tests/ArcForges.Web.Ui.Tests.csproj",
+      "kind": "msbuild"
+    },
+    {
+      "path": "tests/browser/ArcForges.Web.Browser.Tests/ArcForges.Web.Browser.Tests.csproj",
+      "kind": "msbuild"
+    },
+    {
+      "path": "tools/ArcForges.Web.Tooling/ArcForges.Web.Tooling.csproj",
+      "kind": "msbuild"
     }
   ]
 }

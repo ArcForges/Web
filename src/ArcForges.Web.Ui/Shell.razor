@@ -1,0 +1,11 @@
+<div class="site-shell"><a class="skip-link" href="#main">Skip to content</a><header class="site-header"><a class="brand" href="/" aria-label="ArcForges home"><svg width="32" height="32" viewBox="0 0 32 32" fill="none" aria-hidden="true"><path d="M5 26 16 5l11 21M10 18h12" stroke="currentColor" stroke-width="2.5" stroke-linejoin="round" /><path d="M5 26h22" stroke="currentColor" stroke-width="2.5" /></svg><span>ArcForges</span></a><nav aria-label="Main navigation"><a href="/hello">Hello example</a><a class="source-link" href="@SourceUrl">Source <span aria-hidden="true">↗</span></a></nav></header><main id="main" tabindex="-1">@ChildContent</main><footer class="site-footer"><span>A small beginning. Built in the open.</span><a href="/license.txt">AGPL-3.0-only</a><a href="/third-party-notices.txt">Third-party notices</a></footer></div>
+
+@code {
+    /// <summary>The source link. The Site build passes the commit URL, as the React build did from its source ref.</summary>
+    [Parameter]
+    public string SourceUrl { get; set; } = "https://github.com/ArcForges/Web";
+
+    /// <summary>The page content inside the main landmark.</summary>
+    [Parameter]
+    public RenderFragment? ChildContent { get; set; }
+}
