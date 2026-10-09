@@ -48,4 +48,15 @@ public sealed class OperationsProfileTests
         Assert.Contains("Sdk=\"Microsoft.NET.Sdk.BlazorWebAssembly\"", project, StringComparison.Ordinal);
         Assert.Contains("<RunAOTCompilation>false</RunAOTCompilation>", project, StringComparison.Ordinal);
     }
+
+    [Fact]
+    public void TheProfileStylesheetCarriesNoTailwindPreambleAndDefinesItsTokensOnRoot()
+    {
+        // S37: nothing compiles the profile stylesheet, so Tailwind at-rules would only request a missing /tailwindcss.
+        var css = File.ReadAllText(Path.Combine(Root, "src", "ArcForges.Web.Operations", "wwwroot", "app.css"));
+        foreach (var token in new[] { "@import \"tailwindcss\"", "@source", "@theme", "@apply", "@tailwind" })
+            Assert.DoesNotContain(token, css, StringComparison.Ordinal);
+        Assert.Contains("--font-sans:", css, StringComparison.Ordinal);
+        Assert.Matches(new System.Text.RegularExpressions.Regex(":root\\s*\\{[^}]*--font-sans:", System.Text.RegularExpressions.RegexOptions.Singleline), css);
+    }
 }

@@ -1,16 +1,10 @@
 /* SPDX-License-Identifier: AGPL-3.0-only */
-@import "tailwindcss" source(none);
-@source "../../../apps/site/app";
-@source "./";
 
-@theme {
+:root {
   --color-paper: #f4f3ed;
   --color-ink: #1e2824;
   --color-forest: #235844;
   --font-sans: "Segoe UI", "Helvetica Neue", Arial, sans-serif;
-}
-
-:root {
   font-family: var(--font-sans);
   color: #1e2824;
   background: #f4f3ed;
