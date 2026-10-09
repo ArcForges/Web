@@ -127,6 +127,14 @@ public static partial class CandidateVerifier
         foreach (var file in site.Files)
             Require(tree[CandidateCore.AssetsPrefix + file.Path].SequenceEqual(file.Content),
                 "Public Site bytes differ from the regenerated Site: " + file.Path);
+
+        // The Site archive is sealed beside the assets: exactly one, named by the digest of its own bytes, and equal to the
+        // archive of the regenerated Site. Any other bytes, name or count is refused.
+        var archives = tree.Keys.Where(SiteArchive.IsName).ToArray();
+        Require(archives.Length == 1, "The candidate must hold exactly one Site archive.");
+        var archive = archives[0];
+        Require(archive == SiteArchive.Name(CandidateCore.Sha256(tree[archive])), "The Site archive name does not match its digest.");
+        Require(tree[archive].SequenceEqual(SiteArchive.Build(site.Files)), "The Site archive differs from the regenerated Site.");
     }
 
     private static void VerifyStaticGraph(SortedDictionary<string, byte[]> tree)

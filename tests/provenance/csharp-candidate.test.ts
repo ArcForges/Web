@@ -5,7 +5,17 @@
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
-import { access, cp, mkdtemp, readdir, readFile, rm, stat, writeFile } from "node:fs/promises";
+import {
+  access,
+  cp,
+  mkdtemp,
+  readdir,
+  readFile,
+  rename,
+  rm,
+  stat,
+  writeFile,
+} from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { test } from "node:test";
@@ -367,3 +377,96 @@ test("the seal lists every member and no member is a link or a source map", asyn
     "A source map is published",
   );
 });
+
+// The Site release asset. The candidate seals one deterministic archive of the Site beside the deployed assets; the seal
+// records its digest, its name is that digest, and the verifier refuses any other bytes.
+const siteArchiveName = async (directory: string) =>
+  (await listFiles(directory)).find((file) => /^web-site-[0-9a-f]{64}\.tar$/u.test(file)) ?? "";
+
+/** Flips the low bit of the first content byte: the first entry's content starts after its 512-byte header. */
+function flipContent(bytes: Buffer): Buffer {
+  const flipped = Buffer.from(bytes);
+  flipped[512] = (flipped[512] ?? 0) ^ 0x01;
+  return flipped;
+}
+
+/** The entry names of a plain ustar archive, read from the 512-byte headers (no content parsing beyond the size field). */
+function tarNames(archive: Buffer): string[] {
+  const names: string[] = [];
+  for (let offset = 0; offset + 512 <= archive.length; ) {
+    const head = archive.subarray(offset, offset + 512);
+    if (head.every((byte) => byte === 0)) break;
+    names.push(head.subarray(0, 100).toString("latin1").replace(/\0[\s\S]*$/u, ""));
+    const size = Number.parseInt(
+      head.subarray(124, 135).toString("latin1").replace(/\0[\s\S]*$/u, "").trim(),
+      8,
+    );
+    offset += 512 + Math.ceil(size / 512) * 512;
+  }
+  return names;
+}
+
+test("the seal records one Site archive named by its digest, outside the deployed assets", async () => {
+  const name = await siteArchiveName(baseline);
+  assert.match(name, /^web-site-[0-9a-f]{64}\.tar$/u);
+  const bytes = await readFile(path.join(baseline, name));
+  assert.equal(name, `web-site-${sha(bytes)}.tar`, "The Site archive name is not its digest");
+  const manifest = JSON.parse(await readFile(path.join(baseline, "manifest.json"), "utf8"));
+  assert.equal(manifest.files[name], sha(bytes), "The seal does not record the Site archive digest");
+  assert(!name.startsWith("assets/"), "The Site archive must stay outside the deployed assets");
+  assert.deepEqual(
+    await readFile(path.join(repeat, name)),
+    bytes,
+    "Two candidate builds disagree on the Site archive",
+  );
+  assert.equal(tarNames(bytes)[0], "404.css", "The Site archive holds the Site files in ordinal order");
+});
+
+test("a Site archive changed after sealing is refused by the seal", async () => {
+  const dir = await copyCandidate(baseline, "site-archive-changed");
+  const name = await siteArchiveName(dir);
+  await writeFile(path.join(dir, name), flipContent(await readFile(path.join(dir, name))));
+  expectRefusal(verify(dir, source), `Candidate changed: ${name}`);
+});
+
+test("a resealed Site archive with other bytes is refused by the regenerated Site", async () => {
+  const dir = await copyCandidate(baseline, "site-archive-resealed");
+  const name = await siteArchiveName(dir);
+  const tampered = flipContent(await readFile(path.join(dir, name)));
+  await rm(path.join(dir, name));
+  await writeFile(path.join(dir, `web-site-${sha(tampered)}.tar`), tampered);
+  await reseal(dir);
+  expectRefusal(verify(dir, source), "The Site archive differs from the regenerated Site.");
+});
+
+test("a resealed Site archive under a name that is not its digest is refused", async () => {
+  const dir = await copyCandidate(baseline, "site-archive-renamed");
+  const name = await siteArchiveName(dir);
+  await rename(path.join(dir, name), path.join(dir, `web-site-${"0".repeat(64)}.tar`));
+  await reseal(dir);
+  expectRefusal(verify(dir, source), "The Site archive name does not match its digest.");
+});
+
+test("a second Site archive beside the sealed one is refused", async () => {
+  const dir = await copyCandidate(baseline, "site-archive-second");
+  const name = await siteArchiveName(dir);
+  await writeFile(path.join(dir, `web-site-${"f".repeat(64)}.tar`), await readFile(path.join(dir, name)));
+  await reseal(dir);
+  expectRefusal(verify(dir, source), "The candidate must hold exactly one Site archive.");
+});
+
+test(
+  "the profile bundle does not serve the application shell's encodings at the root",
+  { skip: !havePublish },
+  async () => {
+    const out = candidateDirectory("bundle-root-names");
+    const built = await buildBundle(out);
+    assert.equal(built.status, 0, built.output);
+    const names = tarNames(await readFile(path.join(out, built.name)));
+    assert.equal(names[0], "manifest.json");
+    for (const shell of ["index.html", "index.html.br", "index.html.gz"])
+      assert(!names.includes(shell), `The bundle serves ${shell} at the root`);
+    for (const served of ["account/index.html", "chat/index.html", "_headers"])
+      assert(names.includes(served), `The bundle does not hold ${served}`);
+  },
+);

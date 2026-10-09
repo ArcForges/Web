@@ -54,6 +54,9 @@ public static partial class CandidateBuilder
 
         foreach (var file in site.Files)
             Add(CandidateCore.AssetsPrefix + file.Path, file.Content);
+        // The Site archive is a root member, outside the deployed assets directory: the seal records its digest.
+        var siteArchive = SiteArchive.Build(site.Files);
+        Add(SiteArchive.Name(CandidateCore.Sha256(siteArchive)), siteArchive);
         Add(CandidateCore.AssetsPrefix + "license.txt", CandidateCore.Licence(repository));
         Add(CandidateCore.AssetsPrefix + "third-party-notices.txt", CandidateCore.Notices(repository));
         Add(CandidateCore.AssetsPrefix + "source-provenance.txt", CandidateCore.SourceNotice(repository));

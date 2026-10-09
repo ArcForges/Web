@@ -8,7 +8,7 @@ The Account and Chat profiles are one published application (`src/ArcForges.Web.
 - First entry: `manifest.json` (schema 1). It lists each profile (`page`, `buildDigest`, `csp`) and every other entry with its SHA-256 and byte count.
 - Root `_headers`: security headers for `/*`; one block per profile path (`/account/*`, `/chat/*`) with its Content-Security-Policy, `X-Frame-Options: DENY` and `no-cache`; `/assets/*` immutable; `/_framework/*` immutable; `/_framework/blazor.webassembly.js` and `/_framework/dotnet.js` revalidated (`no-cache`).
 - Profile pages: `account/index.html` and `chat/index.html`, each the application shell, with the profile's own policy.
-- Served tree: the publish `wwwroot` at its own root paths. The shell `index.html` is not served at the root. Blazor's base href is `/`, so `_framework/` files are root-relative. The tree includes the precompressed `.br` and `.gz` siblings the SDK writes.
+- Served tree: the publish `wwwroot` at its own root paths. The shell `index.html` is not served at the root, and neither are its precompressed siblings `index.html.br` and `index.html.gz`, because they only encode the shell. Blazor's base href is `/`, so `_framework/` files are root-relative. Every other file of the publish is kept, including the `.br` and `.gz` siblings of the `_framework/` files that the SDK writes.
 
 ## Rules the tool enforces
 

@@ -21,7 +21,8 @@ public sealed record ProfileBundleSummary(string Name, string Digest, int Member
 /// The archive keeps the React bundle's name pattern (<c>web-profiles-&lt;sha256&gt;.tar</c>), its first entry
 /// (<c>manifest.json</c>), its root <c>_headers</c> with one Content-Security-Policy per profile path, and its
 /// <c>&lt;profile&gt;/index.html</c> pages. Blazor's framework files are root-relative under the page's <c>base href="/"</c>,
-/// so the published tree is served at its own root paths and <c>assets/</c> is empty in this bundle.
+/// so the published tree is served at its own root paths and <c>assets/</c> is empty in this bundle. The shell and its
+/// precompressed siblings (<c>index.html.br</c>, <c>index.html.gz</c>) are not served at the root; every other file is.
 /// </summary>
 public static partial class ProfileBundle
 {
@@ -36,6 +37,12 @@ public static partial class ProfileBundle
 
     /// <summary>The application shell. It is the source of every profile page and is not served at the root.</summary>
     public const string ShellPath = "index.html";
+
+    /// <summary>
+    /// The shell's precompressed siblings that the SDK writes. They are encodings of the shell, so they are not served at the
+    /// root either. Every other file of the publish is kept.
+    /// </summary>
+    public static readonly string[] ShellEncodingPaths = ["index.html.br", "index.html.gz"];
 
     /// <summary>The profile paths. The one published application serves both routes.</summary>
     public static readonly string[] Profiles = ["account", "chat"];
@@ -77,7 +84,7 @@ public static partial class ProfileBundle
         var served = new SortedDictionary<string, byte[]>(StringComparer.Ordinal);
         foreach (var (path, bytes) in tree)
         {
-            if (path == ShellPath)
+            if (path == ShellPath || ShellEncodingPaths.Contains(path, StringComparer.Ordinal))
                 continue;
             if (path == HeadersPath || path == ManifestPath || Profiles.Any(profile => path.StartsWith(profile + "/", StringComparison.Ordinal)))
                 throw new InvalidOperationException("The publish output uses a reserved bundle path: " + path);
@@ -184,6 +191,8 @@ public static partial class ProfileBundle
             Require(row["sha256"]?.GetValue<string>() == CandidateCore.Sha256(entry.Bytes), "Content of " + entry.Path);
         }
         Require(rest.All(entry => entry.Path != ShellPath), "The application shell must not be served at the root.");
+        Require(rest.All(entry => !ShellEncodingPaths.Contains(entry.Path, StringComparer.Ordinal)),
+            "The application shell's encodings must not be served at the root.");
 
         var members = rest.ToDictionary(entry => entry.Path, entry => entry.Bytes, StringComparer.Ordinal);
         var policies = new SortedDictionary<string, string>(StringComparer.Ordinal);

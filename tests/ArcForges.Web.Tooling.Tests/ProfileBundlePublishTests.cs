@@ -294,4 +294,81 @@ public sealed class ProfileBundlePublishTests
 
         Assert.Contains("Bundle digest mismatch.", error.Message, StringComparison.Ordinal);
     }
+
+    private static byte[] Gzip(byte[] bytes)
+    {
+        using var output = new MemoryStream();
+        using (var gzip = new System.IO.Compression.GZipStream(output, System.IO.Compression.CompressionLevel.Optimal))
+            gzip.Write(bytes);
+        return output.ToArray();
+    }
+
+    private static byte[] Brotli(byte[] bytes)
+    {
+        using var output = new MemoryStream();
+        using (var brotli = new System.IO.Compression.BrotliStream(output, System.IO.Compression.CompressionLevel.Optimal))
+            brotli.Write(bytes);
+        return output.ToArray();
+    }
+
+    [Fact]
+    public void TheShellEncodingsAreNotServedAtTheRootAndEveryOtherFileIsKept()
+    {
+        // The encodings are real Brotli and gzip streams of the shell, because the static graph check decodes them.
+        var withEncodings = StandardFiles();
+        withEncodings["index.html.br"] = Brotli(Utf8(Shell));
+        withEncodings["index.html.gz"] = Gzip(Utf8(Shell));
+        using var plain = new Publish(StandardFiles());
+        using var encoded = new Publish(withEncodings);
+
+        var bundle = ProfileBundle.Build(encoded.Location);
+        var served = TarArchive.Read(bundle.Archive);
+        var reference = TarArchive.Read(ProfileBundle.Build(plain.Location).Archive);
+
+        Assert.DoesNotContain("index.html.br", served.Select(entry => entry.Path));
+        Assert.DoesNotContain("index.html.gz", served.Select(entry => entry.Path));
+        Assert.DoesNotContain(ProfileBundle.ShellPath, served.Select(entry => entry.Path));
+        // Without the encodings, every served entry after the manifest is the same path and the same bytes.
+        Assert.Equal(reference.Skip(1).Select(entry => entry.Path), served.Skip(1).Select(entry => entry.Path));
+        Assert.Equal(reference.Skip(1).Select(entry => entry.Bytes), served.Skip(1).Select(entry => entry.Bytes));
+        ProfileBundle.Verify(bundle.Archive, bundle.Digest);
+    }
+
+    [Fact]
+    public void AnArchiveThatServesAShellEncodingAtTheRootIsRefused()
+    {
+        var bundle = BuildStandard();
+        var entries = TarArchive.Read(bundle.Archive).ToList();
+        var encoding = Gzip(Utf8(Shell));
+        var manifest = System.Text.Json.Nodes.JsonNode.Parse(entries[0].Bytes)!.AsObject();
+        // The forged manifest lists the encoding with its real digest, in the ordinal order the verifier requires.
+        var rows = new SortedDictionary<string, System.Text.Json.Nodes.JsonNode?>(StringComparer.Ordinal);
+        foreach (var pair in manifest["files"]!.AsObject())
+            rows[pair.Key] = pair.Value!.DeepClone();
+        rows["index.html.gz"] = new System.Text.Json.Nodes.JsonObject
+        {
+            ["sha256"] = Convert.ToHexString(SHA256.HashData(encoding)).ToLowerInvariant(),
+            ["bytes"] = encoding.Length,
+        };
+        var files = new System.Text.Json.Nodes.JsonObject();
+        foreach (var (path, row) in rows)
+            files[path] = row;
+        var forgedManifest = new System.Text.Json.Nodes.JsonObject
+        {
+            ["schema"] = ProfileBundle.Schema,
+            ["profiles"] = manifest["profiles"]!.DeepClone(),
+            ["files"] = files,
+        };
+        var forgedEntries = new List<TarArchive.Entry>
+        {
+            new(ProfileBundle.ManifestPath, Encoding.UTF8.GetBytes(forgedManifest.ToJsonString())),
+        };
+        forgedEntries.AddRange(entries.Skip(1).Append(new TarArchive.Entry("index.html.gz", encoding))
+            .OrderBy(entry => entry.Path, StringComparer.Ordinal));
+        var forged = TarArchive.Write(forgedEntries);
+
+        var error = Assert.Throws<InvalidOperationException>(() => ProfileBundle.Verify(forged));
+
+        Assert.Contains("encodings must not be served at the root", error.Message, StringComparison.Ordinal);
+    }
 }

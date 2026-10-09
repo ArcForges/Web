@@ -1,51 +1,4 @@
 {
-  "schemaVersion": 1,
-  "repository": "Web",
-  "sourceCommit": "a469064ffe0c497d4dd611d58bfaa1ac158656ff",
-  "manifests": [
-    "package.json"
-  ],
-  "inputs": {
-    ".github/workflows/ci.yml": "aa1d456b4a196bed61b3cca281545a1c95395f9361ad15eec5862611b4e0c66a",
-    ".node-version": "73fb1b615e2043a933be1c0895cde4358036acc28d785692509b822aa53c761f",
-    ".npmrc": "73814024102037fcc5a961119bcbf39f81e0a73af504735653d3a6086651cef1",
-    "Directory.Build.props": "2c1597403bd2a3eb04480ef96ba7accd57c0d2a9f7176ca1073a2d7a6fdcf3a0",
-    "Directory.Build.targets": "66716168ad9b701833e0d750f27acf4962fc23bdac4c8f121ea57635d5116c35",
-    "Directory.Packages.props": "95e73db26cdb9ba15ccd3c752d804be4ee083f85fdf589acf837121a2c3975b7",
-    "NuGet.config": "cb93c65e28718aa9075fce221e9f9cea9e72d3fe1b30462383448a591f5b3aa1",
-    "eng/provenance/profiles/browser-resources-r11.json": "e9c496ff9b97757b4845b08abe07eec456bcc103b8454fd2447b7dbacbd53177",
-    "eng/provenance/profiles/browser-resources-r12.json": "5dd1d44a13562b616f156648909d7f4d4d2e67d40bc802c70df392da46e0d6ee",
-    "eng/provenance/records/browser-resources-r11.json": "15f6bb8a2157107e197b85ae799c53fc8b934a0ac463d141e0fc7bb5922f3bf8",
-    "eng/provenance/records/browser-resources-r12.json": "6b470604b64d692d0eaa215be133506af065856dde0fde9ee8e702bba883bb88",
-    "global.json": "67381be18aa807c04218165844967cf58235875477f30495ba98c3648248a9d4",
-    "package-lock.json": "392b8874131b713ac07ab595ff541122fa3c2317f9ba81b34ffe6115f4363825",
-    "package.json": "60b8b8e853ae2ac0dfec58831d61c717b3e4fb26ed3848745b36e9a2ec370ea5",
-    "src/ArcForges.Web.App/ArcForges.Web.App.csproj": "3b7e2424cf6f9ce1d448cfe462ba825c7a4a486b77189c2f63ef665c52f9919b",
-    "src/ArcForges.Web.App/packages.lock.json": "6ae92b481b6a892a9b4952f7e4b8da56b7caac8f6a6206151b017108e2c99229",
-    "src/ArcForges.Web.Operations/ArcForges.Web.Operations.csproj": "ad7f8197fada085fb3ba6bee69f1d45716e3b79725ed7d388f0a9080ae290077",
-    "src/ArcForges.Web.Operations/packages.lock.json": "75bd9b2ebbe6ed307c134473be0319fd536a7733ce00fe1237148299e5f59239",
-    "src/ArcForges.Web.Site/ArcForges.Web.Site.csproj": "3262ccbf711251e32859c732422b472975f3e4269b31814f9df298f1be698344",
-    "src/ArcForges.Web.Site/packages.lock.json": "61d7150f179a77464386591f7a8c38cdbadb95b9c29fff18fe2ef912bef91931",
-    "src/ArcForges.Web.Ui/ArcForges.Web.Ui.csproj": "2c922134e6471da2db5194204b52b7722a341a54d6eee4db17b5c6459c631fa6",
-    "src/ArcForges.Web.Ui/packages.lock.json": "dfa414cbeec347e07835b0ff8f19f8b020f967f57d0267edb6eb206e4c2b65f8",
-    "tests/ArcForges.Web.App.Tests/ArcForges.Web.App.Tests.csproj": "d9044cf90b86c7a380fc1a5a24a1539ad94507b307dc2ba045e4c32d722f98c6",
-    "tests/ArcForges.Web.App.Tests/packages.lock.json": "5939781e73182199cd09e6bf6baf91a74bf2111e67a2379c073afdcb53ba75ff",
-    "tests/ArcForges.Web.Operations.Tests/ArcForges.Web.Operations.Tests.csproj": "85d50eb3e78de52b2f2fc38cbeed1b5ec8d0875344bbe5dc3a279697a2c25f6c",
-    "tests/ArcForges.Web.Operations.Tests/packages.lock.json": "e7446b75088edc5a49877ec5b4927c0d7bf65e523a1cc76a8c626a547bc7917b",
-    "tests/ArcForges.Web.Policy.Tests/ArcForges.Web.Policy.Tests.csproj": "bce3090ee3c4fc71a4d90802f75e15ebefdf2027f4dcc5b86e9cb485fbe24742",
-    "tests/ArcForges.Web.Policy.Tests/packages.lock.json": "d7f4dfec2064957427d7daabf5a99a95fead21d916f1b958976fd81c22d6dc3f",
-    "tests/ArcForges.Web.Site.Tests/ArcForges.Web.Site.Tests.csproj": "46e0e121cd17ffbe4e16bf3c83795c4129ad990c020c038ae9192184c4ee4be0",
-    "tests/ArcForges.Web.Site.Tests/packages.lock.json": "15eb52424732fb8bf0a7479acf0c323b9a36c7e1503c3369bf92f402319b55e0",
-    "tests/ArcForges.Web.Tooling.Tests/ArcForges.Web.Tooling.Tests.csproj": "5e9db68756a4b34f65529305d47dcdf620ba1e3afb518c12e46457f091f08d37",
-    "tests/ArcForges.Web.Tooling.Tests/packages.lock.json": "90f22f0780280e371cc5f892a0e41d1a68b9886b3543ed3293ed276d5eebe1a7",
-    "tests/ArcForges.Web.Ui.Tests/ArcForges.Web.Ui.Tests.csproj": "ebc006964e176e7c71b7a36b3e94a030fa6a2d807450ab6ef8e829c7ebe2177e",
-    "tests/ArcForges.Web.Ui.Tests/packages.lock.json": "482a8749cf737188e1106d77c1d657ed5c1c9626317be6e337c59e2b3e46793b",
-    "tests/browser/ArcForges.Web.Browser.Tests/ArcForges.Web.Browser.Tests.csproj": "6d113146859ece321fad7c614ae1680a5219ce8ab22af01c7d1a60291d2bd2a7",
-    "tests/browser/ArcForges.Web.Browser.Tests/packages.lock.json": "931e944d1c7c4862d63a42da064af96b46e45e3f87203a45844fef12fc1708cd",
-    "tools/ArcForges.Web.Tooling/ArcForges.Web.Tooling.csproj": "91bf31b448f0d9b06fe73d4daebb5971e09d727fc1a0541db5047734df3f9fe4",
-    "tools/ArcForges.Web.Tooling/packages.lock.json": "045a81bc88f39433f4e088019d028ef57c8ad60dd9bc496e50ff1d504b09c3e6",
-    "wrangler.json": "b597ad91281c4d77c504dfeebace4aa7b8ce2f9bc724dbe40978643b23171c07"
-  },
   "review": {
     "owner": "Web dependency maintainer",
     "reviewer": "w-deku-20261008-rev-web-40",
@@ -106,726 +59,291 @@
     "previous": "eng/policy/dependency-reviews/web-40-admission-r15.json",
     "immutableHistory": "Admitted review records are retained in Git history. A dependency change requires a new reviewed source commit and updated input-bound rationale; never amend an already accepted provenance record."
   },
-  "closure": {
-    "node_modules/@cloudflare/kv-asset-handler": {
-      "version": "0.5.0",
-      "resolved": "https://registry.npmjs.org/@cloudflare/kv-asset-handler/-/kv-asset-handler-0.5.0.tgz",
-      "integrity": "sha512-jxQYkj8dSIzc0cD6cMMNdOc1UVjqSqu8BZdor5s8cGjW2I8BjODt/kWPVdY+u9zj3ms75Q5qaZgnxUad83+eAg==",
-      "license": "MIT OR Apache-2.0"
-    },
-    "node_modules/@cloudflare/unenv-preset": {
-      "version": "2.16.2",
-      "resolved": "https://registry.npmjs.org/@cloudflare/unenv-preset/-/unenv-preset-2.16.2.tgz",
-      "integrity": "sha512-JBP1+Z7ZSNG/d4mRP+y8VC5dka3tZVMLEZRvS+rzQ4DGV1EoxRFQckcJTTkXbHSQiTj0DtNI01Zwb/V2fX0mvQ==",
-      "license": "MIT OR Apache-2.0"
-    },
-    "node_modules/@cloudflare/workerd-darwin-64": {
-      "version": "1.20260926.1",
-      "resolved": "https://registry.npmjs.org/@cloudflare/workerd-darwin-64/-/workerd-darwin-64-1.20260926.1.tgz",
-      "integrity": "sha512-VCIpwgJu5Dm1o+VHLclNOKIdpttEqss7oDHS5DYxgVoonM9Dxxxr1xCQvJbh6IXFuQ1DDrbm5krjte5NsTgX3Q==",
-      "license": "Apache-2.0"
-    },
-    "node_modules/@cloudflare/workerd-darwin-arm64": {
-      "version": "1.20260926.1",
-      "resolved": "https://registry.npmjs.org/@cloudflare/workerd-darwin-arm64/-/workerd-darwin-arm64-1.20260926.1.tgz",
-      "integrity": "sha512-oVuLXfCnr1Xu9sBMNYrEPcFZQNMcviNcacz9l+oqQiLHc5UrVp++lpKbsuWstCfh+/c39Pp37TVeaNBLA8+ReA==",
-      "license": "Apache-2.0"
-    },
-    "node_modules/@cloudflare/workerd-linux-64": {
-      "version": "1.20260926.1",
-      "resolved": "https://registry.npmjs.org/@cloudflare/workerd-linux-64/-/workerd-linux-64-1.20260926.1.tgz",
-      "integrity": "sha512-BjmiDvYBVBG5248gCHSZS3yONbcm3/3qKTu9RaQA8o7jQHJfXx9JnWbhkld2KsbXnRGEGHFwpLLidIpIGtQYUA==",
-      "license": "Apache-2.0"
-    },
-    "node_modules/@cloudflare/workerd-linux-arm64": {
-      "version": "1.20260926.1",
-      "resolved": "https://registry.npmjs.org/@cloudflare/workerd-linux-arm64/-/workerd-linux-arm64-1.20260926.1.tgz",
-      "integrity": "sha512-28bdfQDIFcpaKXMPisADy8BchpIsX+tEAhD+bhfEBXukFGFr8F3ouyiG3HzN3CqAh/OYvifJizzFZtptUPCy7w==",
-      "license": "Apache-2.0"
-    },
-    "node_modules/@cloudflare/workerd-windows-64": {
-      "version": "1.20260926.1",
-      "resolved": "https://registry.npmjs.org/@cloudflare/workerd-windows-64/-/workerd-windows-64-1.20260926.1.tgz",
-      "integrity": "sha512-ehdL3ataKdEmlnW9oom6OZUR8n3XsTL/zl8+KGREpLi5sMSW0mek0PrF4wK9SX51f3Alnlu8tF8eKBg+mc3xFw==",
-      "license": "Apache-2.0"
-    },
-    "node_modules/@cspotcode/source-map-support": {
-      "version": "0.8.1",
-      "resolved": "https://registry.npmjs.org/@cspotcode/source-map-support/-/source-map-support-0.8.1.tgz",
-      "integrity": "sha512-IchNf6dN4tHoMFIn/7OE8LWZ19Y6q/67Bmf6vnGREv8RSbBVb9LPJxEcnwrcwX6ixSvaiGoomAUvu4YSxXrVgw==",
-      "license": "MIT"
-    },
-    "node_modules/@cspotcode/source-map-support/node_modules/@jridgewell/trace-mapping": {
-      "version": "0.3.9",
-      "resolved": "https://registry.npmjs.org/@jridgewell/trace-mapping/-/trace-mapping-0.3.9.tgz",
-      "integrity": "sha512-3Belt6tdc8bPgAtbcmdtNJlirVoTmEb5e2gC94PnkwEW9jI6CAHUeoG85tjWP5WquqfavoMtMwiG4P926ZKKuQ==",
-      "license": "MIT"
-    },
-    "node_modules/@emnapi/runtime": {
-      "version": "1.11.3",
-      "resolved": "https://registry.npmjs.org/@emnapi/runtime/-/runtime-1.11.3.tgz",
-      "integrity": "sha512-Xz4Tpyki7XyrpbUK1jR1AhdAdaXyhhY4lZ3neLodmhpuWfy2PAQN5B46sAiU4liOXGLkHypn/qU+jvfWSCYYLA==",
-      "license": "MIT"
-    },
-    "node_modules/@esbuild/aix-ppc64": {
-      "version": "0.28.1",
-      "resolved": "https://registry.npmjs.org/@esbuild/aix-ppc64/-/aix-ppc64-0.28.1.tgz",
-      "integrity": "sha512-Svl7tq8k/08+p6CXPpRjQ1fKX+1odH/BQbb48fV6fj3CWHhsoIOoY87w1oHXm0qEpkIK3ZfVgp0hed3XBXzXMQ==",
-      "license": "MIT"
-    },
-    "node_modules/@esbuild/android-arm": {
-      "version": "0.28.1",
-      "resolved": "https://registry.npmjs.org/@esbuild/android-arm/-/android-arm-0.28.1.tgz",
-      "integrity": "sha512-0k2F129Xdio1TdJfzJ8sy1Q47vUD2NnwdhiAf7drUN1EBTfPf4hsFCtmMgu/6m8JSzsBrlmVjudMBQqOfG8usQ==",
-      "license": "MIT"
-    },
-    "node_modules/@esbuild/android-arm64": {
-      "version": "0.28.1",
-      "resolved": "https://registry.npmjs.org/@esbuild/android-arm64/-/android-arm64-0.28.1.tgz",
-      "integrity": "sha512-34EGEbCIAgosYz6goLcopX6Mo7NyGv9tfwEM2/7Ce2VcVRk568iSvniGWcUXIy7wEDR1wzolcxcriFVrWYcwBg==",
-      "license": "MIT"
-    },
-    "node_modules/@esbuild/android-x64": {
-      "version": "0.28.1",
-      "resolved": "https://registry.npmjs.org/@esbuild/android-x64/-/android-x64-0.28.1.tgz",
-      "integrity": "sha512-dbwY7ltSMDWsRatcRpCnES4F+im88OCUgGZjy52shC7GqHRE/cYlxNbB4Z4UpJswpcc4Qxd2oE/ufM0p61IKng==",
-      "license": "MIT"
-    },
-    "node_modules/@esbuild/darwin-arm64": {
-      "version": "0.28.1",
-      "resolved": "https://registry.npmjs.org/@esbuild/darwin-arm64/-/darwin-arm64-0.28.1.tgz",
-      "integrity": "sha512-TZbWkQY7kvTAXbXUT7uVACR5cMHsDiSz9z7ZKAX/RTq/WJEk3QyRr0wZpNhBDX+/0CtdqUIJlOiodQcta6tY3Q==",
-      "license": "MIT"
-    },
-    "node_modules/@esbuild/darwin-x64": {
-      "version": "0.28.1",
-      "resolved": "https://registry.npmjs.org/@esbuild/darwin-x64/-/darwin-x64-0.28.1.tgz",
-      "integrity": "sha512-zfdzgK9ACBNZLI/CyHTOx81SyNbM6YXn7rxSgX97VjyiPl9W1i4Ka4fgKECEoFCKGpvBj5qArWIGgQjOwkgskQ==",
-      "license": "MIT"
-    },
-    "node_modules/@esbuild/freebsd-arm64": {
-      "version": "0.28.1",
-      "resolved": "https://registry.npmjs.org/@esbuild/freebsd-arm64/-/freebsd-arm64-0.28.1.tgz",
-      "integrity": "sha512-wG2EA8ENdEI0qhkSZMjfqrdY+ziCYCPMmtZjjIwOmXFjmyzEHn+UUxk5of+SYsjtfs3VpnlC7QLzSI5hY/rOAw==",
-      "license": "MIT"
-    },
-    "node_modules/@esbuild/freebsd-x64": {
-      "version": "0.28.1",
-      "resolved": "https://registry.npmjs.org/@esbuild/freebsd-x64/-/freebsd-x64-0.28.1.tgz",
-      "integrity": "sha512-i7dZ9vQgnvSCzi/rYCXNgtF/U+eKZNJBzu3eTQbRgHnM7tNSizLOkRFAl3qzVc/Op/u5YkHHa4pf/3DOYHthLQ==",
-      "license": "MIT"
-    },
-    "node_modules/@esbuild/linux-arm": {
-      "version": "0.28.1",
-      "resolved": "https://registry.npmjs.org/@esbuild/linux-arm/-/linux-arm-0.28.1.tgz",
-      "integrity": "sha512-qVXBOHQS+d5Y722GwJzJUtOLlX7km3CraOaGormF1pDtPd2C/l1SHRPgjLunLGe51Sh5YYWKMFDyV4SxgMQYTQ==",
-      "license": "MIT"
-    },
-    "node_modules/@esbuild/linux-arm64": {
-      "version": "0.28.1",
-      "resolved": "https://registry.npmjs.org/@esbuild/linux-arm64/-/linux-arm64-0.28.1.tgz",
-      "integrity": "sha512-yHs+0uc8+nvEAfAfxrWQKK5peSNzBc4PegcMO0EJ2hT71uA7vB8Ihg2e77R2P7SG5uYjPbHlLLmve4LLLRCf0g==",
-      "license": "MIT"
-    },
-    "node_modules/@esbuild/linux-ia32": {
-      "version": "0.28.1",
-      "resolved": "https://registry.npmjs.org/@esbuild/linux-ia32/-/linux-ia32-0.28.1.tgz",
-      "integrity": "sha512-d1z4ZuP0ajrfz/FhGT4vv278rX8KnPPJx8i5+AtK7TYbx9Le9F1hyzurZpkEyjkGa9dUGhQow4C1NmeGvqxN2w==",
-      "license": "MIT"
-    },
-    "node_modules/@esbuild/linux-loong64": {
-      "version": "0.28.1",
-      "resolved": "https://registry.npmjs.org/@esbuild/linux-loong64/-/linux-loong64-0.28.1.tgz",
-      "integrity": "sha512-M5sRjUVZrkm1OAPR3dlOYzNmN+loZKGVi1VUQGrwuqLcbR6qeAz+famMhjASeH3YVKvZz+zT1jlh/keC3Rj/lg==",
-      "license": "MIT"
-    },
-    "node_modules/@esbuild/linux-mips64el": {
-      "version": "0.28.1",
-      "resolved": "https://registry.npmjs.org/@esbuild/linux-mips64el/-/linux-mips64el-0.28.1.tgz",
-      "integrity": "sha512-mRObBZeHh2OxcBFPWE/FjylkRgZdYuiTR3vaTozquCGOH14iP9oN4x4Ge81CoIDYQrXmIxpFumJBu5MtZpnQJQ==",
-      "license": "MIT"
-    },
-    "node_modules/@esbuild/linux-ppc64": {
-      "version": "0.28.1",
-      "resolved": "https://registry.npmjs.org/@esbuild/linux-ppc64/-/linux-ppc64-0.28.1.tgz",
-      "integrity": "sha512-slScBsMAb3GFDcdrCgLwZtPYRoH2H/youv10QiZyRjmsP48fznoveWytSgCI/R0ZcUgpc0ZhIUEx6LHts8yrfQ==",
-      "license": "MIT"
-    },
-    "node_modules/@esbuild/linux-riscv64": {
-      "version": "0.28.1",
-      "resolved": "https://registry.npmjs.org/@esbuild/linux-riscv64/-/linux-riscv64-0.28.1.tgz",
-      "integrity": "sha512-kw0owk1o0GFETUJyW0jc0G4Yzs0BHZn0JDZ8JRT088vjJYX777BAs1fDGxAC+q831qOs2DTC96mNsG2opdfyyQ==",
-      "license": "MIT"
-    },
-    "node_modules/@esbuild/linux-s390x": {
-      "version": "0.28.1",
-      "resolved": "https://registry.npmjs.org/@esbuild/linux-s390x/-/linux-s390x-0.28.1.tgz",
-      "integrity": "sha512-/lAIjX8aYFRByhh6L5rYtPEDRqa9de/4V/juOXcta5frjvzXO4/sqEtyytse0g3zZFuWu5cDN0MkLz2qRDD2Ag==",
-      "license": "MIT"
-    },
-    "node_modules/@esbuild/linux-x64": {
-      "version": "0.28.1",
-      "resolved": "https://registry.npmjs.org/@esbuild/linux-x64/-/linux-x64-0.28.1.tgz",
-      "integrity": "sha512-u/anNYF2mmVOEDwLtnQ1wOr3EZ9sTNGLWrsYGYwHWzGA3Si84IOkHXlbWTD1NB+9/1lcnweYKO54uhxZydNzfA==",
-      "license": "MIT"
-    },
-    "node_modules/@esbuild/netbsd-arm64": {
-      "version": "0.28.1",
-      "resolved": "https://registry.npmjs.org/@esbuild/netbsd-arm64/-/netbsd-arm64-0.28.1.tgz",
-      "integrity": "sha512-oks0DYbLwWMmaakTsCb+zL4E+aHRVLom9IJZOAthMQEPiQmydXHkziYEsGYRx0uNV/IjEKGAV941JzH02pflqw==",
-      "license": "MIT"
-    },
-    "node_modules/@esbuild/netbsd-x64": {
-      "version": "0.28.1",
-      "resolved": "https://registry.npmjs.org/@esbuild/netbsd-x64/-/netbsd-x64-0.28.1.tgz",
-      "integrity": "sha512-aeL6lAnN89Hz43Mlh1G8ARasbuoYvSITDEx0tHh5b7jJnHcssqgjy9Yx430GDpmCa6OyrKoS0aNRjKundRizGg==",
-      "license": "MIT"
-    },
-    "node_modules/@esbuild/openbsd-arm64": {
-      "version": "0.28.1",
-      "resolved": "https://registry.npmjs.org/@esbuild/openbsd-arm64/-/openbsd-arm64-0.28.1.tgz",
-      "integrity": "sha512-MEFJe5C3R8pwXdZ5Y21oo6m7ePiS0d9pWucn99O/wvyJZChoIQKrQDxKrGeW8F5+T0okTHesAmDeiHDTIq0V/Q==",
-      "license": "MIT"
-    },
-    "node_modules/@esbuild/openbsd-x64": {
-      "version": "0.28.1",
-      "resolved": "https://registry.npmjs.org/@esbuild/openbsd-x64/-/openbsd-x64-0.28.1.tgz",
-      "integrity": "sha512-i/ZLIOafE0Z8cI/XANJAixoJL/uRAoS2xOA3rb0xN+KK0K177cMAsQYkzHtBrtMXAKuAc7HGgcWiZ/sRC1Nxgw==",
-      "license": "MIT"
-    },
-    "node_modules/@esbuild/openharmony-arm64": {
-      "version": "0.28.1",
-      "resolved": "https://registry.npmjs.org/@esbuild/openharmony-arm64/-/openharmony-arm64-0.28.1.tgz",
-      "integrity": "sha512-ge+Z7EXFNt2BO1oAMsVpiQ8EwndV9i1xXerAeTIK7AtPs3bKFXQM7nlRxDSIUIMeueR1CNXxqztLzdNeReKBJg==",
-      "license": "MIT"
-    },
-    "node_modules/@esbuild/sunos-x64": {
-      "version": "0.28.1",
-      "resolved": "https://registry.npmjs.org/@esbuild/sunos-x64/-/sunos-x64-0.28.1.tgz",
-      "integrity": "sha512-BEjgtECkL3vY+SaSQ6nzVfiALUeFxpawyp8Jmf5PtYhf1Ug40N1h/hxlhts+f1FvSvarEigdxS3BlSMI2PJLcQ==",
-      "license": "MIT"
-    },
-    "node_modules/@esbuild/win32-arm64": {
-      "version": "0.28.1",
-      "resolved": "https://registry.npmjs.org/@esbuild/win32-arm64/-/win32-arm64-0.28.1.tgz",
-      "integrity": "sha512-lCv9eK/H6ZJWbE7bh2nw54CZ9M2nupBxJcTsdk/QQnWkdSjKGuxmmH8/GWrlT1eMmZfn4dGcCjRte397WqfQXA==",
-      "license": "MIT"
-    },
-    "node_modules/@esbuild/win32-ia32": {
-      "version": "0.28.1",
-      "resolved": "https://registry.npmjs.org/@esbuild/win32-ia32/-/win32-ia32-0.28.1.tgz",
-      "integrity": "sha512-zvb/mB2bSCoJOpoCBgYKKpX6YM6mJBlBUVUtVj41DlZJVEB6/0CKlRYxP5wWl1C1ILiCoAU5wZZ4q1P3qeS6Eg==",
-      "license": "MIT"
-    },
-    "node_modules/@esbuild/win32-x64": {
-      "version": "0.28.1",
-      "resolved": "https://registry.npmjs.org/@esbuild/win32-x64/-/win32-x64-0.28.1.tgz",
-      "integrity": "sha512-bm4Mowrv+GXMlpWX++EcXw/iLyd1o3+bJkC2DkWXYVvgZCqD/bSj9ctZeAMC3cIxgjRVR2Dufaiu4YPxr5gW1A==",
-      "license": "MIT"
-    },
-    "node_modules/@img/colour": {
-      "version": "1.1.0",
-      "resolved": "https://registry.npmjs.org/@img/colour/-/colour-1.1.0.tgz",
-      "integrity": "sha512-Td76q7j57o/tLVdgS746cYARfSyxk8iEfRxewL9h4OMzYhbW4TAcppl0mT4eyqXddh6L/jwoM75mo7ixa/pCeQ==",
-      "license": "MIT"
-    },
-    "node_modules/@img/sharp-darwin-arm64": {
-      "version": "0.35.5",
-      "resolved": "https://registry.npmjs.org/@img/sharp-darwin-arm64/-/sharp-darwin-arm64-0.35.5.tgz",
-      "integrity": "sha512-QRUlFQ0WxvdWyqqG/WtI3iupfD5rBzmCHXSdPsY91sAtVtTo7Q4cb6zOccZ3gqEqkr0f1As1ehLqmEpDsRf+lg==",
-      "license": "Apache-2.0"
-    },
-    "node_modules/@img/sharp-darwin-x64": {
-      "version": "0.35.5",
-      "resolved": "https://registry.npmjs.org/@img/sharp-darwin-x64/-/sharp-darwin-x64-0.35.5.tgz",
-      "integrity": "sha512-+BR255RhDlpygUpOc/Jdt1nT6DQ3XG/ERo5wbcdOf5Q320dKtPCKPLR1LJs9VGXRaMa8l1uUa0tkCNOXiAxZUw==",
-      "license": "Apache-2.0"
-    },
-    "node_modules/@img/sharp-freebsd-wasm32": {
-      "version": "0.35.5",
-      "resolved": "https://registry.npmjs.org/@img/sharp-freebsd-wasm32/-/sharp-freebsd-wasm32-0.35.5.tgz",
-      "integrity": "sha512-Y/z91nEZ4uIBX5X3nfTovjU9lHNKFYbL2lpHCLVNmXQK03VIZvXBBt0KxbPGp2SdGSF+2mQU4e+hQaWOt86iAw==",
-      "license": "Apache-2.0"
-    },
-    "node_modules/@img/sharp-libvips-darwin-arm64": {
-      "version": "1.3.4",
-      "resolved": "https://registry.npmjs.org/@img/sharp-libvips-darwin-arm64/-/sharp-libvips-darwin-arm64-1.3.4.tgz",
-      "integrity": "sha512-5R89nBYiRdUlSWJxPhO+GVtaXzXSxKnRu/xqMn3KTA3L9EB9Oy/P+Nn2f2vlhPuUdy/Zusb2DarbyTpGCfEDuw==",
-      "license": "LGPL-3.0-or-later"
-    },
-    "node_modules/@img/sharp-libvips-darwin-x64": {
-      "version": "1.3.4",
-      "resolved": "https://registry.npmjs.org/@img/sharp-libvips-darwin-x64/-/sharp-libvips-darwin-x64-1.3.4.tgz",
-      "integrity": "sha512-iR2OKH80yi0U+dUplyh3/xdpFvps6YkCwsXenIJxqxR1v9o+xtKTGbS9H7cps+2Vxjc8B1j96p75NmTGjIhtpQ==",
-      "license": "LGPL-3.0-or-later"
-    },
-    "node_modules/@img/sharp-libvips-linux-arm": {
-      "version": "1.3.4",
-      "resolved": "https://registry.npmjs.org/@img/sharp-libvips-linux-arm/-/sharp-libvips-linux-arm-1.3.4.tgz",
-      "integrity": "sha512-LmRtTsOHuvM2+wlO2Db37dx5MiZhB0FvSunciw48YjdOkZz9KAiRbm8ujeMOA1INqmei5NapFxYEK1D1ZSidmw==",
-      "license": "LGPL-3.0-or-later"
-    },
-    "node_modules/@img/sharp-libvips-linux-arm64": {
-      "version": "1.3.4",
-      "resolved": "https://registry.npmjs.org/@img/sharp-libvips-linux-arm64/-/sharp-libvips-linux-arm64-1.3.4.tgz",
-      "integrity": "sha512-Y3dgX/6lE2QhQb+Gxy0WZxfg9MEm/JBjamZpS2IklP7xIQoKN4hzAm7KcMVGtaVDt3neE9OKBC7vAfonA/Lr1A==",
-      "license": "LGPL-3.0-or-later"
-    },
-    "node_modules/@img/sharp-libvips-linux-ppc64": {
-      "version": "1.3.4",
-      "resolved": "https://registry.npmjs.org/@img/sharp-libvips-linux-ppc64/-/sharp-libvips-linux-ppc64-1.3.4.tgz",
-      "integrity": "sha512-Le6boB8Tai0Nis+gIxIpKx68UDVVIqdR8Tin5Yf1z2LJJQLDJvCDRqRu+jC2qCoD+eIomonmOwB4smBRxfVpYQ==",
-      "license": "LGPL-3.0-or-later"
-    },
-    "node_modules/@img/sharp-libvips-linux-riscv64": {
-      "version": "1.3.4",
-      "resolved": "https://registry.npmjs.org/@img/sharp-libvips-linux-riscv64/-/sharp-libvips-linux-riscv64-1.3.4.tgz",
-      "integrity": "sha512-aHkkIEHPRdQEegJN20MLmGtxYD9R2wQr3Cwpddnu5+YKMt6Uzax7S9h5gpZTo8wyrGuZSlfQ63OevL5mTyOC7Q==",
-      "license": "LGPL-3.0-or-later"
-    },
-    "node_modules/@img/sharp-libvips-linux-s390x": {
-      "version": "1.3.4",
-      "resolved": "https://registry.npmjs.org/@img/sharp-libvips-linux-s390x/-/sharp-libvips-linux-s390x-1.3.4.tgz",
-      "integrity": "sha512-ra/mB6MikESDUO7Yg+Mi95bFBb9GsObURuhnOv3OqknjGe9sZrG8tCe9q0xSIGrtLgvgw0gKnFWcK4blSgQOuQ==",
-      "license": "LGPL-3.0-or-later"
-    },
-    "node_modules/@img/sharp-libvips-linux-x64": {
-      "version": "1.3.4",
-      "resolved": "https://registry.npmjs.org/@img/sharp-libvips-linux-x64/-/sharp-libvips-linux-x64-1.3.4.tgz",
-      "integrity": "sha512-GJ//SSXbnwSDes02umB3nDJLFcQzw8a18V8fyhqr6tV515tOEMdImjjxj1AoafMRz56F3PHgftnj1QEKSU1zkw==",
-      "license": "LGPL-3.0-or-later"
-    },
-    "node_modules/@img/sharp-libvips-linuxmusl-arm64": {
-      "version": "1.3.4",
-      "resolved": "https://registry.npmjs.org/@img/sharp-libvips-linuxmusl-arm64/-/sharp-libvips-linuxmusl-arm64-1.3.4.tgz",
-      "integrity": "sha512-hvulFwtjUcagsis6BBxHwGFwWoNZjgYmULGVrZcyfNbjA8hKILbRxGg15/7w5HDyXHXUos/j6baAWqnCyQ2DWA==",
-      "license": "LGPL-3.0-or-later"
-    },
-    "node_modules/@img/sharp-libvips-linuxmusl-x64": {
-      "version": "1.3.4",
-      "resolved": "https://registry.npmjs.org/@img/sharp-libvips-linuxmusl-x64/-/sharp-libvips-linuxmusl-x64-1.3.4.tgz",
-      "integrity": "sha512-6zXKeE/p39I1AmA3cJG35eyBGNqNddLnUXjhwBnsGjFPWqf5VKkDBEqaEkPDoTEtkxwi2vv8Tcr2mDyP4So7Fg==",
-      "license": "LGPL-3.0-or-later"
-    },
-    "node_modules/@img/sharp-linux-arm": {
-      "version": "0.35.5",
-      "resolved": "https://registry.npmjs.org/@img/sharp-linux-arm/-/sharp-linux-arm-0.35.5.tgz",
-      "integrity": "sha512-LEaXK2WdXVK5ykcw0buWyPMsmLLL2vpHLD6yrNSW+JGEL3BZPA4tpKN6iaMc4AxTTAoaX/sU1rOL51lcIz48ZQ==",
-      "license": "Apache-2.0"
-    },
-    "node_modules/@img/sharp-linux-arm64": {
-      "version": "0.35.5",
-      "resolved": "https://registry.npmjs.org/@img/sharp-linux-arm64/-/sharp-linux-arm64-0.35.5.tgz",
-      "integrity": "sha512-LYVx5JTsOM2CBzmxreh+nl64/3H6Xb09iSLknqH47z2T2DFFxDeFLP5y4dJwe6H7uGQlHPyEEtIqyo3DYsRwdQ==",
-      "license": "Apache-2.0"
-    },
-    "node_modules/@img/sharp-linux-ppc64": {
-      "version": "0.35.5",
-      "resolved": "https://registry.npmjs.org/@img/sharp-linux-ppc64/-/sharp-linux-ppc64-0.35.5.tgz",
-      "integrity": "sha512-QVxAAq8evVRI9ia2vqgwrmWucn5Dfv+JdWzj75pD8omHLPSP7f8p20O8jxzjCcuCEQEOtYOZUmX1hkiZ0kdevA==",
-      "license": "Apache-2.0"
-    },
-    "node_modules/@img/sharp-linux-riscv64": {
-      "version": "0.35.5",
-      "resolved": "https://registry.npmjs.org/@img/sharp-linux-riscv64/-/sharp-linux-riscv64-0.35.5.tgz",
-      "integrity": "sha512-LtdreXguaavKODPIfzJ4kffx7UNt1omwtK0rch4EBbbSTXPnxWmYSayXdLJw0fJzQ97kHt1gL/yh4tvU+nCyRQ==",
-      "license": "Apache-2.0"
-    },
-    "node_modules/@img/sharp-linux-s390x": {
-      "version": "0.35.5",
-      "resolved": "https://registry.npmjs.org/@img/sharp-linux-s390x/-/sharp-linux-s390x-0.35.5.tgz",
-      "integrity": "sha512-UZasTOFiYzotTsGOCu42BfUzP6Tu6Do/947iRm1RsLKvlllxwGcn4RN27LibGWceix4Y+Pmw3jsnTcCQIgWjqA==",
-      "license": "Apache-2.0"
-    },
-    "node_modules/@img/sharp-linux-x64": {
-      "version": "0.35.5",
-      "resolved": "https://registry.npmjs.org/@img/sharp-linux-x64/-/sharp-linux-x64-0.35.5.tgz",
-      "integrity": "sha512-SxFtLTeJInhAA9Q836kux2vZNeOBQEx658qvbboZScr0wIARym3IcGmW7KpVD5sbVg0Ojy+udFQdayYIZyoNog==",
-      "license": "Apache-2.0"
-    },
-    "node_modules/@img/sharp-linuxmusl-arm64": {
-      "version": "0.35.5",
-      "resolved": "https://registry.npmjs.org/@img/sharp-linuxmusl-arm64/-/sharp-linuxmusl-arm64-0.35.5.tgz",
-      "integrity": "sha512-9HbMclmI1zlNkFRs3z9/eBtDjfD0sGlrX1z6b1qwmiFY5ElDLh4BC0LPBdVp7z1DXFiKlIcznf+ZlsuZzLxQqg==",
-      "license": "Apache-2.0"
-    },
-    "node_modules/@img/sharp-linuxmusl-x64": {
-      "version": "0.35.5",
-      "resolved": "https://registry.npmjs.org/@img/sharp-linuxmusl-x64/-/sharp-linuxmusl-x64-0.35.5.tgz",
-      "integrity": "sha512-4KOphqB035HrVdqLZfCgMzzERrQkkzOwRhl4OAkRO1YCldbaFjySXMaK534Mo0V+LndnlJk+sbUyLeU0ULyD1A==",
-      "license": "Apache-2.0"
-    },
-    "node_modules/@img/sharp-wasm32": {
-      "version": "0.35.5",
-      "resolved": "https://registry.npmjs.org/@img/sharp-wasm32/-/sharp-wasm32-0.35.5.tgz",
-      "integrity": "sha512-Ptsga1su4tQx+LLF1ECS9U6nz5kmrXKo6XVbtR48Ke3ZRxxgaWBu7IDtEe1quo8hiupwm6WFqxVlXaSf7IINGQ==",
-      "license": "Apache-2.0 AND LGPL-3.0-or-later AND MIT"
-    },
-    "node_modules/@img/sharp-webcontainers-wasm32": {
-      "version": "0.35.5",
-      "resolved": "https://registry.npmjs.org/@img/sharp-webcontainers-wasm32/-/sharp-webcontainers-wasm32-0.35.5.tgz",
-      "integrity": "sha512-hfhF/FmoQyTUkA0bIKFOtw536BQSeBMe6BF6QyWlrPxT754+TFLaZ7sKKTfvvM0yJgKgaYTwnFCIZ/GuDw5SUA==",
-      "license": "Apache-2.0"
-    },
-    "node_modules/@img/sharp-win32-arm64": {
-      "version": "0.35.5",
-      "resolved": "https://registry.npmjs.org/@img/sharp-win32-arm64/-/sharp-win32-arm64-0.35.5.tgz",
-      "integrity": "sha512-X4t7g+7ZA5DKblCBEXGjUqqemj4vczING/5viFwAL8h4N3qYeyjwdCvRLHi4EdOUI+2Z7UFlp1VM+p/AuEtm6Q==",
-      "license": "Apache-2.0 AND LGPL-3.0-or-later"
-    },
-    "node_modules/@img/sharp-win32-ia32": {
-      "version": "0.35.5",
-      "resolved": "https://registry.npmjs.org/@img/sharp-win32-ia32/-/sharp-win32-ia32-0.35.5.tgz",
-      "integrity": "sha512-5Zm82LoBc43nhwNybZlG7Y1KO//Zhsn306fQl29ZOuStHLGTo3BWL83q3cznX0poxSAMuYL1On/BHBxkBeKr6A==",
-      "license": "Apache-2.0 AND LGPL-3.0-or-later"
-    },
-    "node_modules/@img/sharp-win32-x64": {
-      "version": "0.35.5",
-      "resolved": "https://registry.npmjs.org/@img/sharp-win32-x64/-/sharp-win32-x64-0.35.5.tgz",
-      "integrity": "sha512-x76eH0vEiHlcMQu8Y8IenntaACtddpT6W0wmXtWrnKcnKI7ME5DdgqhAD6SEWOEl1v2zDvkZDhFA9KnURwpfqg==",
-      "license": "Apache-2.0 AND LGPL-3.0-or-later"
-    },
-    "node_modules/@jridgewell/resolve-uri": {
-      "version": "3.1.2",
-      "resolved": "https://registry.npmjs.org/@jridgewell/resolve-uri/-/resolve-uri-3.1.2.tgz",
-      "integrity": "sha512-bRISgCIjP20/tbWSPWMEi54QVPRZExkuD9lJL+UIxUKtwVJA8wW1Trb1jMs1RFXo1CBTNZ/5hpC9QvmKWdopKw==",
-      "license": "MIT"
-    },
-    "node_modules/@jridgewell/sourcemap-codec": {
-      "version": "1.6.0",
-      "resolved": "https://registry.npmjs.org/@jridgewell/sourcemap-codec/-/sourcemap-codec-1.6.0.tgz",
-      "integrity": "sha512-T7jf+5zgsZHwNJ4lvQ7/aezbyk0nNX+zJVWpmHA7VYsEx7a7qr5Rg5IbtJFqkgze5Y2sruq1RUY8Q837Od7iFw==",
-      "license": "MIT"
-    },
-    "node_modules/@poppinss/colors": {
-      "version": "4.1.6",
-      "resolved": "https://registry.npmjs.org/@poppinss/colors/-/colors-4.1.6.tgz",
-      "integrity": "sha512-H9xkIdFswbS8n1d6vmRd8+c10t2Qe+rZITbbDHHkQixH5+2x1FDGmi/0K+WgWiqQFKPSlIYB7jlH6Kpfn6Fleg==",
-      "license": "MIT"
-    },
-    "node_modules/@poppinss/dumper": {
-      "version": "0.6.5",
-      "resolved": "https://registry.npmjs.org/@poppinss/dumper/-/dumper-0.6.5.tgz",
-      "integrity": "sha512-NBdYIb90J7LfOI32dOewKI1r7wnkiH6m920puQ3qHUeZkxNkQiFnXVWoE6YtFSv6QOiPPf7ys6i+HWWecDz7sw==",
-      "license": "MIT"
-    },
-    "node_modules/@poppinss/exception": {
-      "version": "1.2.3",
-      "resolved": "https://registry.npmjs.org/@poppinss/exception/-/exception-1.2.3.tgz",
-      "integrity": "sha512-dCED+QRChTVatE9ibtoaxc+WkdzOSjYTKi/+uacHWIsfodVfpsueo3+DKpgU5Px8qXjgmXkSvhXvSCz3fnP9lw==",
-      "license": "MIT"
-    },
-    "node_modules/@sindresorhus/is": {
-      "version": "7.2.0",
-      "resolved": "https://registry.npmjs.org/@sindresorhus/is/-/is-7.2.0.tgz",
-      "integrity": "sha512-P1Cz1dWaFfR4IR+U13mqqiGsLFf1KbayybWwdd2vfctdV6hDpUkgCY0nKOLLTMSoRd/jJNjtbqzf13K8DCCXQw==",
-      "license": "MIT"
-    },
-    "node_modules/@speed-highlight/core": {
-      "version": "1.2.24",
-      "resolved": "https://registry.npmjs.org/@speed-highlight/core/-/core-1.2.24.tgz",
-      "integrity": "sha512-qeW2e1l78afw8VhRPfPQ1Gjj+KU5XFQ/OFV5ti6eTa9bruO7mJyZtA4vw0ofqmA3tKCkROE9xLk3VZoeRc98nw==",
-      "license": "CC0-1.0"
-    },
-    "node_modules/@types/node": {
-      "version": "24.13.5",
-      "resolved": "https://registry.npmjs.org/@types/node/-/node-24.13.5.tgz",
-      "integrity": "sha512-TXyindR+lBr22aJIdMQzCFHPHR6cR4js838mRDCSz5hOKWZvZwsXSSiXDmjRj4iJmgl+sR9O+1mkoVBSMadNug==",
-      "license": "MIT"
-    },
-    "node_modules/@typescript/typescript-aix-ppc64": {
-      "version": "7.0.2",
-      "resolved": "https://registry.npmjs.org/@typescript/typescript-aix-ppc64/-/typescript-aix-ppc64-7.0.2.tgz",
-      "integrity": "sha512-MTKKkWB7p/0E9xi1d1tHtZ5PiLkGEMIq88pK2CubZjOsLtYTLqhgIgi6zepFa+9GHZ6h05NMCkQxGKiPXMxXtQ==",
-      "license": "Apache-2.0"
-    },
-    "node_modules/@typescript/typescript-darwin-arm64": {
-      "version": "7.0.2",
-      "resolved": "https://registry.npmjs.org/@typescript/typescript-darwin-arm64/-/typescript-darwin-arm64-7.0.2.tgz",
-      "integrity": "sha512-gowzar9MwS/aRWp6f3a4KUqzRjAZjOsmGNCM6LcTgXum+dBfgsBVMN+AgvOCCbguXyick6LJhpBszxMebJ8syA==",
-      "license": "Apache-2.0"
-    },
-    "node_modules/@typescript/typescript-darwin-x64": {
-      "version": "7.0.2",
-      "resolved": "https://registry.npmjs.org/@typescript/typescript-darwin-x64/-/typescript-darwin-x64-7.0.2.tgz",
-      "integrity": "sha512-SZ9xZInqApNlNGc9s0W1VSsktYSOe9cFqNOIqmN1Gs8SmkjKZYFt017G4VwPxASInODuAdbTW7sXiFUf893RgA==",
-      "license": "Apache-2.0"
-    },
-    "node_modules/@typescript/typescript-freebsd-arm64": {
-      "version": "7.0.2",
-      "resolved": "https://registry.npmjs.org/@typescript/typescript-freebsd-arm64/-/typescript-freebsd-arm64-7.0.2.tgz",
-      "integrity": "sha512-W5NH4y/J0plIIS5b2xvTEkU7JFxyqdMAOgf+Ilhl0vHQXKO5dZoxd+C/jEtq56c4F3wk71RB4BMRQ2XdI+bwYQ==",
-      "license": "Apache-2.0"
-    },
-    "node_modules/@typescript/typescript-freebsd-x64": {
-      "version": "7.0.2",
-      "resolved": "https://registry.npmjs.org/@typescript/typescript-freebsd-x64/-/typescript-freebsd-x64-7.0.2.tgz",
-      "integrity": "sha512-UMGDx5sTpzNw3WiPebH7l90IWfJggEd+egHt/q6p7/Cm3zqoV7VxkGXt+3DxPIw8CcmvAB0j3sVVfbhX+M4Tpw==",
-      "license": "Apache-2.0"
-    },
-    "node_modules/@typescript/typescript-linux-arm": {
-      "version": "7.0.2",
-      "resolved": "https://registry.npmjs.org/@typescript/typescript-linux-arm/-/typescript-linux-arm-7.0.2.tgz",
-      "integrity": "sha512-gffT3xPz9sR7j/YJExkyPntrI0P2EP9XbOyWzth2/Gs0RstK+90RBcO0ncXoXy/beYll1SXw846Nf2zdnEz0QQ==",
-      "license": "Apache-2.0"
-    },
-    "node_modules/@typescript/typescript-linux-arm64": {
-      "version": "7.0.2",
-      "resolved": "https://registry.npmjs.org/@typescript/typescript-linux-arm64/-/typescript-linux-arm64-7.0.2.tgz",
-      "integrity": "sha512-Qh4eU4/y3yDjnfjjyPYihMj5/ODIlmt+Bzu17OI+fiSRDW57QmU5SiN63exPRNJPKUzcc1INa1NXdrJ+MqHjUQ==",
-      "license": "Apache-2.0"
-    },
-    "node_modules/@typescript/typescript-linux-loong64": {
-      "version": "7.0.2",
-      "resolved": "https://registry.npmjs.org/@typescript/typescript-linux-loong64/-/typescript-linux-loong64-7.0.2.tgz",
-      "integrity": "sha512-uEHck9i8hoAzXPiYRib1O7miOnz23SxIeVl6F4LXox+qov1K35jHcEW6VHKvZI+pyvl7fZEP4MCU5LYvIq1GuQ==",
-      "license": "Apache-2.0"
-    },
-    "node_modules/@typescript/typescript-linux-mips64el": {
-      "version": "7.0.2",
-      "resolved": "https://registry.npmjs.org/@typescript/typescript-linux-mips64el/-/typescript-linux-mips64el-7.0.2.tgz",
-      "integrity": "sha512-R4KvAMnE43W5Qeqb0Ly56O3mWMWIAgsMyz36DCaycd5nbg/9kzm0liw3JocfRqyJY0KPmzFjbswozXyW0DnIYA==",
-      "license": "Apache-2.0"
-    },
-    "node_modules/@typescript/typescript-linux-ppc64": {
-      "version": "7.0.2",
-      "resolved": "https://registry.npmjs.org/@typescript/typescript-linux-ppc64/-/typescript-linux-ppc64-7.0.2.tgz",
-      "integrity": "sha512-DORx5b3sd/4S7eayxm4FQv+A7CrkUIGRaHiwI8oiHTAI1fAPWhF4J0vAlkC8biAlHSVVwxMQ3tjZ2/DVbnQiiA==",
-      "license": "Apache-2.0"
-    },
-    "node_modules/@typescript/typescript-linux-riscv64": {
-      "version": "7.0.2",
-      "resolved": "https://registry.npmjs.org/@typescript/typescript-linux-riscv64/-/typescript-linux-riscv64-7.0.2.tgz",
-      "integrity": "sha512-wf0jqEDOjrPRnKwYRyyJDRo11KMbvMFrU+q4zqKyChODBzvlkbhNQfKvLxQCcwTpdDaXSHZTVuh0JoCrKCUMHQ==",
-      "license": "Apache-2.0"
-    },
-    "node_modules/@typescript/typescript-linux-s390x": {
-      "version": "7.0.2",
-      "resolved": "https://registry.npmjs.org/@typescript/typescript-linux-s390x/-/typescript-linux-s390x-7.0.2.tgz",
-      "integrity": "sha512-IkwJc3L7yhytWd/ewjyxNDfOmswCm9GWMJT/ue/dU4aZNbwZeYAetq42VyLmsmSjvoX7z74X6ZaYCtzAr0EuGw==",
-      "license": "Apache-2.0"
-    },
-    "node_modules/@typescript/typescript-linux-x64": {
-      "version": "7.0.2",
-      "resolved": "https://registry.npmjs.org/@typescript/typescript-linux-x64/-/typescript-linux-x64-7.0.2.tgz",
-      "integrity": "sha512-EYdf2cNg7rgCWJnxCdJ+F3V39O8ihb37eHAu1LK8oAFizgTQbPOK7zHHXbPt8rX24COqODXeI3sIf0fCXG7H/A==",
-      "license": "Apache-2.0"
-    },
-    "node_modules/@typescript/typescript-netbsd-arm64": {
-      "version": "7.0.2",
-      "resolved": "https://registry.npmjs.org/@typescript/typescript-netbsd-arm64/-/typescript-netbsd-arm64-7.0.2.tgz",
-      "integrity": "sha512-+polYF4MF04aPpO5FTkHran9yUQDSXqy5GiSDKpsll5jy3l3+g9QLhpf39T+ePtefhXLOGrLl0QIjkQP6VnelA==",
-      "license": "Apache-2.0"
-    },
-    "node_modules/@typescript/typescript-netbsd-x64": {
-      "version": "7.0.2",
-      "resolved": "https://registry.npmjs.org/@typescript/typescript-netbsd-x64/-/typescript-netbsd-x64-7.0.2.tgz",
-      "integrity": "sha512-8YIT0EHM/3dq10ZOVF/A7pc/YSMtbcecct4rWtexrnSCHOPcpC2KTLXfTCR6vDpnSiY12heNb1GiN/wu+T/FyA==",
-      "license": "Apache-2.0"
-    },
-    "node_modules/@typescript/typescript-openbsd-arm64": {
-      "version": "7.0.2",
-      "resolved": "https://registry.npmjs.org/@typescript/typescript-openbsd-arm64/-/typescript-openbsd-arm64-7.0.2.tgz",
-      "integrity": "sha512-APT8+ClYnuYm1u9+kgGXoMj2VzWzcymwh2gNSQVySHfkRDGOTVkoWLjCmOQSaO+PoqQ57B0flRp9SA+7GnnkzQ==",
-      "license": "Apache-2.0"
-    },
-    "node_modules/@typescript/typescript-openbsd-x64": {
-      "version": "7.0.2",
-      "resolved": "https://registry.npmjs.org/@typescript/typescript-openbsd-x64/-/typescript-openbsd-x64-7.0.2.tgz",
-      "integrity": "sha512-yX7s+Q0Dln0Dt9tEzZsAjXXR/+ytBM7AlglaqyeMPxQszJ1JhlJdZ6jLA+IzldHtflX81em7lDao1xXu+aRRkg==",
-      "license": "Apache-2.0"
-    },
-    "node_modules/@typescript/typescript-sunos-x64": {
-      "version": "7.0.2",
-      "resolved": "https://registry.npmjs.org/@typescript/typescript-sunos-x64/-/typescript-sunos-x64-7.0.2.tgz",
-      "integrity": "sha512-dLJDGaLZ1D4HPQn62u1n8mBDkJREwMsAkCdkwd4Ieqw+x3TUyTsqY0YiBCtE6H6OzzgGk3iuZ3vFWRS+E8/d1g==",
-      "license": "Apache-2.0"
-    },
-    "node_modules/@typescript/typescript-win32-arm64": {
-      "version": "7.0.2",
-      "resolved": "https://registry.npmjs.org/@typescript/typescript-win32-arm64/-/typescript-win32-arm64-7.0.2.tgz",
-      "integrity": "sha512-Gyl1Vy6OsWesLzmq+EP0Fb7b4Nid5232AvcA2SFcdYreldpNtYFFofPjnt62y9hQy7VTaZp65ICJjuAQRaVcIQ==",
-      "license": "Apache-2.0"
-    },
-    "node_modules/@typescript/typescript-win32-x64": {
-      "version": "7.0.2",
-      "resolved": "https://registry.npmjs.org/@typescript/typescript-win32-x64/-/typescript-win32-x64-7.0.2.tgz",
-      "integrity": "sha512-0BQ3HkAHHlKLSp1qRvf3SUhGpGsDuhB/jgFw75guyqbxJqEaS0Cw/VFO8i2nHglJUzQCRtMMR/IBAKE3ETMC4g==",
-      "license": "Apache-2.0"
-    },
-    "node_modules/blake3-wasm": {
-      "version": "2.1.5",
-      "resolved": "https://registry.npmjs.org/blake3-wasm/-/blake3-wasm-2.1.5.tgz",
-      "integrity": "sha512-F1+K8EbfOZE49dtoPtmxUQrpXaBIl3ICvasLh+nJta0xkz+9kF/7uet9fLnwKqhDrmj6g+6K3Tw9yQPUg2ka5g==",
-      "license": "MIT"
-    },
-    "node_modules/cookie": {
-      "version": "1.1.1",
-      "resolved": "https://registry.npmjs.org/cookie/-/cookie-1.1.1.tgz",
-      "integrity": "sha512-ei8Aos7ja0weRpFzJnEA9UHJ/7XQmqglbRwnf2ATjcB9Wq874VKH9kfjjirM6UhU2/E5fFYadylyhFldcqSidQ==",
-      "license": "MIT"
-    },
-    "node_modules/detect-libc": {
-      "version": "2.1.2",
-      "resolved": "https://registry.npmjs.org/detect-libc/-/detect-libc-2.1.2.tgz",
-      "integrity": "sha512-Btj2BOOO83o3WyH59e8MgXsxEQVcarkUOpEYrubB0urwnN10yQ364rsiByU11nZlqWYZm05i/of7io4mzihBtQ==",
-      "license": "Apache-2.0"
-    },
-    "node_modules/error-stack-parser-es": {
-      "version": "1.0.5",
-      "resolved": "https://registry.npmjs.org/error-stack-parser-es/-/error-stack-parser-es-1.0.5.tgz",
-      "integrity": "sha512-5qucVt2XcuGMcEGgWI7i+yZpmpByQ8J1lHhcL7PwqCwu9FPP3VUXzT4ltHe5i2z9dePwEHcDVOAfSnHsOlCXRA==",
-      "license": "MIT"
-    },
-    "node_modules/esbuild": {
-      "version": "0.28.1",
-      "resolved": "https://registry.npmjs.org/esbuild/-/esbuild-0.28.1.tgz",
-      "integrity": "sha512-HrJrvZv5ayxBzPfwphOoNzkzOIIlifzk0KJrGK2c8R4+LKpMtpYLQeUdjnwjWv/LZlkH2laZk+4w78pi99D4Vw==",
-      "license": "MIT"
-    },
-    "node_modules/fsevents": {
-      "version": "2.3.3",
-      "resolved": "https://registry.npmjs.org/fsevents/-/fsevents-2.3.3.tgz",
-      "integrity": "sha512-5xoDfX+fL7faATnagmWPpbFtwh/R77WmMMqqHGS65C3vvB0YHrgF+B1YmZ3441tMj5n63k0212XNoJwzlhffQw==",
-      "license": "MIT"
-    },
-    "node_modules/kleur": {
-      "version": "4.1.5",
-      "resolved": "https://registry.npmjs.org/kleur/-/kleur-4.1.5.tgz",
-      "integrity": "sha512-o+NO+8WrRiQEE4/7nwRJhN1HWpVmJm511pBHUxPLtp0BUISzlBplORYSmTclCnJvQq2tKu/sgl3xVpkc7ZWuQQ==",
-      "license": "MIT"
-    },
-    "node_modules/miniflare": {
-      "version": "5.20260926.1-alpha",
-      "resolved": "https://registry.npmjs.org/miniflare/-/miniflare-5.20260926.1-alpha.tgz",
-      "integrity": "sha512-vc4lgl8YVxR2aundPnVPTIcL46UQKK+ebW7yinXNE1Y9joFS0JoakMazr7r3M8DXRvaemKS8EEmszkv/b05qUw==",
-      "license": "MIT"
-    },
-    "node_modules/miniflare/node_modules/undici": {
-      "version": "7.29.1",
-      "resolved": "https://registry.npmjs.org/undici/-/undici-7.29.1.tgz",
-      "integrity": "sha512-RYONW2MeafgYlkVOKYKkA/Ag7BmXqgIWCa8t1m0JcxrQg9pI9lEqRhAOruOBCbAohOa/gkCF+iPi9hrgvTzu6Q==",
-      "license": "MIT"
-    },
-    "node_modules/path-to-regexp": {
-      "version": "6.3.0",
-      "resolved": "https://registry.npmjs.org/path-to-regexp/-/path-to-regexp-6.3.0.tgz",
-      "integrity": "sha512-Yhpw4T9C6hPpgPeA28us07OJeqZ5EzQTkbfwuhsUg0c237RomFoETJgmp2sa3F/41gfLE6G5cqcYwznmeEeOlQ==",
-      "license": "MIT"
-    },
-    "node_modules/pathe": {
-      "version": "2.0.3",
-      "resolved": "https://registry.npmjs.org/pathe/-/pathe-2.0.3.tgz",
-      "integrity": "sha512-WUjGcAqP1gQacoQe+OBJsFA7Ld4DyXuUIjZ5cc75cLHvJ7dtNsTugphxIADwspS+AraAUePCKrSVtPLFj/F88w==",
-      "license": "MIT"
-    },
-    "node_modules/semver": {
-      "version": "7.8.5",
-      "resolved": "https://registry.npmjs.org/semver/-/semver-7.8.5.tgz",
-      "integrity": "sha512-Y7/KDsb8LjooZpwaqGyulO6DQlksgCncchHGk+sZIY4SBvUocMBEFH5Ur1fI4dV+Jvl0w6cjvucaIi40puRioA==",
-      "license": "ISC"
-    },
-    "node_modules/sharp": {
-      "version": "0.35.5",
-      "resolved": "https://registry.npmjs.org/sharp/-/sharp-0.35.5.tgz",
-      "integrity": "sha512-Ywn4OnzGukp7CDMrp08RQ50YKmuwG47brZgIVPTvBaaAfQlRlygrRqSrxdCiL9M+LlzLBiJ68IR1QqvzHyjC7g==",
-      "license": "Apache-2.0"
-    },
-    "node_modules/supports-color": {
-      "version": "10.2.2",
-      "resolved": "https://registry.npmjs.org/supports-color/-/supports-color-10.2.2.tgz",
-      "integrity": "sha512-SS+jx45GF1QjgEXQx4NJZV9ImqmO2NPz5FNsIHrsDjh2YsHnawpan7SNQ1o8NuhrbHZy9AZhIoCUiCeaW/C80g==",
-      "license": "MIT"
-    },
-    "node_modules/tslib": {
-      "version": "2.8.1",
-      "resolved": "https://registry.npmjs.org/tslib/-/tslib-2.8.1.tgz",
-      "integrity": "sha512-oJFu94HQb+KVduSUQL7wnpmqnfmLsOA/nAh6b6EH0wCEoK0/mPeXU6c3wKDV83MkOuHPRHtSXKKU99IBazS/2w==",
-      "license": "0BSD"
-    },
-    "node_modules/typescript": {
-      "version": "7.0.2",
-      "resolved": "https://registry.npmjs.org/typescript/-/typescript-7.0.2.tgz",
-      "integrity": "sha512-8FYau96o3NKOhbjKi/qNvG/W5jhzxkbdm5sj9AbZ/5T5sWqn3hJgLfGx27sRKZWTvyzCP8dLRBTf5tBTSRVUNA==",
-      "license": "Apache-2.0"
-    },
-    "node_modules/undici-types": {
-      "version": "7.18.2",
-      "resolved": "https://registry.npmjs.org/undici-types/-/undici-types-7.18.2.tgz",
-      "integrity": "sha512-AsuCzffGHJybSaRrmr5eHr81mwJU3kjw6M+uprWvCXiNeN9SOGwQ3Jn8jb8m3Z6izVgknn1R0FTCEAP2QrLY/w==",
-      "license": "MIT"
-    },
-    "node_modules/unenv": {
-      "version": "2.0.0-rc.24",
-      "resolved": "https://registry.npmjs.org/unenv/-/unenv-2.0.0-rc.24.tgz",
-      "integrity": "sha512-i7qRCmY42zmCwnYlh9H2SvLEypEFGye5iRmEMKjcGi7zk9UquigRjFtTLz0TYqr0ZGLZhaMHl/foy1bZR+Cwlw==",
-      "license": "MIT"
-    },
-    "node_modules/workerd": {
-      "version": "1.20260926.1",
-      "resolved": "https://registry.npmjs.org/workerd/-/workerd-1.20260926.1.tgz",
-      "integrity": "sha512-YojhsWBuZwk3Jk9OC0QfTgVbLeQOD1tK1olC9ZXAUcmeip8z4NE/xtttpxCsuTvQBRqppvy7Tkac0kxPYMjIXA==",
-      "license": "Apache-2.0"
-    },
-    "node_modules/wrangler": {
-      "version": "4.143.1",
-      "resolved": "https://registry.npmjs.org/wrangler/-/wrangler-4.143.1.tgz",
-      "integrity": "sha512-ilQJRMRcMgdk82XWIg7hlgeB1I2CoOWmSiJeoqZufoNCWUiJTN5DaYPYb6M/oIXBXk3+IQIxNDgdtPUuxcxdeg==",
-      "license": "MIT OR Apache-2.0"
-    },
-    "node_modules/ws": {
-      "version": "8.21.0",
-      "resolved": "https://registry.npmjs.org/ws/-/ws-8.21.0.tgz",
-      "integrity": "sha512-Vsp28b7DRcimFQvrqu2Wek3z1iYxDCWqHYB8Qsnk/S4RfaCQzPGPyBNuVjJV3cd6UiKtUtp6sNM77gWvzcCH+g==",
-      "license": "MIT"
-    },
-    "node_modules/youch": {
-      "version": "4.1.0-beta.10",
-      "resolved": "https://registry.npmjs.org/youch/-/youch-4.1.0-beta.10.tgz",
-      "integrity": "sha512-rLfVLB4FgQneDr0dv1oddCVZmKjcJ6yX6mS4pU82Mq/Dt9a3cLZQ62pDBL4AUO+uVrCvtWz3ZFUL2HFAFJ/BXQ==",
-      "license": "MIT"
-    },
-    "node_modules/youch-core": {
-      "version": "0.3.3",
-      "resolved": "https://registry.npmjs.org/youch-core/-/youch-core-0.3.3.tgz",
-      "integrity": "sha512-ho7XuGjLaJ2hWHoK8yFnsUGy2Y5uDpqSTq1FkHLK4/oqKtyUU1AFbOOxY4IpC9f0fTLjwYbslUz0Po5BpD1wrA==",
-      "license": "MIT"
-    }
+  "packages": {
+    "@cloudflare/kv-asset-handler@0.5.0": "sha512-jxQYkj8dSIzc0cD6cMMNdOc1UVjqSqu8BZdor5s8cGjW2I8BjODt/kWPVdY+u9zj3ms75Q5qaZgnxUad83+eAg==",
+    "@cloudflare/unenv-preset@2.16.2": "sha512-JBP1+Z7ZSNG/d4mRP+y8VC5dka3tZVMLEZRvS+rzQ4DGV1EoxRFQckcJTTkXbHSQiTj0DtNI01Zwb/V2fX0mvQ==",
+    "@cloudflare/workerd-darwin-64@1.20260926.1": "sha512-VCIpwgJu5Dm1o+VHLclNOKIdpttEqss7oDHS5DYxgVoonM9Dxxxr1xCQvJbh6IXFuQ1DDrbm5krjte5NsTgX3Q==",
+    "@cloudflare/workerd-darwin-arm64@1.20260926.1": "sha512-oVuLXfCnr1Xu9sBMNYrEPcFZQNMcviNcacz9l+oqQiLHc5UrVp++lpKbsuWstCfh+/c39Pp37TVeaNBLA8+ReA==",
+    "@cloudflare/workerd-linux-64@1.20260926.1": "sha512-BjmiDvYBVBG5248gCHSZS3yONbcm3/3qKTu9RaQA8o7jQHJfXx9JnWbhkld2KsbXnRGEGHFwpLLidIpIGtQYUA==",
+    "@cloudflare/workerd-linux-arm64@1.20260926.1": "sha512-28bdfQDIFcpaKXMPisADy8BchpIsX+tEAhD+bhfEBXukFGFr8F3ouyiG3HzN3CqAh/OYvifJizzFZtptUPCy7w==",
+    "@cloudflare/workerd-windows-64@1.20260926.1": "sha512-ehdL3ataKdEmlnW9oom6OZUR8n3XsTL/zl8+KGREpLi5sMSW0mek0PrF4wK9SX51f3Alnlu8tF8eKBg+mc3xFw==",
+    "@cspotcode/source-map-support@0.8.1": "sha512-IchNf6dN4tHoMFIn/7OE8LWZ19Y6q/67Bmf6vnGREv8RSbBVb9LPJxEcnwrcwX6ixSvaiGoomAUvu4YSxXrVgw==",
+    "@jridgewell/trace-mapping@0.3.9": "sha512-3Belt6tdc8bPgAtbcmdtNJlirVoTmEb5e2gC94PnkwEW9jI6CAHUeoG85tjWP5WquqfavoMtMwiG4P926ZKKuQ==",
+    "@emnapi/runtime@1.11.3": "sha512-Xz4Tpyki7XyrpbUK1jR1AhdAdaXyhhY4lZ3neLodmhpuWfy2PAQN5B46sAiU4liOXGLkHypn/qU+jvfWSCYYLA==",
+    "@esbuild/aix-ppc64@0.28.1": "sha512-Svl7tq8k/08+p6CXPpRjQ1fKX+1odH/BQbb48fV6fj3CWHhsoIOoY87w1oHXm0qEpkIK3ZfVgp0hed3XBXzXMQ==",
+    "@esbuild/android-arm@0.28.1": "sha512-0k2F129Xdio1TdJfzJ8sy1Q47vUD2NnwdhiAf7drUN1EBTfPf4hsFCtmMgu/6m8JSzsBrlmVjudMBQqOfG8usQ==",
+    "@esbuild/android-arm64@0.28.1": "sha512-34EGEbCIAgosYz6goLcopX6Mo7NyGv9tfwEM2/7Ce2VcVRk568iSvniGWcUXIy7wEDR1wzolcxcriFVrWYcwBg==",
+    "@esbuild/android-x64@0.28.1": "sha512-dbwY7ltSMDWsRatcRpCnES4F+im88OCUgGZjy52shC7GqHRE/cYlxNbB4Z4UpJswpcc4Qxd2oE/ufM0p61IKng==",
+    "@esbuild/darwin-arm64@0.28.1": "sha512-TZbWkQY7kvTAXbXUT7uVACR5cMHsDiSz9z7ZKAX/RTq/WJEk3QyRr0wZpNhBDX+/0CtdqUIJlOiodQcta6tY3Q==",
+    "@esbuild/darwin-x64@0.28.1": "sha512-zfdzgK9ACBNZLI/CyHTOx81SyNbM6YXn7rxSgX97VjyiPl9W1i4Ka4fgKECEoFCKGpvBj5qArWIGgQjOwkgskQ==",
+    "@esbuild/freebsd-arm64@0.28.1": "sha512-wG2EA8ENdEI0qhkSZMjfqrdY+ziCYCPMmtZjjIwOmXFjmyzEHn+UUxk5of+SYsjtfs3VpnlC7QLzSI5hY/rOAw==",
+    "@esbuild/freebsd-x64@0.28.1": "sha512-i7dZ9vQgnvSCzi/rYCXNgtF/U+eKZNJBzu3eTQbRgHnM7tNSizLOkRFAl3qzVc/Op/u5YkHHa4pf/3DOYHthLQ==",
+    "@esbuild/linux-arm@0.28.1": "sha512-qVXBOHQS+d5Y722GwJzJUtOLlX7km3CraOaGormF1pDtPd2C/l1SHRPgjLunLGe51Sh5YYWKMFDyV4SxgMQYTQ==",
+    "@esbuild/linux-arm64@0.28.1": "sha512-yHs+0uc8+nvEAfAfxrWQKK5peSNzBc4PegcMO0EJ2hT71uA7vB8Ihg2e77R2P7SG5uYjPbHlLLmve4LLLRCf0g==",
+    "@esbuild/linux-ia32@0.28.1": "sha512-d1z4ZuP0ajrfz/FhGT4vv278rX8KnPPJx8i5+AtK7TYbx9Le9F1hyzurZpkEyjkGa9dUGhQow4C1NmeGvqxN2w==",
+    "@esbuild/linux-loong64@0.28.1": "sha512-M5sRjUVZrkm1OAPR3dlOYzNmN+loZKGVi1VUQGrwuqLcbR6qeAz+famMhjASeH3YVKvZz+zT1jlh/keC3Rj/lg==",
+    "@esbuild/linux-mips64el@0.28.1": "sha512-mRObBZeHh2OxcBFPWE/FjylkRgZdYuiTR3vaTozquCGOH14iP9oN4x4Ge81CoIDYQrXmIxpFumJBu5MtZpnQJQ==",
+    "@esbuild/linux-ppc64@0.28.1": "sha512-slScBsMAb3GFDcdrCgLwZtPYRoH2H/youv10QiZyRjmsP48fznoveWytSgCI/R0ZcUgpc0ZhIUEx6LHts8yrfQ==",
+    "@esbuild/linux-riscv64@0.28.1": "sha512-kw0owk1o0GFETUJyW0jc0G4Yzs0BHZn0JDZ8JRT088vjJYX777BAs1fDGxAC+q831qOs2DTC96mNsG2opdfyyQ==",
+    "@esbuild/linux-s390x@0.28.1": "sha512-/lAIjX8aYFRByhh6L5rYtPEDRqa9de/4V/juOXcta5frjvzXO4/sqEtyytse0g3zZFuWu5cDN0MkLz2qRDD2Ag==",
+    "@esbuild/linux-x64@0.28.1": "sha512-u/anNYF2mmVOEDwLtnQ1wOr3EZ9sTNGLWrsYGYwHWzGA3Si84IOkHXlbWTD1NB+9/1lcnweYKO54uhxZydNzfA==",
+    "@esbuild/netbsd-arm64@0.28.1": "sha512-oks0DYbLwWMmaakTsCb+zL4E+aHRVLom9IJZOAthMQEPiQmydXHkziYEsGYRx0uNV/IjEKGAV941JzH02pflqw==",
+    "@esbuild/netbsd-x64@0.28.1": "sha512-aeL6lAnN89Hz43Mlh1G8ARasbuoYvSITDEx0tHh5b7jJnHcssqgjy9Yx430GDpmCa6OyrKoS0aNRjKundRizGg==",
+    "@esbuild/openbsd-arm64@0.28.1": "sha512-MEFJe5C3R8pwXdZ5Y21oo6m7ePiS0d9pWucn99O/wvyJZChoIQKrQDxKrGeW8F5+T0okTHesAmDeiHDTIq0V/Q==",
+    "@esbuild/openbsd-x64@0.28.1": "sha512-i/ZLIOafE0Z8cI/XANJAixoJL/uRAoS2xOA3rb0xN+KK0K177cMAsQYkzHtBrtMXAKuAc7HGgcWiZ/sRC1Nxgw==",
+    "@esbuild/openharmony-arm64@0.28.1": "sha512-ge+Z7EXFNt2BO1oAMsVpiQ8EwndV9i1xXerAeTIK7AtPs3bKFXQM7nlRxDSIUIMeueR1CNXxqztLzdNeReKBJg==",
+    "@esbuild/sunos-x64@0.28.1": "sha512-BEjgtECkL3vY+SaSQ6nzVfiALUeFxpawyp8Jmf5PtYhf1Ug40N1h/hxlhts+f1FvSvarEigdxS3BlSMI2PJLcQ==",
+    "@esbuild/win32-arm64@0.28.1": "sha512-lCv9eK/H6ZJWbE7bh2nw54CZ9M2nupBxJcTsdk/QQnWkdSjKGuxmmH8/GWrlT1eMmZfn4dGcCjRte397WqfQXA==",
+    "@esbuild/win32-ia32@0.28.1": "sha512-zvb/mB2bSCoJOpoCBgYKKpX6YM6mJBlBUVUtVj41DlZJVEB6/0CKlRYxP5wWl1C1ILiCoAU5wZZ4q1P3qeS6Eg==",
+    "@esbuild/win32-x64@0.28.1": "sha512-bm4Mowrv+GXMlpWX++EcXw/iLyd1o3+bJkC2DkWXYVvgZCqD/bSj9ctZeAMC3cIxgjRVR2Dufaiu4YPxr5gW1A==",
+    "@img/colour@1.1.0": "sha512-Td76q7j57o/tLVdgS746cYARfSyxk8iEfRxewL9h4OMzYhbW4TAcppl0mT4eyqXddh6L/jwoM75mo7ixa/pCeQ==",
+    "@img/sharp-darwin-arm64@0.35.5": "sha512-QRUlFQ0WxvdWyqqG/WtI3iupfD5rBzmCHXSdPsY91sAtVtTo7Q4cb6zOccZ3gqEqkr0f1As1ehLqmEpDsRf+lg==",
+    "@img/sharp-darwin-x64@0.35.5": "sha512-+BR255RhDlpygUpOc/Jdt1nT6DQ3XG/ERo5wbcdOf5Q320dKtPCKPLR1LJs9VGXRaMa8l1uUa0tkCNOXiAxZUw==",
+    "@img/sharp-freebsd-wasm32@0.35.5": "sha512-Y/z91nEZ4uIBX5X3nfTovjU9lHNKFYbL2lpHCLVNmXQK03VIZvXBBt0KxbPGp2SdGSF+2mQU4e+hQaWOt86iAw==",
+    "@img/sharp-libvips-darwin-arm64@1.3.4": "sha512-5R89nBYiRdUlSWJxPhO+GVtaXzXSxKnRu/xqMn3KTA3L9EB9Oy/P+Nn2f2vlhPuUdy/Zusb2DarbyTpGCfEDuw==",
+    "@img/sharp-libvips-darwin-x64@1.3.4": "sha512-iR2OKH80yi0U+dUplyh3/xdpFvps6YkCwsXenIJxqxR1v9o+xtKTGbS9H7cps+2Vxjc8B1j96p75NmTGjIhtpQ==",
+    "@img/sharp-libvips-linux-arm@1.3.4": "sha512-LmRtTsOHuvM2+wlO2Db37dx5MiZhB0FvSunciw48YjdOkZz9KAiRbm8ujeMOA1INqmei5NapFxYEK1D1ZSidmw==",
+    "@img/sharp-libvips-linux-arm64@1.3.4": "sha512-Y3dgX/6lE2QhQb+Gxy0WZxfg9MEm/JBjamZpS2IklP7xIQoKN4hzAm7KcMVGtaVDt3neE9OKBC7vAfonA/Lr1A==",
+    "@img/sharp-libvips-linux-ppc64@1.3.4": "sha512-Le6boB8Tai0Nis+gIxIpKx68UDVVIqdR8Tin5Yf1z2LJJQLDJvCDRqRu+jC2qCoD+eIomonmOwB4smBRxfVpYQ==",
+    "@img/sharp-libvips-linux-riscv64@1.3.4": "sha512-aHkkIEHPRdQEegJN20MLmGtxYD9R2wQr3Cwpddnu5+YKMt6Uzax7S9h5gpZTo8wyrGuZSlfQ63OevL5mTyOC7Q==",
+    "@img/sharp-libvips-linux-s390x@1.3.4": "sha512-ra/mB6MikESDUO7Yg+Mi95bFBb9GsObURuhnOv3OqknjGe9sZrG8tCe9q0xSIGrtLgvgw0gKnFWcK4blSgQOuQ==",
+    "@img/sharp-libvips-linux-x64@1.3.4": "sha512-GJ//SSXbnwSDes02umB3nDJLFcQzw8a18V8fyhqr6tV515tOEMdImjjxj1AoafMRz56F3PHgftnj1QEKSU1zkw==",
+    "@img/sharp-libvips-linuxmusl-arm64@1.3.4": "sha512-hvulFwtjUcagsis6BBxHwGFwWoNZjgYmULGVrZcyfNbjA8hKILbRxGg15/7w5HDyXHXUos/j6baAWqnCyQ2DWA==",
+    "@img/sharp-libvips-linuxmusl-x64@1.3.4": "sha512-6zXKeE/p39I1AmA3cJG35eyBGNqNddLnUXjhwBnsGjFPWqf5VKkDBEqaEkPDoTEtkxwi2vv8Tcr2mDyP4So7Fg==",
+    "@img/sharp-linux-arm@0.35.5": "sha512-LEaXK2WdXVK5ykcw0buWyPMsmLLL2vpHLD6yrNSW+JGEL3BZPA4tpKN6iaMc4AxTTAoaX/sU1rOL51lcIz48ZQ==",
+    "@img/sharp-linux-arm64@0.35.5": "sha512-LYVx5JTsOM2CBzmxreh+nl64/3H6Xb09iSLknqH47z2T2DFFxDeFLP5y4dJwe6H7uGQlHPyEEtIqyo3DYsRwdQ==",
+    "@img/sharp-linux-ppc64@0.35.5": "sha512-QVxAAq8evVRI9ia2vqgwrmWucn5Dfv+JdWzj75pD8omHLPSP7f8p20O8jxzjCcuCEQEOtYOZUmX1hkiZ0kdevA==",
+    "@img/sharp-linux-riscv64@0.35.5": "sha512-LtdreXguaavKODPIfzJ4kffx7UNt1omwtK0rch4EBbbSTXPnxWmYSayXdLJw0fJzQ97kHt1gL/yh4tvU+nCyRQ==",
+    "@img/sharp-linux-s390x@0.35.5": "sha512-UZasTOFiYzotTsGOCu42BfUzP6Tu6Do/947iRm1RsLKvlllxwGcn4RN27LibGWceix4Y+Pmw3jsnTcCQIgWjqA==",
+    "@img/sharp-linux-x64@0.35.5": "sha512-SxFtLTeJInhAA9Q836kux2vZNeOBQEx658qvbboZScr0wIARym3IcGmW7KpVD5sbVg0Ojy+udFQdayYIZyoNog==",
+    "@img/sharp-linuxmusl-arm64@0.35.5": "sha512-9HbMclmI1zlNkFRs3z9/eBtDjfD0sGlrX1z6b1qwmiFY5ElDLh4BC0LPBdVp7z1DXFiKlIcznf+ZlsuZzLxQqg==",
+    "@img/sharp-linuxmusl-x64@0.35.5": "sha512-4KOphqB035HrVdqLZfCgMzzERrQkkzOwRhl4OAkRO1YCldbaFjySXMaK534Mo0V+LndnlJk+sbUyLeU0ULyD1A==",
+    "@img/sharp-wasm32@0.35.5": "sha512-Ptsga1su4tQx+LLF1ECS9U6nz5kmrXKo6XVbtR48Ke3ZRxxgaWBu7IDtEe1quo8hiupwm6WFqxVlXaSf7IINGQ==",
+    "@img/sharp-webcontainers-wasm32@0.35.5": "sha512-hfhF/FmoQyTUkA0bIKFOtw536BQSeBMe6BF6QyWlrPxT754+TFLaZ7sKKTfvvM0yJgKgaYTwnFCIZ/GuDw5SUA==",
+    "@img/sharp-win32-arm64@0.35.5": "sha512-X4t7g+7ZA5DKblCBEXGjUqqemj4vczING/5viFwAL8h4N3qYeyjwdCvRLHi4EdOUI+2Z7UFlp1VM+p/AuEtm6Q==",
+    "@img/sharp-win32-ia32@0.35.5": "sha512-5Zm82LoBc43nhwNybZlG7Y1KO//Zhsn306fQl29ZOuStHLGTo3BWL83q3cznX0poxSAMuYL1On/BHBxkBeKr6A==",
+    "@img/sharp-win32-x64@0.35.5": "sha512-x76eH0vEiHlcMQu8Y8IenntaACtddpT6W0wmXtWrnKcnKI7ME5DdgqhAD6SEWOEl1v2zDvkZDhFA9KnURwpfqg==",
+    "@jridgewell/resolve-uri@3.1.2": "sha512-bRISgCIjP20/tbWSPWMEi54QVPRZExkuD9lJL+UIxUKtwVJA8wW1Trb1jMs1RFXo1CBTNZ/5hpC9QvmKWdopKw==",
+    "@jridgewell/sourcemap-codec@1.6.0": "sha512-T7jf+5zgsZHwNJ4lvQ7/aezbyk0nNX+zJVWpmHA7VYsEx7a7qr5Rg5IbtJFqkgze5Y2sruq1RUY8Q837Od7iFw==",
+    "@poppinss/colors@4.1.6": "sha512-H9xkIdFswbS8n1d6vmRd8+c10t2Qe+rZITbbDHHkQixH5+2x1FDGmi/0K+WgWiqQFKPSlIYB7jlH6Kpfn6Fleg==",
+    "@poppinss/dumper@0.6.5": "sha512-NBdYIb90J7LfOI32dOewKI1r7wnkiH6m920puQ3qHUeZkxNkQiFnXVWoE6YtFSv6QOiPPf7ys6i+HWWecDz7sw==",
+    "@poppinss/exception@1.2.3": "sha512-dCED+QRChTVatE9ibtoaxc+WkdzOSjYTKi/+uacHWIsfodVfpsueo3+DKpgU5Px8qXjgmXkSvhXvSCz3fnP9lw==",
+    "@sindresorhus/is@7.2.0": "sha512-P1Cz1dWaFfR4IR+U13mqqiGsLFf1KbayybWwdd2vfctdV6hDpUkgCY0nKOLLTMSoRd/jJNjtbqzf13K8DCCXQw==",
+    "@speed-highlight/core@1.2.24": "sha512-qeW2e1l78afw8VhRPfPQ1Gjj+KU5XFQ/OFV5ti6eTa9bruO7mJyZtA4vw0ofqmA3tKCkROE9xLk3VZoeRc98nw==",
+    "@types/node@24.13.5": "sha512-TXyindR+lBr22aJIdMQzCFHPHR6cR4js838mRDCSz5hOKWZvZwsXSSiXDmjRj4iJmgl+sR9O+1mkoVBSMadNug==",
+    "@typescript/typescript-aix-ppc64@7.0.2": "sha512-MTKKkWB7p/0E9xi1d1tHtZ5PiLkGEMIq88pK2CubZjOsLtYTLqhgIgi6zepFa+9GHZ6h05NMCkQxGKiPXMxXtQ==",
+    "@typescript/typescript-darwin-arm64@7.0.2": "sha512-gowzar9MwS/aRWp6f3a4KUqzRjAZjOsmGNCM6LcTgXum+dBfgsBVMN+AgvOCCbguXyick6LJhpBszxMebJ8syA==",
+    "@typescript/typescript-darwin-x64@7.0.2": "sha512-SZ9xZInqApNlNGc9s0W1VSsktYSOe9cFqNOIqmN1Gs8SmkjKZYFt017G4VwPxASInODuAdbTW7sXiFUf893RgA==",
+    "@typescript/typescript-freebsd-arm64@7.0.2": "sha512-W5NH4y/J0plIIS5b2xvTEkU7JFxyqdMAOgf+Ilhl0vHQXKO5dZoxd+C/jEtq56c4F3wk71RB4BMRQ2XdI+bwYQ==",
+    "@typescript/typescript-freebsd-x64@7.0.2": "sha512-UMGDx5sTpzNw3WiPebH7l90IWfJggEd+egHt/q6p7/Cm3zqoV7VxkGXt+3DxPIw8CcmvAB0j3sVVfbhX+M4Tpw==",
+    "@typescript/typescript-linux-arm@7.0.2": "sha512-gffT3xPz9sR7j/YJExkyPntrI0P2EP9XbOyWzth2/Gs0RstK+90RBcO0ncXoXy/beYll1SXw846Nf2zdnEz0QQ==",
+    "@typescript/typescript-linux-arm64@7.0.2": "sha512-Qh4eU4/y3yDjnfjjyPYihMj5/ODIlmt+Bzu17OI+fiSRDW57QmU5SiN63exPRNJPKUzcc1INa1NXdrJ+MqHjUQ==",
+    "@typescript/typescript-linux-loong64@7.0.2": "sha512-uEHck9i8hoAzXPiYRib1O7miOnz23SxIeVl6F4LXox+qov1K35jHcEW6VHKvZI+pyvl7fZEP4MCU5LYvIq1GuQ==",
+    "@typescript/typescript-linux-mips64el@7.0.2": "sha512-R4KvAMnE43W5Qeqb0Ly56O3mWMWIAgsMyz36DCaycd5nbg/9kzm0liw3JocfRqyJY0KPmzFjbswozXyW0DnIYA==",
+    "@typescript/typescript-linux-ppc64@7.0.2": "sha512-DORx5b3sd/4S7eayxm4FQv+A7CrkUIGRaHiwI8oiHTAI1fAPWhF4J0vAlkC8biAlHSVVwxMQ3tjZ2/DVbnQiiA==",
+    "@typescript/typescript-linux-riscv64@7.0.2": "sha512-wf0jqEDOjrPRnKwYRyyJDRo11KMbvMFrU+q4zqKyChODBzvlkbhNQfKvLxQCcwTpdDaXSHZTVuh0JoCrKCUMHQ==",
+    "@typescript/typescript-linux-s390x@7.0.2": "sha512-IkwJc3L7yhytWd/ewjyxNDfOmswCm9GWMJT/ue/dU4aZNbwZeYAetq42VyLmsmSjvoX7z74X6ZaYCtzAr0EuGw==",
+    "@typescript/typescript-linux-x64@7.0.2": "sha512-EYdf2cNg7rgCWJnxCdJ+F3V39O8ihb37eHAu1LK8oAFizgTQbPOK7zHHXbPt8rX24COqODXeI3sIf0fCXG7H/A==",
+    "@typescript/typescript-netbsd-arm64@7.0.2": "sha512-+polYF4MF04aPpO5FTkHran9yUQDSXqy5GiSDKpsll5jy3l3+g9QLhpf39T+ePtefhXLOGrLl0QIjkQP6VnelA==",
+    "@typescript/typescript-netbsd-x64@7.0.2": "sha512-8YIT0EHM/3dq10ZOVF/A7pc/YSMtbcecct4rWtexrnSCHOPcpC2KTLXfTCR6vDpnSiY12heNb1GiN/wu+T/FyA==",
+    "@typescript/typescript-openbsd-arm64@7.0.2": "sha512-APT8+ClYnuYm1u9+kgGXoMj2VzWzcymwh2gNSQVySHfkRDGOTVkoWLjCmOQSaO+PoqQ57B0flRp9SA+7GnnkzQ==",
+    "@typescript/typescript-openbsd-x64@7.0.2": "sha512-yX7s+Q0Dln0Dt9tEzZsAjXXR/+ytBM7AlglaqyeMPxQszJ1JhlJdZ6jLA+IzldHtflX81em7lDao1xXu+aRRkg==",
+    "@typescript/typescript-sunos-x64@7.0.2": "sha512-dLJDGaLZ1D4HPQn62u1n8mBDkJREwMsAkCdkwd4Ieqw+x3TUyTsqY0YiBCtE6H6OzzgGk3iuZ3vFWRS+E8/d1g==",
+    "@typescript/typescript-win32-arm64@7.0.2": "sha512-Gyl1Vy6OsWesLzmq+EP0Fb7b4Nid5232AvcA2SFcdYreldpNtYFFofPjnt62y9hQy7VTaZp65ICJjuAQRaVcIQ==",
+    "@typescript/typescript-win32-x64@7.0.2": "sha512-0BQ3HkAHHlKLSp1qRvf3SUhGpGsDuhB/jgFw75guyqbxJqEaS0Cw/VFO8i2nHglJUzQCRtMMR/IBAKE3ETMC4g==",
+    "blake3-wasm@2.1.5": "sha512-F1+K8EbfOZE49dtoPtmxUQrpXaBIl3ICvasLh+nJta0xkz+9kF/7uet9fLnwKqhDrmj6g+6K3Tw9yQPUg2ka5g==",
+    "cookie@1.1.1": "sha512-ei8Aos7ja0weRpFzJnEA9UHJ/7XQmqglbRwnf2ATjcB9Wq874VKH9kfjjirM6UhU2/E5fFYadylyhFldcqSidQ==",
+    "detect-libc@2.1.2": "sha512-Btj2BOOO83o3WyH59e8MgXsxEQVcarkUOpEYrubB0urwnN10yQ364rsiByU11nZlqWYZm05i/of7io4mzihBtQ==",
+    "error-stack-parser-es@1.0.5": "sha512-5qucVt2XcuGMcEGgWI7i+yZpmpByQ8J1lHhcL7PwqCwu9FPP3VUXzT4ltHe5i2z9dePwEHcDVOAfSnHsOlCXRA==",
+    "esbuild@0.28.1": "sha512-HrJrvZv5ayxBzPfwphOoNzkzOIIlifzk0KJrGK2c8R4+LKpMtpYLQeUdjnwjWv/LZlkH2laZk+4w78pi99D4Vw==",
+    "fsevents@2.3.3": "sha512-5xoDfX+fL7faATnagmWPpbFtwh/R77WmMMqqHGS65C3vvB0YHrgF+B1YmZ3441tMj5n63k0212XNoJwzlhffQw==",
+    "kleur@4.1.5": "sha512-o+NO+8WrRiQEE4/7nwRJhN1HWpVmJm511pBHUxPLtp0BUISzlBplORYSmTclCnJvQq2tKu/sgl3xVpkc7ZWuQQ==",
+    "miniflare@5.20260926.1-alpha": "sha512-vc4lgl8YVxR2aundPnVPTIcL46UQKK+ebW7yinXNE1Y9joFS0JoakMazr7r3M8DXRvaemKS8EEmszkv/b05qUw==",
+    "undici@7.29.1": "sha512-RYONW2MeafgYlkVOKYKkA/Ag7BmXqgIWCa8t1m0JcxrQg9pI9lEqRhAOruOBCbAohOa/gkCF+iPi9hrgvTzu6Q==",
+    "path-to-regexp@6.3.0": "sha512-Yhpw4T9C6hPpgPeA28us07OJeqZ5EzQTkbfwuhsUg0c237RomFoETJgmp2sa3F/41gfLE6G5cqcYwznmeEeOlQ==",
+    "pathe@2.0.3": "sha512-WUjGcAqP1gQacoQe+OBJsFA7Ld4DyXuUIjZ5cc75cLHvJ7dtNsTugphxIADwspS+AraAUePCKrSVtPLFj/F88w==",
+    "semver@7.8.5": "sha512-Y7/KDsb8LjooZpwaqGyulO6DQlksgCncchHGk+sZIY4SBvUocMBEFH5Ur1fI4dV+Jvl0w6cjvucaIi40puRioA==",
+    "sharp@0.35.5": "sha512-Ywn4OnzGukp7CDMrp08RQ50YKmuwG47brZgIVPTvBaaAfQlRlygrRqSrxdCiL9M+LlzLBiJ68IR1QqvzHyjC7g==",
+    "supports-color@10.2.2": "sha512-SS+jx45GF1QjgEXQx4NJZV9ImqmO2NPz5FNsIHrsDjh2YsHnawpan7SNQ1o8NuhrbHZy9AZhIoCUiCeaW/C80g==",
+    "tslib@2.8.1": "sha512-oJFu94HQb+KVduSUQL7wnpmqnfmLsOA/nAh6b6EH0wCEoK0/mPeXU6c3wKDV83MkOuHPRHtSXKKU99IBazS/2w==",
+    "typescript@7.0.2": "sha512-8FYau96o3NKOhbjKi/qNvG/W5jhzxkbdm5sj9AbZ/5T5sWqn3hJgLfGx27sRKZWTvyzCP8dLRBTf5tBTSRVUNA==",
+    "undici-types@7.18.2": "sha512-AsuCzffGHJybSaRrmr5eHr81mwJU3kjw6M+uprWvCXiNeN9SOGwQ3Jn8jb8m3Z6izVgknn1R0FTCEAP2QrLY/w==",
+    "unenv@2.0.0-rc.24": "sha512-i7qRCmY42zmCwnYlh9H2SvLEypEFGye5iRmEMKjcGi7zk9UquigRjFtTLz0TYqr0ZGLZhaMHl/foy1bZR+Cwlw==",
+    "workerd@1.20260926.1": "sha512-YojhsWBuZwk3Jk9OC0QfTgVbLeQOD1tK1olC9ZXAUcmeip8z4NE/xtttpxCsuTvQBRqppvy7Tkac0kxPYMjIXA==",
+    "wrangler@4.143.1": "sha512-ilQJRMRcMgdk82XWIg7hlgeB1I2CoOWmSiJeoqZufoNCWUiJTN5DaYPYb6M/oIXBXk3+IQIxNDgdtPUuxcxdeg==",
+    "ws@8.21.0": "sha512-Vsp28b7DRcimFQvrqu2Wek3z1iYxDCWqHYB8Qsnk/S4RfaCQzPGPyBNuVjJV3cd6UiKtUtp6sNM77gWvzcCH+g==",
+    "youch@4.1.0-beta.10": "sha512-rLfVLB4FgQneDr0dv1oddCVZmKjcJ6yX6mS4pU82Mq/Dt9a3cLZQ62pDBL4AUO+uVrCvtWz3ZFUL2HFAFJ/BXQ==",
+    "youch-core@0.3.3": "sha512-ho7XuGjLaJ2hWHoK8yFnsUGy2Y5uDpqSTq1FkHLK4/oqKtyUU1AFbOOxY4IpC9f0fTLjwYbslUz0Po5BpD1wrA=="
   },
-  "foundationCandidates": {},
-  "firstParty": {},
-  "registry": "https://registry.npmjs.org/",
-  "channel": "foundation-candidate",
-  "artifactRecords": [
-    "browser-resources-r12"
+  "supersedes": "eng/policy/dependency-reviews/web-40-admission-r15.json",
+  "reviewedBase": "efe787254ae64cc8027a6b801b3cbd9080481321",
+  "scannerExceptions": [
+    {
+      "file": ".gitleaks.toml",
+      "introducedBy": "389b9fd746eefb80496263ae83072adb04f1a6a2",
+      "findingCommit": "2a5e17f",
+      "findingPath": "eng/contracts/ArcForges.Contracts.PublicApi/1.0.0-ci.287.1/source.json",
+      "findingLine": 9,
+      "findingKey": "public/http/v1/native-auth.schema.json",
+      "findingValuePrefix": "e7807ae0",
+      "rule": "generic-api-key",
+      "digest": "e7807ae0ab6b4530d817941a922d7df90e4feb525c68d81a245a4c089ad3d296",
+      "digestDefinition": "SHA-256 of schemas/public/http/v1/native-auth.schema.json in arcforges.contracts.publicapi 1.0.0-ci.287.1",
+      "status": "verified false positive",
+      "allowlist": {
+        "description": "Reviewed public schema digest in the CON.07 Contracts publication record: the key name contains auth, and the value is the SHA-256 of the packaged public schema (verified against the NuGet package bytes)",
+        "condition": "AND",
+        "targetRules": [
+          "generic-api-key"
+        ],
+        "regexTarget": "line",
+        "paths": [
+          "^eng/contracts/ArcForges\\.Contracts\\.PublicApi/1\\.0\\.0-ci\\.287\\.1/source\\.json$"
+        ],
+        "regexes": [
+          "^\\s*\"public/http/v1/native-auth\\.schema\\.json\": \"e7807ae0ab6b4530d817941a922d7df90e4feb525c68d81a245a4c089ad3d296\",?$"
+        ]
+      }
+    }
   ],
-  "native": {
-    "mode": "existing-artifact-closure-only",
-    "evidence": [
-      "eng/provenance/profiles/browser-resources-r5.json",
-      "eng/provenance/records/browser-resources-r5.json"
+  "packsFolderRows": [
+    {
+      "key": "microsoft.netcore.app.runtime.mono.browser-wasm/10.0.12",
+      "platform": "Windows",
+      "packsFolder": "Microsoft.NETCore.App.Runtime.Mono.browser-wasm",
+      "version": "10.0.12",
+      "marker": "runtimes/browser-wasm/native/dotnet.native.wasm",
+      "reason": "The hosted windows-2025-vs2026 image (runner image 20260925.250.1, CI job 113727560820) preinstalls the wasm.tools workload into C:\\Program Files\\dotnet, which holds this pack at the bundled version 10.0.12 (the same run's build lists the 10.0.12 Emscripten workload packs in that folder), so the SDK adds no NuGet download. A local machine whose packs folder lacks 10.0.12 restores the NuGet copy and it is verified by digest there."
+    },
+    {
+      "key": "microsoft.netcore.app.runtime.mono.browser-wasm/10.0.12",
+      "platform": "Linux",
+      "packsFolder": "Microsoft.NETCore.App.Runtime.Mono.browser-wasm",
+      "version": "10.0.12",
+      "marker": "runtimes/browser-wasm/native/dotnet.native.wasm",
+      "reason": "The Ubuntu hosted image carries no WebAssembly workload, so this row is checked there and not satisfied: the SDK adds the implicit pack as a NuGet download, restores it and the test verifies its digest. The NuGet copy is skipped only when a 10.0.12 packs copy with the marker exists locally, and in that case the SDK does not download the pack either."
+    }
+  ],
+  "con07Identity": {
+    "ledger": "Plan ledger/tasks/con-07.md, status complete, recorded 2026-10-02",
+    "version": "1.0.0-ci.287.1",
+    "mergeCommit": "ca45f36cccbdd31380f76b8f6cdecc958fdcb430",
+    "publicationRun": "https://github.com/ArcForges/Contracts/actions/runs/36966686225",
+    "verifiedAt": "2026-10-08",
+    "method": "nuget.org flat-container index (version listed) and nuspec (repository commit, licence, SHA-256) per package",
+    "packages": [
+      {
+        "id": "ArcForges.Contracts.PublicApi",
+        "versionListed": true,
+        "repositoryCommit": "ca45f36cccbdd31380f76b8f6cdecc958fdcb430",
+        "licence": "Apache-2.0",
+        "nuspecSha256": "f18300e6b837a6e8ccafb56d77de97fe74ed6437f6a2952ba82e9d3eff6e121f"
+      },
+      {
+        "id": "ArcForges.Contracts.Foundation",
+        "versionListed": true,
+        "repositoryCommit": "ca45f36cccbdd31380f76b8f6cdecc958fdcb430",
+        "licence": "Apache-2.0",
+        "nuspecSha256": "72f9ffbff6488f970b48d7b35458c0e0eb4223865caea9adc16fc7105a393ad8"
+      },
+      {
+        "id": "ArcForges.Contracts.CloudInternal",
+        "versionListed": true,
+        "repositoryCommit": "ca45f36cccbdd31380f76b8f6cdecc958fdcb430",
+        "licence": "Apache-2.0",
+        "nuspecSha256": "affe7a268a8acae0e9a3ea168b615f215f921b3ac481a73bfe3c0886c85fb647"
+      },
+      {
+        "id": "ArcForges.Contracts.LocalRpc.Chat",
+        "versionListed": true,
+        "repositoryCommit": "ca45f36cccbdd31380f76b8f6cdecc958fdcb430",
+        "licence": "Apache-2.0",
+        "nuspecSha256": "af38382283e1c7d1e425050a650aeb02c63bdff8543c3b68666161d80bf0c045",
+        "nuspecSha256Status": "unverified: the 1.0.0-ci.287.1 nuspec is not in the local NuGet packages folder; the 2026-10-08 value is kept and is not re-derived under the raw-bytes convention"
+      },
+      {
+        "id": "ArcForges.Contracts.LocalRpc.Platform",
+        "versionListed": true,
+        "repositoryCommit": "ca45f36cccbdd31380f76b8f6cdecc958fdcb430",
+        "licence": "Apache-2.0",
+        "nuspecSha256": "d9a60fe72441f5928d02aed3a92c3d9835f45af750f1511999d185e7b1a38e3b",
+        "nuspecSha256Status": "unverified: the 1.0.0-ci.287.1 nuspec is not in the local NuGet packages folder; the 2026-10-08 value is kept and is not re-derived under the raw-bytes convention"
+      },
+      {
+        "id": "ArcForges.Contracts.LocalRpc.Sandbox",
+        "versionListed": true,
+        "repositoryCommit": "ca45f36cccbdd31380f76b8f6cdecc958fdcb430",
+        "licence": "Apache-2.0",
+        "nuspecSha256": "d0aa13ae853055a5a18efb918d9136cded089b73704c7ef82917ef636c0589da",
+        "nuspecSha256Status": "unverified: the 1.0.0-ci.287.1 nuspec is not in the local NuGet packages folder; the 2026-10-08 value is kept and is not re-derived under the raw-bytes convention"
+      },
+      {
+        "id": "ArcForges.Contracts.LocalRpc.Scope",
+        "versionListed": true,
+        "repositoryCommit": "ca45f36cccbdd31380f76b8f6cdecc958fdcb430",
+        "licence": "Apache-2.0",
+        "nuspecSha256": "3533ec3b77ed0cedfaa8478ddad887038c3764309134fc871d80e2f2f184baa9",
+        "nuspecSha256Status": "unverified: the 1.0.0-ci.287.1 nuspec is not in the local NuGet packages folder; the 2026-10-08 value is kept and is not re-derived under the raw-bytes convention"
+      },
+      {
+        "id": "ArcForges.Cli",
+        "versionListed": true,
+        "repositoryCommit": "ca45f36cccbdd31380f76b8f6cdecc958fdcb430",
+        "licence": "Apache-2.0",
+        "nuspecSha256": "cdae97a78340ce8276efe8d67373fbdaf2c1498203819c6045db9d2132abd490",
+        "nuspecSha256Status": "unverified: the 1.0.0-ci.287.1 nuspec is not in the local NuGet packages folder; the 2026-10-08 value is kept and is not re-derived under the raw-bytes convention"
+      },
+      {
+        "id": "ArcForges.Contracts.Events",
+        "versionListed": true,
+        "repositoryCommit": "ca45f36cccbdd31380f76b8f6cdecc958fdcb430",
+        "licence": "Apache-2.0",
+        "nuspecSha256": "a732f6d69c500d569ab44966de8182d95495fad9d4df874a12838df85841b65c"
+      },
+      {
+        "id": "ArcForges.Contracts.Validation",
+        "versionListed": true,
+        "repositoryCommit": "ca45f36cccbdd31380f76b8f6cdecc958fdcb430",
+        "licence": "Apache-2.0",
+        "nuspecSha256": "6fc4636e918c1510556afede34b23f73e8132613832e6e2f98058c4282c24d08"
+      },
+      {
+        "id": "ArcForges.Sdk.Client",
+        "versionListed": true,
+        "repositoryCommit": "ca45f36cccbdd31380f76b8f6cdecc958fdcb430",
+        "licence": "Apache-2.0",
+        "nuspecSha256": "0d1d2efe6a3c6b7c27fbad668e30a096354636c07013369efc33f608c78488a7",
+        "nuspecSha256Status": "unverified: the 1.0.0-ci.287.1 nuspec is not in the local NuGet packages folder; the 2026-10-08 value is kept and is not re-derived under the raw-bytes convention"
+      },
+      {
+        "id": "ArcForges.Sdk.Contracts",
+        "versionListed": true,
+        "repositoryCommit": "ca45f36cccbdd31380f76b8f6cdecc958fdcb430",
+        "licence": "Apache-2.0",
+        "nuspecSha256": "bc55aa1371a4ce334c64b54150011444fe5880d4cd264e73fc1ff1136889c9ff"
+      }
+    ],
+    "admittedClosureRows": [
+      "arcforges.contracts.foundation/1.0.0-ci.287.1",
+      "arcforges.contracts.publicapi/1.0.0-ci.287.1",
+      "google.protobuf/3.36.1",
+      "grpc.core.api/2.84.0"
     ]
   },
-  "buildToolPrereleases": {
-    "miniflare": "5.20260926.1-alpha",
-    "unenv": "2.0.0-rc.24",
-    "youch": "4.1.0-beta.10"
+  "browserWasmPacks": {
+    "sdk": "10.0.401 (BundledNETCoreAppPackageVersion 10.0.12)",
+    "admitted": [
+      "microsoft.net.runtime.webassembly.sdk/10.0.12",
+      "microsoft.netcore.app.runtime.mono.browser-wasm/10.0.12"
+    ],
+    "refused": [
+      {
+        "id": "Microsoft.AspNetCore.App.Runtime.browser-wasm",
+        "reason": "no such package on nuget.org (flat-container BlobNotFound on 2026-10-08); not admitted"
+      }
+    ],
+    "localPacksFolder": "C:\\Program Files\\dotnet\\packs holds 10.0.11 browser-wasm packs from the local workload; the admitted 10.0.12 packs are the locked NuGet coordinates"
   },
-  "reviewRecord": "eng/policy/dependency-reviews/web-40-admission-r16.json",
-  "dependencyClasses": {
-    "build-inputs": "Complete exact npm lock inventory; licence metadata is preserved, not inferred as a redistribution grant. Existing transitive development prereleases are named build-only migration inputs and cannot enter runtime/stable closures.",
-    "runtime": "Only the independently enforced existing shipped artifact records admit runtime inputs and legal scopes.",
-    "native": "No new product native capability; existing tooling and Cloud base image/native runtime obligations remain with the exact artifact profiles."
-  },
-  "publication": {
-    "role": "deployment-consumer",
-    "repository": "ArcForges/Web",
-    "workflow": ".github/workflows/ci.yml",
-    "environment": "cloudflare",
-    "trustedRef": "refs/heads/main",
-    "promotion": "sealed candidate; existing provider identity verification; no registry tooling publication or credential in PR"
-  },
-  "additionalFeeds": {},
   "nugetClosure": {
     "anglesharp.css/1.0.1": {
       "contentHash": "6S13xNHH+SUGPZd6EO1MhkuDbpEnFroUM6A8DZpLJHQnLRTvtBJb3Ydu65s618E4gWF9FSWmM5jhKk4RIfwT2A==",
@@ -1312,8 +830,6 @@
       "classification": "Transitive dependency of the xUnit v3 or bUnit test closure, reached only from tests/**; test-only and never in a published output."
     }
   },
-  "nugetFeed": "https://api.nuget.org/v3/index.json",
-  "nugetSdk": "10.0.401",
   "nugetPackDownloads": {
     "microsoft.netcore.app.runtime.mono.browser-wasm/10.0.12": {
       "contentHash": "7RAMnN/ZL6fjSocFEGSsIeGjZeT2uShNo0+JkkGf7b70i80YLc6rsDVovpifvWhmw8HWOqzXUlLOAcUTCFtzGA==",
