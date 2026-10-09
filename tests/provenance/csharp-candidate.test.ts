@@ -19,8 +19,22 @@ await access(toolLibrary).catch(() => {
 });
 
 const sha = (bytes: Uint8Array | string) => createHash("sha256").update(bytes).digest("hex");
+/**
+ * expectedIdentity reads the producer environment from process.env. This suite builds a local candidate, so the identity
+ * is read without any GITHUB_* variable, whatever the runner sets (the CI job sets GITHUB_ACTIONS=true, and a CI identity
+ * needs a CI-shaped version). The variables are restored before this returns.
+ */
+function localIdentity(version: string) {
+  const saved = Object.entries(process.env).filter(([name]) => name.startsWith("GITHUB_"));
+  for (const [name] of saved) delete process.env[name];
+  try {
+    return expectedIdentity(version);
+  } finally {
+    for (const [name, value] of saved) process.env[name] = value;
+  }
+}
 const scratch = await mkdtemp(path.join(tmpdir(), "arcforges-candidate-"));
-const identityRecord = expectedIdentity("0.1.0-local");
+const identityRecord = localIdentity("0.1.0-local");
 const source = identityRecord.build.sourceCommit;
 const dirty = identityRecord.build.dirty;
 const workerPath = path.join(scratch, "index.js");
