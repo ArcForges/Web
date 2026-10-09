@@ -140,6 +140,48 @@ public sealed class LocalAccessibilityBrowserTests
     }
 
     [Fact]
+    public async Task ChatFailedSendPassesAxe()
+    {
+        var harness = Harness.FromEnvironment(LocalOptIn.Current(), profile: true);
+        if (harness is null)
+            Assert.Skip(SkipMessage);
+        await using var session = await harness.OpenAsync();
+        await session.Page.RouteAsync("**/api/arcforges.hello.v1.HelloService/SayHello", route => route.FulfillAsync(new RouteFulfillOptions { Status = 503, ContentType = "text/plain", Body = "unavailable" }));
+        await session.GotoAsync("/chat");
+        await session.Page.WaitForSelectorAsync("form button[aria-disabled=false]");
+        await session.Page.Locator("form button[type=submit]").ClickAsync();
+        await session.Page.WaitForSelectorAsync("ol.transcript li:nth-child(2)");
+        await session.AssertAxeAsync("Chat", "failed send (notice shown)");
+    }
+
+    /// <summary>
+    /// The unhandled-error banner (index.html). The banner is shown through Blazor's own critical-error entry point, which
+    /// shows #blazor-error-ui and binds the Dismiss handler. Dismiss must be a focusable button named Dismiss, and Enter on it
+    /// must hide the banner.
+    /// </summary>
+    [Fact]
+    public async Task ErrorBannerDismissIsKeyboardOperableAndPassesAxe()
+    {
+        var harness = Harness.FromEnvironment(LocalOptIn.Current(), profile: true);
+        if (harness is null)
+            Assert.Skip(SkipMessage);
+        await using var session = await harness.OpenAsync();
+        await session.GotoAsync("/chat");
+        await session.Page.WaitForSelectorAsync("form button[aria-disabled=false]");
+        await session.Page.EvaluateAsync("window.Blazor._internal.dotNetCriticalError(new Error('WEB.40 accessibility banner state'))");
+        var banner = session.Page.Locator("#blazor-error-ui");
+        await banner.WaitForAsync(new LocatorWaitForOptions { State = WaitForSelectorState.Visible });
+        await session.AssertAxeAsync("App error banner", "unhandled error shown");
+
+        var dismiss = session.Page.GetByRole(AriaRole.Button, new PageGetByRoleOptions { Name = "Dismiss", Exact = true });
+        Assert.Equal(1, await dismiss.CountAsync());
+        await dismiss.FocusAsync();
+        Assert.True(await dismiss.EvaluateAsync<bool>("el => el === document.activeElement && el.tagName === 'BUTTON'"), "Dismiss does not take keyboard focus.");
+        await session.Page.Keyboard.PressAsync("Enter");
+        await banner.WaitForAsync(new LocatorWaitForOptions { State = WaitForSelectorState.Hidden });
+    }
+
+    [Fact]
     public async Task SitePagesPassAxe()
     {
         var harness = Harness.FromEnvironment(LocalOptIn.Current(), profile: false);
@@ -283,17 +325,35 @@ public sealed class LocalAccessibilityBrowserTests
             // Deque.AxeCore.Commons.AxeResult exposes Violations, Passes, Incomplete, Inapplicable and AxeResultNode.Nodes as arrays.
             var result = await Page.RunAxe();
             var violations = result.Violations ?? [];
+            var passes = result.Passes ?? [];
+            var incomplete = result.Incomplete ?? [];
+            var inapplicable = result.Inapplicable ?? [];
             var line = new StringBuilder()
                 .Append(screen).Append(" | ").Append(state)
                 .Append(" | url ").Append(new Uri(result.Url).AbsolutePath)
                 .Append(" | violations ").Append(violations.Length)
-                .Append(" | passes ").Append(result.Passes?.Length ?? 0)
-                .Append(" | incomplete ").Append(result.Incomplete?.Length ?? 0)
-                .Append(" | inapplicable ").Append(result.Inapplicable?.Length ?? 0);
+                .Append(" | passes ").Append(passes.Length)
+                .Append(" | incomplete ").Append(incomplete.Length)
+                .Append(" | inapplicable ").Append(inapplicable.Length);
             foreach (var violation in violations)
                 line.Append(" | ").Append(violation.Id).Append(" (").Append(violation.Impact).Append(", ").Append(violation.Nodes.Length).Append(" nodes)");
             Record(line.ToString());
+            // The rule-level line: the rule IDs of each result list, sorted and comma-separated ("(none)" when empty).
+            var rules = new StringBuilder()
+                .Append(screen).Append(" | ").Append(state)
+                .Append(" | rules passed ").Append(RuleIds(passes.Select(item => item.Id)))
+                .Append(" | rules incomplete ").Append(RuleIds(incomplete.Select(item => item.Id)))
+                .Append(" | rules inapplicable ").Append(RuleIds(inapplicable.Select(item => item.Id)))
+                .Append(" | rules violated ").Append(RuleIds(violations.Select(item => item.Id)));
+            Record(rules.ToString());
             Assert.True(violations.Length == 0, $"axe found violations on {screen} ({state}): {line}");
+        }
+
+        /// <summary>The distinct rule IDs in ordinal order, comma-separated; "(none)" for an empty list.</summary>
+        private static string RuleIds(IEnumerable<string> ids)
+        {
+            var sorted = ids.Distinct(StringComparer.Ordinal).Order(StringComparer.Ordinal).ToArray();
+            return sorted.Length == 0 ? "(none)" : string.Join(",", sorted);
         }
 
         private static void Record(string line)

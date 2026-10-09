@@ -268,7 +268,7 @@ h1 em {
   flex: 1;
   min-width: 0;
   background: #fffdf7;
-  border: 1px solid #a3b1a4;
+  border: 1px solid #6b7a72;
   border-radius: 6px;
   padding: 14px 16px;
   color: #1e2824;
@@ -415,7 +415,7 @@ h1 em {
 .field input {
   min-width: 240px;
   padding: 12px 14px;
-  border: 1px solid #b9c1b4;
+  border: 1px solid #6b7a72;
   border-radius: 6px;
   background: white;
 }
@@ -450,7 +450,14 @@ h1 em {
   z-index: 1000;
 }
 #blazor-error-ui .dismiss {
+  background: none;
+  border: 0;
+  color: inherit;
   cursor: pointer;
+  font: inherit;
+  line-height: inherit;
+  margin: 0;
+  padding: 0;
   position: absolute;
   right: 0.75rem;
   top: 0.5rem;
