@@ -15,6 +15,9 @@ public static class LocalOptIn
     /// <summary>The environment variable that names a local axe-core script, injected only into the page under test.</summary>
     public const string AxeScriptVariable = "ARCFORGES_AXE_CORE_PATH";
 
+    /// <summary>The environment variable that names an installed Chromium executable, for a machine whose Playwright build differs.</summary>
+    public const string ChromiumPathVariable = "ARCFORGES_CHROMIUM_PATH";
+
     /// <summary>True only for a deliberate local run with a base URL: never on CI.</summary>
     public static bool IsEnabled(IReadOnlyDictionary<string, string?> environment)
     {

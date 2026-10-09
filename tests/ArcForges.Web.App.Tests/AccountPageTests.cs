@@ -273,6 +273,90 @@ public sealed class AccountPageTests
         FocusOrder.AssertNoPositiveTabIndex(cut);
     }
 
+    [Fact]
+    public async Task SignOutStaysPresentAndFocusableWhileWorkingAndAfterTheSessionEnds()
+    {
+        // Focus on Sign out must survive the sign-out (AX-02): the control is aria-disabled while working, never removed.
+        // Element identity is asserted in a real browser (LocalFocusBrowserTests); bUnit re-parses the markup on each render.
+        var logout = new TaskCompletionSource<HttpResponseMessage>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var server = new ScriptedServer((request, _) => request.Url.AbsolutePath.EndsWith("/logout", StringComparison.Ordinal)
+            ? logout.Task
+            : Task.FromResult(Responses.Json(Encoding.UTF8.GetBytes(ProbeFixtures.AuthenticatedJson))));
+        using var context = new BunitContext();
+        RegisterProbes(context, server);
+
+        var cut = context.Render<Account>();
+        cut.WaitForAssertion(() => Assert.True(HasButton(cut, "Sign out")));
+        Button(cut, "Sign out").Click();
+        cut.WaitForAssertion(() => Assert.True(HasButton(cut, "Signing out…")));
+        Assert.Single(cut.FindAll("button"));
+        Assert.Equal("true", Button(cut, "Signing out…").GetAttribute("aria-disabled"));
+        Assert.False(Button(cut, "Signing out…").HasAttribute("disabled"));
+        Assert.Equal(new[] { "button:Signing out…" }, FocusOrder.TabSequence(cut));
+
+        // A click on the refused control does not post a second sign-out.
+        await WaitUntilAsync(() => server.Count == 2);
+        Button(cut, "Signing out…").Click();
+        await Task.Delay(50, Xunit.TestContext.Current.CancellationToken);
+        Assert.Equal(2, server.Count);
+
+        logout.SetResult(Responses.Json(ProbeFixtures.ReceiptBody("happened")));
+        cut.WaitForAssertion(() => Assert.Contains(Ended, cut.Markup, StringComparison.Ordinal));
+        // The ended state keeps the one control, now offering Try again: a fresh read is the only action left.
+        Assert.Single(cut.FindAll("button"));
+        Assert.Equal("false", Button(cut, "Try again").GetAttribute("aria-disabled"));
+        Assert.Equal(new[] { "button:Try again" }, FocusOrder.TabSequence(cut));
+    }
+
+    [Fact]
+    public void AFailedSignOutKeepsTheControlAndOffersTryAgainInIt()
+    {
+        var answers = new Queue<Func<HttpResponseMessage>>(
+        [
+            () => Responses.Json(Encoding.UTF8.GetBytes(ProbeFixtures.AuthenticatedJson)),
+            () => Responses.Text("{}", HttpStatusCode.Forbidden),
+        ]);
+        using var context = new BunitContext();
+        RegisterProbes(context, ScriptedServer.Always(() => answers.Dequeue()()));
+
+        var cut = context.Render<Account>();
+        cut.WaitForAssertion(() => Assert.True(HasButton(cut, "Sign out")));
+        Button(cut, "Sign out").Click();
+        cut.WaitForAssertion(() => Assert.Equal("The server refused this request.", cut.Find("[role=alert]").TextContent));
+        Assert.Single(cut.FindAll("button"));
+        Assert.Equal("false", Button(cut, "Try again").GetAttribute("aria-disabled"));
+        Assert.Equal(new[] { "button:Try again" }, FocusOrder.TabSequence(cut));
+    }
+
+    [Fact]
+    public async Task TryAgainStaysPresentAndDisabledWhileItsReadRunsAndBecomesSignOut()
+    {
+        var read = new TaskCompletionSource<HttpResponseMessage>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var calls = 0;
+        var server = new ScriptedServer((_, _) =>
+        {
+            calls++;
+            return calls == 1
+                ? Task.FromResult(Responses.Text("down", HttpStatusCode.ServiceUnavailable))
+                : read.Task;
+        });
+        using var context = new BunitContext();
+        RegisterProbes(context, server);
+
+        var cut = context.Render<Account>();
+        cut.WaitForAssertion(() => Assert.Equal("The server is unavailable. Try again later.", cut.Find("[role=alert]").TextContent));
+        Button(cut, "Try again").Click();
+        await WaitUntilAsync(() => server.Count == 2);
+        cut.WaitForAssertion(() => Assert.Equal("true", Button(cut, "Try again").GetAttribute("aria-disabled")));
+        Assert.Single(cut.FindAll("button"));
+        Assert.Equal(new[] { "button:Try again" }, FocusOrder.TabSequence(cut));
+
+        read.SetResult(Responses.Json(Encoding.UTF8.GetBytes(ProbeFixtures.AuthenticatedJson)));
+        cut.WaitForAssertion(() => Assert.Contains("Ada Lovelace", cut.Markup, StringComparison.Ordinal));
+        Assert.Single(cut.FindAll("button"));
+        Assert.Equal("false", Button(cut, "Sign out").GetAttribute("aria-disabled"));
+    }
+
     internal static async Task WaitUntilAsync(Func<bool> condition)
     {
         for (var attempt = 0; attempt < 500 && !condition(); attempt++)

@@ -15,7 +15,7 @@
         <label>
             Name <input @bind="_name" @bind:event="oninput" />
         </label>
-        <Button type="submit" disabled="@_pending">@(_pending ? "Sending…" : "Send")</Button>
+        <Button type="submit" aria-disabled="@(_pending ? "true" : "false")">@(_pending ? "Sending…" : "Send")</Button>
         @if (_pending)
         {
             <button type="button" class="button" @onclick="Cancel">Cancel</button>
@@ -50,7 +50,10 @@
         }
     }
 
-    /// <summary>Sends one greeting. A second send while one is pending does nothing.</summary>
+    /// <summary>
+    /// Sends one greeting. A second send while one is pending does nothing. Send is aria-disabled, not disabled, while a
+    /// message is pending: a disabled control drops keyboard focus, and this guard is what stops a second send.
+    /// </summary>
     private async Task SendAsync()
     {
         if (_active is not null)
@@ -61,6 +64,7 @@
         _active = controller;
         _pending = true;
         Add("you", _name);
+        StateHasChanged();
         try
         {
             var reply = await Hello.SayHelloAsync(_name, controller.Token);

@@ -157,6 +157,13 @@ h1 em {
 .button:focus-visible {
   outline-offset: 4px;
 }
+/* aria-disabled keeps the control focusable (AX-02); it looks disabled and its action is refused by the page. */
+.button[aria-disabled="true"],
+.button[aria-disabled="true"]:hover {
+  background: #6b7a72;
+  border-color: #6b7a72;
+  cursor: not-allowed;
+}
 .hello-art {
   position: relative;
   display: grid;

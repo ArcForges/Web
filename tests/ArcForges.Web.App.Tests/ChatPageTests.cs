@@ -90,7 +90,7 @@ public sealed class ChatPageTests
         var cut = context.Render<Chat>();
         SendButton(cut).Click();
         cut.WaitForAssertion(() => Assert.Contains("Sending…", cut.Markup, StringComparison.Ordinal));
-        Assert.True(SendButton(cut).HasAttribute("disabled"));
+        Assert.Equal("true", SendButton(cut).GetAttribute("aria-disabled"));
         // A second submit while one is pending does not send again.
         cut.Find("form").Submit();
         Assert.Equal(1, server.Count);
@@ -98,7 +98,55 @@ public sealed class ChatPageTests
         CancelButton(cut)!.Click();
         cut.WaitForAssertion(() => Assert.Contains("The request was cancelled.", cut.Markup, StringComparison.Ordinal));
         Assert.Null(CancelButton(cut));
+        Assert.Equal("false", SendButton(cut).GetAttribute("aria-disabled"));
+    }
+
+    [Fact]
+    public void SendStaysPresentAndFocusableThroughAPendingMessage()
+    {
+        // Focus on Send survives a send: the control is never disabled or removed (AX-02). bUnit re-parses the markup on
+        // every render, so element identity is asserted in a real browser (tests/browser LocalFocusBrowserTests); here the
+        // control must be present and reachable at each step.
+        var answer = new TaskCompletionSource<HttpResponseMessage>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var server = new ScriptedServer((_, _) => answer.Task);
+        using var context = new BunitContext();
+        AccountPageTests.RegisterProbes(context, server);
+
+        var cut = context.Render<Chat>();
+        Assert.Equal("false", SendButton(cut).GetAttribute("aria-disabled"));
+        SendButton(cut).Click();
+        cut.WaitForAssertion(() => Assert.Contains("Sending…", cut.Markup, StringComparison.Ordinal));
+        Assert.Single(cut.FindAll("button[type=submit]"));
         Assert.False(SendButton(cut).HasAttribute("disabled"));
+        Assert.Equal("true", SendButton(cut).GetAttribute("aria-disabled"));
+        Assert.Equal(new[] { "input:Name", "button:Sending…", "button:Cancel" }, FocusOrder.TabSequence(cut));
+
+        answer.SetResult(Greeting("ArcForges"));
+        cut.WaitForAssertion(() => Assert.Contains("Hello, ArcForges!", cut.Markup, StringComparison.Ordinal));
+        Assert.Single(cut.FindAll("button[type=submit]"));
+        Assert.Equal("false", SendButton(cut).GetAttribute("aria-disabled"));
+        Assert.Equal(new[] { "input:Name", "button:Send" }, FocusOrder.TabSequence(cut));
+    }
+
+    [Fact]
+    public void APendingSendIgnoresAClickAndEnterSoItCannotSendTwice()
+    {
+        var server = new ScriptedServer(async (_, token) =>
+        {
+            await Task.Delay(Timeout.Infinite, token);
+            return Greeting("unused");
+        });
+        using var context = new BunitContext();
+        AccountPageTests.RegisterProbes(context, server);
+
+        var cut = context.Render<Chat>();
+        SendButton(cut).Click();
+        cut.WaitForAssertion(() => Assert.Contains("Sending…", cut.Markup, StringComparison.Ordinal));
+        // The control stays focusable, so a click on it reaches the handler, which refuses the second send.
+        SendButton(cut).Click();
+        cut.Find("form").Submit();
+        Assert.Equal(1, server.Count);
+        Assert.Single(cut.FindAll("li"));
     }
 
     [Fact]
@@ -165,8 +213,8 @@ public sealed class ChatPageTests
 
         SendButton(cut).Click();
         cut.WaitForAssertion(() => Assert.Contains("Sending…", cut.Markup, StringComparison.Ordinal));
-        // Send is disabled while the message is pending, so the reachable control is Cancel.
-        Assert.Equal(new[] { "input:Name", "button:Cancel" }, FocusOrder.TabSequence(cut));
+        // Send stays reachable while the message is pending (aria-disabled, not disabled); Cancel joins it.
+        Assert.Equal(new[] { "input:Name", "button:Sending…", "button:Cancel" }, FocusOrder.TabSequence(cut));
         FocusOrder.AssertNoPositiveTabIndex(cut);
 
         CancelButton(cut)!.Click();
