@@ -59,3 +59,30 @@ The write scope is the PRF.11 `writes` list in the task record, with the D3 addi
 - The published output of the App publish is produced by CI after the test step, so tests that read emitted files need a local publish first or are covered through the bundle tooling tests. This is recorded in the U2 section.
 - Node is 24.20 locally against the 24.21 pin, so `npm run policy` is recorded as not run locally (hosted CI is authoritative). This is an environment gap and not a fix.
 - The WSL2 Debian SDK is 10.0.400, so a locked Linux restore fails with NU1004 there. Linux checks are not run in this phase unless they are affected.
+
+## Local CI conditions used for the gates
+
+The gates run the workflow's commands with `GITHUB_ACTIONS=true`, `CI=true` and `NUGET_PACKAGES` set to an empty folder under the session scratchpad, so every locked restore downloads from the locked feeds. The ArcForges.Build.Policy analyzer (AFP006) requires a complete CI identity under `GITHUB_ACTIONS=true`, so the gate sets `GITHUB_SHA` to the commit under test and `GITHUB_RUN_ID`, `GITHUB_RUN_ATTEMPT` and `GITHUB_RUN_NUMBER` to the placeholder `1`. These placeholders are local emulation values. They name no hosted run, and no artifact from these local gates is published or deployed. Hosted CI remains the authority for the release identity.
+
+## CSP and profile shells (U2)
+
+The emitted policy is the one string in `WasmContentSecurityPolicy` for the host page, pinned in `ArcForges.Web.App.Tests` (`WasmProfilePolicyTests.ExactPolicy`) and in `ArcForges.Web.Tooling.Tests` (`EmittedProfileContractTests`):
+
+- `default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self'; img-src 'self' data:; font-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'; form-action 'none'`
+
+`script-src` is exactly `'self'` and `'wasm-unsafe-eval'` (the host page has no inline script, so no hash is added). `style-src` is `'self'`. No `'unsafe-inline'`, `'unsafe-eval'` or `'unsafe-hashes'` appears in the policy or the headers file. The bundle test builds the profile bundle from a publish whose shell is the real host page, then reads the served `account/index.html` and `chat/index.html` (identical bytes, one `<base href="/">` each) and the `_headers` file, which names the exact policy on `/account/*` and `/chat/*`.
+
+Open point for the in-browser check (U7 and the local opt-in run, not yet executed): `base-uri 'none'` is a CSP directive that restricts the URLs a `<base>` element may use. Under CSP Level 3 a `<base href="/">` may then be blocked, so the document base would stay at `/account/` or `/chat/` and root-relative framework loads would resolve under the shell path. The offline tests cannot show this. It is not claimed as proven or as a defect. If the in-browser check confirms it, the fix is in the Ui policy, which is outside the PRF.11 write scope, so the task stops for a new decision (brief 5.13).
+
+## Exact values and CON.92 limits (U3)
+
+The exact-value helpers come from the pinned Contracts Foundation package (`ArcForges.Contracts.Foundation` 1.0.0-ci.287.1), not from new App helpers:
+
+- `ExactInteger.ParseInt64` and `ExactInteger.ParseUInt64` (canonical text, no sign, leading zero or floating point; int64 edges and values above 2^53 stay exact). The App's own `Exact.TryUnsigned` is the probe's uint64 path.
+- `ExactDecimal` (the shared exact decimal bound: at most nine fractional digits and twenty-eight significant digits, declared scale kept, no negative zero).
+
+The CON.92 registry bounds are read from `WireLimits.Bytes` and pinned: unary and helper messages 4 MiB, inline pages 256 KiB, stream frames 32 KiB, large read projections 64 MiB, and 100 nested message levels. `WireLimitTests` decodes at the exact bound (accepted) and one byte over (`TooLarge`), shows that the same bytes are admitted as a unary message and refused as a stream frame, refuses truncated, bare-tag and reserved-wire-type frames as `Malformed`, and checks that encoding refuses one byte over the class.
+
+`HelloProbe` now sets the gRPC channel's `MaxReceiveMessageSize` and `MaxSendMessageSize` to the unary class (4 MiB), so the greeting, a unary call, is bounded explicitly rather than by the library default. `HelloProbeTests.AGreetingReplyAboveTheUnaryMessageBoundIsRefusedNeverAccepted` pins that a reply whose message is over the class is `Malformed` and never a greeting.
+
+Still not claimed: the live int64, uint64 and decimal calls through the deployed Cloud probe (blocked on CLOUD.21 and CLOUD.22, not proven), and the framing of server-streamed frames on the deployed ingress (U4 records the offline framing fixtures only).

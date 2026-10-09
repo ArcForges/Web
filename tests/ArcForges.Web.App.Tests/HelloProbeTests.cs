@@ -3,10 +3,12 @@
 // Grpc.Net.Client.Web. The server is a test-only double; every answer is a real gRPC-Web frame sequence.
 using System.Net;
 using System.Text;
+using ArcForges.Contracts.Foundation.Serialization;
 using ArcForges.Contracts.Hello.V1;
 using ArcForges.Web.App.Probe;
 using ArcForges.Web.App.Tests.Fixtures;
 using ArcForges.Web.App.Tests.TestDoubles;
+using Google.Protobuf;
 using Grpc.Core;
 using Xunit;
 
@@ -158,6 +160,20 @@ public sealed class HelloProbeTests
     {
         var server = ScriptedServer.Always(() => Answer(ProbeFixtures.HelloReply("Hello, someone else!")));
         Assert.True(await FailureOf(() => ProbeFor(server).SayHelloAsync("ArcForges", CancellationToken.None)) == FailureKind.Malformed);
+    }
+
+    [Fact]
+    public async Task AGreetingReplyAboveTheUnaryMessageBoundIsRefusedNeverAccepted()
+    {
+        // CON.92: a unary reply is bounded by the 4 MiB unary message class. A data frame whose message is over the class is
+        // refused by the client's receive bound, and the probe never presents it as a greeting.
+        var bound = (int)WireLimits.Bytes(WireLimit.UnaryMessage);
+        var oversized = new SayHelloResponse { Message = new string('h', bound) }.ToByteArray();
+        var body = ProbeFixtures.Concat(ProbeFixtures.Frame(oversized, 0), ProbeFixtures.Trailers("grpc-status: 0\r\n"));
+        var server = ScriptedServer.Always(() => Answer(body));
+
+        // The client refuses the frame before any greeting is decoded, and a successful status with no readable reply is malformed.
+        Assert.Equal(FailureKind.Malformed, await FailureOf(() => ProbeFor(server).SayHelloAsync("ArcForges", CancellationToken.None)));
     }
 
     [Fact]
