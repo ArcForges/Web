@@ -1,5 +1,10 @@
 // SPDX-License-Identifier: AGPL-3.0-only
+using System.Runtime.CompilerServices;
 using System.Text;
+
+// The archive tests reach the internal writer and reader. The attribute is in source, not in the project file, so the
+// reviewed project inputs of the dependency policy are unchanged.
+[assembly: InternalsVisibleTo("ArcForges.Web.Tooling.Tests")]
 
 namespace ArcForges.Web.Tooling.Profiles;
 
