@@ -52,6 +52,41 @@ public sealed class WireLimitTests
         Assert.Equal(ContractSerializationFailure.TooLarge, refused);
     }
 
+    /// <summary>
+    /// Bytes of <paramref name="levels"/> unknown groups, each nested in the one before (field 1000, start group then end
+    /// group). The decimal parser keeps no field 1000, so it skips each group recursively, and each group is one message
+    /// level against the parser's recursion limit. The bytes are small, so only the nesting can refuse them.
+    /// </summary>
+    private static byte[] NestedGroups(int levels)
+    {
+        var bytes = new byte[levels * 4];
+        for (var i = 0; i < levels; i++)
+        {
+            bytes[2 * i] = 0xC3;           // field 1000, wire type 3 (start group)
+            bytes[2 * i + 1] = 0x3E;
+        }
+        for (var i = 0; i < levels; i++)
+        {
+            bytes[2 * levels + 2 * i] = 0xC4;  // field 1000, wire type 4 (end group)
+            bytes[2 * levels + 2 * i + 1] = 0x3E;
+        }
+        return bytes;
+    }
+
+    [Fact]
+    public void ANestingAtTheRegistryLevelsDecodesAndOneLevelDeeperIsTooDeep()
+    {
+        var atLevels = NestedGroups(WireLimits.NestedMessageLevels);
+        Assert.True(ContractWire.TryDecode(WireDecimal.Parser, atLevels, WireLimit.StreamFrame, out _, out _));
+
+        var deeper = NestedGroups(WireLimits.NestedMessageLevels + 1);
+        Assert.False(ContractWire.TryDecode(WireDecimal.Parser, deeper, WireLimit.StreamFrame, out _, out var tooDeep));
+        Assert.Equal(ContractSerializationFailure.TooDeep, tooDeep);
+
+        var refusal = Assert.Throws<ContractSerializationException>(() => ContractWire.Decode(WireDecimal.Parser, deeper, WireLimit.StreamFrame));
+        Assert.Equal(ContractSerializationFailure.TooDeep, refusal.Failure);
+    }
+
     [Fact]
     public void TheSameBytesAreAdmittedAsAUnaryMessageAndRefusedAsAStreamFrame()
     {

@@ -70,8 +70,9 @@ public sealed class ExactUnsignedTests
     [Fact]
     public void NonCanonicalOrOutOfRangeSignedTextIsRefusedNotRounded()
     {
+        // The parser refuses with its typed FormatException, and no other exception type passes.
         foreach (var value in new[] { "-0", "01", "+1", "1e3", " 1", "1 ", "0x10", "9223372036854775808", "-9223372036854775809" })
-            Assert.ThrowsAny<Exception>(() => ExactInteger.ParseInt64(value));
+            Assert.Throws<FormatException>(() => ExactInteger.ParseInt64(value));
     }
 
     [Fact]
@@ -93,7 +94,41 @@ public sealed class ExactUnsignedTests
     [Fact]
     public void NonCanonicalDecimalTextIsRefused()
     {
+        // The constructor refuses syntax with its typed FormatException, and no other exception type passes.
         foreach (var value in new[] { "1e3", "+1", " 1", "NaN", "Infinity" })
-            Assert.ThrowsAny<Exception>(() => new ExactDecimal(value));
+            Assert.Throws<FormatException>(() => new ExactDecimal(value));
+    }
+
+    [Fact]
+    public void DecimalsAtTheSharedBoundAreAcceptedAndRoundTrip()
+    {
+        // The shared bound admits at most nine fractional digits and twenty-eight significant digits.
+        foreach (var value in new[]
+                 {
+                     "1234567890123456789.123456789",
+                     "-1234567890123456789.123456789",
+                     "0.123456789",
+                     "1234567890123456789012345678",
+                 })
+        {
+            var exact = new ExactDecimal(value);
+            Assert.Equal(value, exact.Value);
+            Assert.Equal(value, exact.ToWire().Value);
+        }
+        Assert.Equal(9, new ExactDecimal("1234567890123456789.123456789").Scale);
+    }
+
+    [Fact]
+    public void DecimalsOverTheSharedBoundAreRefusedNotRounded()
+    {
+        // Ten fractional digits, and 29 significant digits (an integer, and a fraction after 28 integer digits), are over the bound.
+        foreach (var value in new[]
+                 {
+                     "0.1234567890",
+                     "1.0000000000",
+                     "12345678901234567890123456789",
+                     "1234567890123456789012345678.9",
+                 })
+            Assert.Throws<FormatException>(() => new ExactDecimal(value));
     }
 }
