@@ -111,3 +111,82 @@ The AL-06 re-baseline of the asset baseline (`eng/policy/profile-budgets.json`),
 The binary and grpc-web-text server-stream framings are recorded as fixtures in `StreamFramingTests`, and the transport decision (binary first, grpc-web-text only if the observed run fails) is recorded in `docs/prf-11-stream-transport.md`. That decision is open until the local opt-in observation (LS2) is made. No deployed stream is claimed.
 
 Still not claimed: the live int64, uint64 and decimal calls through the deployed Cloud probe (blocked on CLOUD.21 and CLOUD.22, not proven), and the framing of server-streamed frames on the deployed ingress (U4 records the offline framing fixtures only).
+
+## Offline proof record and completion handoff (U9)
+
+### Status
+
+PRF.11 is delivered on its offline units U1 to U9 in local commits on `task/prf-11`. It is **not complete**. The completion edges CLOUD.21, CLOUD.22 and CLOUD.85 are not started, and the in-browser CSP check has an open decision (below). The task record names PRF.08 as superseded, and this record supersedes PRF.08 (`docs/prf-08-profile-proof.md` is history). PRF.11 is the successor of the WEB.40 app-proof row (ruling S28(i)).
+
+### Offline receipt (WP-06.05, offline portion)
+
+| Item | Evidence | Result |
+| --- | --- | --- |
+| Start identity and edges (U1) | `docs/prf-11-profile-proof.md` start section; CON.92 limits in Contracts `docs/architecture.md` at ca45f36; CON.07 identity `ArcForges.Contracts.PublicApi 1.0.0-ci.287.1` | Recorded; P0c holds |
+| Exact CSP token set and base hrefs (U2) | `WasmProfilePolicyTests.TheEmittedPolicyIsTheExactReviewedString`, `TheHostPageDeclaresExactlyOneBaseAtTheRootAndTheShellsRelyOnIt`; `EmittedProfileContractTests` (4 cases) | Passes offline; the string is pinned, and its correctness in the browser is open (see the decision below) |
+| Exact int64, uint64, decimal and CON.92 limits (U3) | `ExactUnsignedTests` (int64, decimal); `WireLimitTests` (7 cases); `HelloProbeTests.AGreetingReplyAboveTheUnaryMessageBoundIsRefusedNeverAccepted` | Passes offline |
+| Server-stream framing fixtures and decision (U4) | `StreamFramingTests` (6 cases); `docs/prf-11-stream-transport.md` | Fixtures pass; the decision is open until the observed run (LS2) |
+| No-script reading and determinism (U5) | `SiteOutputTests.TheOutputCarriesNoScriptOrWebAssemblyFileAtAll` and the existing `EveryPageIsReadableWithScriptingDisabled`; Site built twice and diffed (identical, nine files); `LocalNoScriptBrowserTests` (local opt-in, one run with installed Chrome 156.0.8078.12, passed) | Offline and local evidence recorded; claimant-reported |
+| AL-06 asset re-baseline, file count, WA-08 costing (U6) | `docs/prf-11-budgets.md`; `profiles budget` passed; `profiles bundle` and `profiles verify` (174 served files, 116 precompressed, limit 20,000 on Free) | Recorded; interaction budgets stay re-baseline-pending |
+| Inline-style audit, in-browser CSP and live specs (U7) | `docs/prf-11-runbook.md`; `LivePrf11Specs` (4, skipped without the opt-in); `LivePrf11OptInTests` and `LocalOptInTests` (guards) | Audit clean (static); live specs not run; see the decision below |
+| NuGet closure admission (U8) | Conditional. The `git diff` against the WEB.40 base shows no change to any `*.csproj`, `packages.lock.json`, `Directory.Packages.props`, `Directory.Build.props`, `NuGet.config` or `eng/policy/dependency-policy.json` | Skipped (no closure change) |
+
+### Open decision (stop, brief 5.13): `base-uri 'none'` blocks the shells' base href
+
+The served policy (`WasmContentSecurityPolicy`, Ui, outside the PRF.11 write scope) contains `base-uri 'none'`. In a local emulation of the served headers, Chrome 156.0.8078.12 logs `Setting the document's base URI ... violates the following Content Security Policy directive: "base-uri 'none'". The action has been blocked.` The message reproduced in two runs. The rendering consequence is not established: the headless render check was inconsistent, and a run without CSP also failed to render once. The offline tests cannot see this. The coordinator must choose a reviewed fix (for example a Ui change to `base-uri`) or a reviewed host-page change. Until then, the in-browser CSP token-set proof is not passed, and the policy string stays pinned as served.
+
+### Gates (local, under CI conditions unless stated)
+
+| Gate | Result | Notes |
+| --- | --- | --- |
+| Policy suite (`ArcForges.Web.Policy.Tests`) | 108 of 108 passed | Whitespace and final newline rules included |
+| `dotnet format --verify-no-changes` (every CSHARP_PROJECTS entry) | passed | Run per project with `--no-restore` |
+| `dotnet build -c Release` (every CSHARP_PROJECTS entry) | passed | Zero errors |
+| `dotnet test --no-build -c Release` (every CSHARP_TEST_PROJECTS entry) | Tooling 56/56; Site 75 passed, 1 skipped by design (`SiteParityTests`, no React prerender named); Ui 14/14; App 91/91; Operations 5/5; Policy 108/108 | |
+| Locked restores (every CSHARP_PROJECTS entry and the browser project) | passed | `NUGET_PACKAGES` is an empty scratch folder |
+| Profile publish (App to `artifacts/profiles/app` and `artifacts/publish/app`; Operations) | passed | IL build; `RunAOTCompilation` false; no `wasm-tools` workload, so AOT is not run |
+| Profile budgets (`profiles budget`) | passed against the re-baselined values | |
+| Profile bundle (`profiles bundle` and `profiles verify`) | passed (175 members) | |
+| Candidate (worker and identity emitted, built twice, diffed, verified) | passed; the two candidate trees are identical (20 members) | Local identity placeholders (see the local CI conditions section) |
+| Site (built twice, diffed) | identical | |
+| `npm ci --ignore-scripts` | passed with the lock | Required `--engine-strict=false`; see the environment gaps |
+| `npm audit --audit-level=high` | 0 vulnerabilities | |
+| `npm run check:dependencies` | passed (114 dependencies, 39 inputs) | |
+| `npm run policy`, the provenance and licence audits | the licence boundary, the provenance audit, the naming check and every assertion before the Node version check passed | The Node version assertion fails (24.20 against the 24.21 pin). The remaining assertions were replicated from a scratch script: exact pins, lockfile v3, lock provenance and wrangler routing passed; the `packageManager` assertion fails (npm 12.0.2 against the pinned 11.19.0). Hosted CI is authoritative for `npm run policy`. |
+| `npm run typecheck` | passed | |
+| `npm run test:dependencies` | 15 of 15 passed | |
+| `npm run test` | 94 of 94 passed | |
+| `node tooling/project.ts licence-evaluated` (Windows source leg) | passed | |
+| `actionlint` 1.7.12 on `.github/workflows/ci.yml` | passed | Workflow not changed |
+| gitleaks (pinned digest `c00b6bd0`, run in WSL Debian Docker over a WSL-native clone of `task/prf-11` at `98547cb`, network disabled) | no leaks found | The image was already cached and was not pulled. The scan reported 100 commits scanned for a 127-commit history; the difference was not investigated, and the scan is repeated for the final head. |
+| Inventory (`eng/provenance/files.json`) | passed after adding eleven first-party entries (commit `98547cb`) | |
+| Hosted only (not run here) | CodeQL (javascript-typescript, actions, csharp), dependency review (PR only), the Linux leg of the csharp and source jobs, the candidate job on Linux, the deploy job (main only) and the Cloudflare deploy | Recorded as hosted-only |
+
+### Environment gaps (not fixes)
+
+- Node 24.20.0 is installed locally against the 24.21.0 pin, and npm 12.0.2 against the 11.19.0 pin. No toolchain was installed for this run.
+- The WSL2 Debian SDK is 10.0.400, so the locked Linux restore fails with NU1004 there. Linux checks were not run, because they are hosted in CI.
+
+### Commits (local, on `task/prf-11`, not pushed)
+
+`fc4fba0` (U1), `f27a9b4` (U2), `9edf001` (U3), `b21aa64` (U4), `a1ede81` (U5), `2a21bc3` (U6), `db38e2c` (U7), `98547cb` (inventory fix), and this commit (U9). U8 is skipped by its own condition.
+
+### Completion blockers (blocked, not proven)
+
+- CLOUD.21 and CLOUD.22 are not started. The exact int64, uint64 and decimal calls, typed failures, cancellation after dispatch, session and CSRF on the deployed origin are blocked on them, not proven.
+- CLOUD.85 is not started. Same-origin serving of the shells at `/account/` and `/chat/` under base href `/`, the framework at the root and the exact CSP on the served responses are blocked on it, not proven.
+- The base-uri decision above.
+- The observed server-stream run (LS2), the INP measurement for the AL-06 interaction re-baseline (LS3), and the AOT benchmark (not run).
+- The deployed proof origin is not observed. Every local result is claimant-reported.
+
+### CLOUD.71 history (D11)
+
+CLOUD.71 is ledger-complete for the React bytes only. Its start edge names PRF.11 while PRF.11 has a complete edge on it. Treated as complete-task history (brief S16(a)); no action in this run.
+
+### Not claimed
+
+- PRF.11 completion, and WP-06.05 and PG-23 as proven (only the offline portions are recorded).
+- Any deployed result: the deployed CSP, the deployed shells, the live calls, the live streams, the live INP.
+- Startup time and interaction responsiveness budgets (not measured), and the AOT benchmark (not run).
+- The WA-08 numeric sustained chat memory budget (not found in the Design authority at `b01ae31`; the costing is by construction only).
+- Any macOS result (out of scope, P2-023), and any WSL2 or Linux result (hosted).
