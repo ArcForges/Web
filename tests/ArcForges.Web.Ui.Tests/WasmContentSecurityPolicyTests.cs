@@ -26,6 +26,14 @@ public sealed class WasmContentSecurityPolicyTests
     }
 
     [Fact]
+    public void BaseUriIsSelfForEveryProfilePolicySoTheShellBaseElementTakesEffect()
+    {
+        var directives = WasmContentSecurityPolicy.ParseDirectives(WasmContentSecurityPolicy.FromHostPages([HostPage]));
+        Assert.Equal(new[] { "'self'" }, directives["base-uri"]);
+        Assert.DoesNotContain("'none'", directives["base-uri"]);
+    }
+
+    [Fact]
     public void NoUnsafeTokenAppearsInAnyDirective()
     {
         var policy = WasmContentSecurityPolicy.FromHostPages([HostPage, "<script>window.start = 1;</script>"]);

@@ -15,6 +15,7 @@ The Account and Chat profiles are one published application (`src/ArcForges.Web.
 - Every `_framework` file is fingerprinted (ten lower-case characters before `.js`, `.wasm` or `.dat`, including the `.br` and `.gz` siblings) or is one of the two unfingerprinted loaders. Any other framework file fails the build, so the immutable rule covers fingerprinted content only.
 - The bundle verifies its own name, its strict tar layout, its manifest and every member's digest, the profile pages, each profile policy against its page, and the exact headers file.
 - Each profile policy stays within the Cloudflare header line budget. No `unsafe-eval`, no `unsafe-inline`, and `wasm-unsafe-eval` only where the App policy requires it (P2-021).
+- Each profile policy sets `base-uri 'self'`, so the shells' `<base href="/">` takes effect. `base-uri 'none'` blocks that element, the relative framework loader then resolves under `/account/` or `/chat/`, and the shell never starts (S36). The public Site policy keeps `base-uri 'none'`.
 
 ## Size budgets
 
