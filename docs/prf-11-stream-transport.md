@@ -1,5 +1,7 @@
 # PRF.11 server-stream transport decision (pending the observed run)
 
+Reviewer: `w-deku-20261008-rev-prf-11` (pre-assigned, brief S25). Decision: `approved`. reviewedOn: `2026-10-09`. The decision field records the review of this record, its candidate order and its evidence. It is not a transport choice, which stays open until the observed run (LS2). These fields are a proposal that only the named reviewer's exact-head approval ratifies.
+
 Status: open. The decision is recorded as a candidate order with the offline evidence below. It is not final until the local opt-in run against the deployed ingress observes the binary stream (LS2 in the PRF.11 plan). Until then, no transport is claimed as proven.
 
 ## The two candidate framings
