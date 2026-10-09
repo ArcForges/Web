@@ -9,6 +9,9 @@ namespace ArcForges.Web.Ui;
 /// The script sources are exactly <c>'self'</c> and <c>'wasm-unsafe-eval'</c> plus the SHA-256 hash of every inline script
 /// body of the host page. <c>style-src</c> stays <c>'self'</c>, so components that need inline styles are not used. The
 /// policy never carries <c>unsafe-inline</c> or <c>unsafe-eval</c>, and an absolute external script is refused.
+/// <c>base-uri</c> is <c>'self'</c>: the shells carry <c>&lt;base href="/"&gt;</c> (CLOUD.85 D1), and <c>'none'</c> blocks that
+/// base element, so the relative framework loader resolves under the shell path and the shell never starts (S36). The Site
+/// policy keeps <c>base-uri 'none'</c>, because the public pages have no base element.
 /// </summary>
 public static class WasmContentSecurityPolicy
 {
@@ -33,7 +36,7 @@ public static class WasmContentSecurityPolicy
                     hashes.Add("'sha256-" + Convert.ToBase64String(SHA256.HashData(Encoding.UTF8.GetBytes(body))) + "'");
         var scriptSources = string.Join(' ', new[] { "'self'", WasmUnsafeEval }.Concat(hashes));
         var policy = "default-src 'self'; script-src " + scriptSources
-            + "; style-src 'self'; img-src 'self' data:; font-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'; form-action 'none'";
+            + "; style-src 'self'; img-src 'self' data:; font-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'self'; frame-ancestors 'none'; form-action 'none'";
         if (policy.Length >= HeaderLineBudget)
             throw new InvalidOperationException("The Content-Security-Policy exceeds the Workers header line budget.");
         return policy;

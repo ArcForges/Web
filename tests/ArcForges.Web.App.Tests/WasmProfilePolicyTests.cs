@@ -24,6 +24,8 @@ public sealed class WasmProfilePolicyTests
         Assert.Equal(new[] { "'self'" }, directives["style-src"]);
         Assert.Equal(new[] { "'self'" }, directives["default-src"]);
         Assert.Equal(new[] { "'self'" }, directives["connect-src"]);
+        // The shells carry <base href="/"> (CLOUD.85 D1), so the profile policy must admit the base element (S36).
+        Assert.Equal(new[] { "'self'" }, directives["base-uri"]);
         Assert.DoesNotContain("'unsafe-inline'", policy, StringComparison.Ordinal);
         Assert.DoesNotContain("'unsafe-eval'", policy, StringComparison.Ordinal);
         Assert.True(policy.Length < WasmContentSecurityPolicy.HeaderLineBudget);
@@ -93,5 +95,16 @@ public sealed class WasmProfilePolicyTests
         Assert.Contains("Sdk=\"Microsoft.NET.Sdk.BlazorWebAssembly\"", project, StringComparison.Ordinal);
         Assert.Contains("<RunAOTCompilation>false</RunAOTCompilation>", project, StringComparison.Ordinal);
         Assert.DoesNotContain("Microsoft.AspNetCore.Components.Server", project, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void TheProfileStylesheetCarriesNoTailwindPreambleAndDefinesItsTokensOnRoot()
+    {
+        // S37: nothing compiles the profile stylesheet, so Tailwind at-rules would only request a missing /tailwindcss.
+        var css = AppSource("wwwroot/app.css");
+        foreach (var token in new[] { "@import \"tailwindcss\"", "@source", "@theme", "@apply", "@tailwind" })
+            Assert.DoesNotContain(token, css, StringComparison.Ordinal);
+        Assert.Contains("--font-sans:", css, StringComparison.Ordinal);
+        Assert.Matches(new Regex(":root\\s*\\{[^}]*--font-sans:", RegexOptions.Singleline), css);
     }
 }
