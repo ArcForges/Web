@@ -174,6 +174,35 @@ The gates were re-run after the fix1 record changes, from a clean state (`git cl
 | gitleaks (pinned image `c00b6bd0`, WSL Debian Docker, `--network none`, over a fresh clone at `b84e2e3`) | no leaks found; 102 commits scanned | The image was already cached, so it was run by its image ID and not pulled. The `git` mode scans the history reachable from HEAD |
 | Hosted only (not run here) | CodeQL (javascript-typescript, actions, csharp), dependency review (PR only), the Linux legs of the csharp and source jobs, the candidate job on Linux, the verify job, and the deploy job (main push only) | Recorded as hosted. `npm run deploy` was not run |
 
+### Gates (fix2 re-run under CI conditions, code head `792af5a`)
+
+The gates were re-run from a clean state (`git clean -fdX` in the worktree, which removes only ignored build output), with `NUGET_PACKAGES` set to a new empty folder under the scratchpad, and with the CI environment of the local CI conditions section. The candidate job then starts from its own clean state, as a fresh checkout does. Every CPU-heavy step ran in the build slot. The first pass at `792af5a` gave the same results, and its logs are not cited separately.
+
+| Gate | Result | Notes |
+| --- | --- | --- |
+| Locked restores (every CSHARP_PROJECTS entry, `--locked-mode`) | passed | |
+| `dotnet format --verify-no-changes --no-restore` (every CSHARP_PROJECTS entry) | passed | |
+| `dotnet build -c Release --no-restore` (every CSHARP_PROJECTS entry) | passed | 11 projects, zero errors and zero warnings |
+| `dotnet test --no-build -c Release` (every CSHARP_TEST_PROJECTS entry) | Tooling 56/56; Site 75 passed, 1 skipped by design (`SiteParityTests`, no React prerender named); Ui 14/14; App 94/94 (91 at fix1, plus the three fix2 tests); Operations 5/5; Policy 108/108 | |
+| Profile publish (App to `artifacts/profiles/app`, Operations to `artifacts/profiles/operations`) | passed | IL build; `RunAOTCompilation` false; no `wasm-tools` workload, so AOT is not run |
+| Static Site (`site build` twice, compared) | identical | nine files |
+| Candidate job: clean, `npm ci`, tooling restore and build, App locked restore and publish to `artifacts/publish/app` | passed | |
+| Profile budgets (`profiles budget` against `eng/policy/profile-budgets.json`) | passed | |
+| Worker and build identity (`candidate.ts worker`, `candidate.ts identity`) | emitted | identity `0.1.0-ci.1.1` (the placeholder run identity) |
+| Candidate (built twice, compared, verified) | identical; verified `0.1.0-ci.1.1` at `792af5a`, 20 members | |
+| Profile bundle (`profiles bundle` and `profiles verify`) | passed | 175 members |
+| `npm ci --ignore-scripts --engine-strict=false` | passed | `--engine-strict=false` is needed locally (see the environment gaps) |
+| `npm audit --audit-level=high` | 0 vulnerabilities | |
+| `npm run check:dependencies` | passed | |
+| `npm run policy` | fails at the Node version assertion (`v24.20.0` against the `v24.21.0` pin) | Environment gap, unchanged. The later assertions are not reached locally. Hosted CI is authoritative |
+| `npm run typecheck` | passed | |
+| `npm run test:dependencies` | 15 of 15 passed | |
+| `npm run test` | 90 of 94 passed at the Source leg, with 4 skipped; 94 of 94 after the candidate publish | The four skipped are the profile bundle tests, which need `artifacts/publish/app`, as in the CI Source job. They pass once the App is published |
+| `node tooling/project.ts licence-evaluated` (Windows source leg) | passed | |
+| `actionlint` on `.github/workflows/ci.yml` | passed | Workflow not changed |
+| gitleaks (pinned image `c00b6bd0`, WSL Debian Docker, `--network none`, over a fresh clone at `792af5a`) | no leaks found; 105 commits scanned | The image was already cached and was run by its image ID, not pulled (S31) |
+| Hosted only (not run here) | CodeQL (javascript-typescript, actions, csharp), dependency review (PR only), the Linux legs of the source and csharp jobs, the candidate job on Linux, the verify job, and the deploy job (main push only) | Recorded as hosted. `npm run deploy` was not run |
+
 ### Environment gaps (not fixes)
 
 - Node 24.20.0 is installed locally against the 24.21.0 pin, and npm 12.0.2 against the 11.19.0 pin. No toolchain was installed for this run.
@@ -181,7 +210,7 @@ The gates were re-run after the fix1 record changes, from a clean state (`git cl
 
 ### Commits (local, on `task/prf-11`, not pushed)
 
-`fc4fba0` (U1), `f27a9b4` (U2), `9edf001` (U3), `b21aa64` (U4), `a1ede81` (U5), `2a21bc3` (U6), `db38e2c` (U7), `98547cb` (inventory fix), `3283edf` (U9), then `b84e2e3` (fix1: the shell outcome and the S25 review fields). The fix1 gate re-run record is the commit after `b84e2e3`. U8 is skipped by its own condition.
+`fc4fba0` (U1), `f27a9b4` (U2), `9edf001` (U3), `b21aa64` (U4), `a1ede81` (U5), `2a21bc3` (U6), `db38e2c` (U7), `98547cb` (inventory fix), `3283edf` (U9), then `b84e2e3` (fix1: the shell outcome and the S25 review fields). The fix1 gate re-run record is `8b52483`. Fix2 adds `0b42cb4` (typed refusals, the decimal bound and the TooDeep test) and `792af5a` (the Status and the fix2 review section). The fix2 gate re-run record is the commit after `792af5a`. U8 is skipped by its own condition.
 
 ### Completion blockers (blocked, not proven)
 
