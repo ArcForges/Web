@@ -280,19 +280,20 @@ public sealed class LocalAccessibilityBrowserTests
         /// <summary>Runs axe-core on the page under test and records the result. Every violation fails the screen.</summary>
         internal async Task AssertAxeAsync(string screen, string state)
         {
+            // Deque.AxeCore.Commons.AxeResult exposes Violations, Passes, Incomplete, Inapplicable and AxeResultNode.Nodes as arrays.
             var result = await Page.RunAxe();
             var violations = result.Violations ?? [];
             var line = new StringBuilder()
                 .Append(screen).Append(" | ").Append(state)
                 .Append(" | url ").Append(new Uri(result.Url).AbsolutePath)
-                .Append(" | violations ").Append(violations.Count)
-                .Append(" | passes ").Append(result.Passes?.Count ?? 0)
-                .Append(" | incomplete ").Append(result.Incomplete?.Count ?? 0)
-                .Append(" | inapplicable ").Append(result.Inapplicable?.Count ?? 0);
+                .Append(" | violations ").Append(violations.Length)
+                .Append(" | passes ").Append(result.Passes?.Length ?? 0)
+                .Append(" | incomplete ").Append(result.Incomplete?.Length ?? 0)
+                .Append(" | inapplicable ").Append(result.Inapplicable?.Length ?? 0);
             foreach (var violation in violations)
-                line.Append(" | ").Append(violation.Id).Append(" (").Append(violation.Impact).Append(", ").Append(violation.Nodes.Count).Append(" nodes)");
+                line.Append(" | ").Append(violation.Id).Append(" (").Append(violation.Impact).Append(", ").Append(violation.Nodes.Length).Append(" nodes)");
             Record(line.ToString());
-            Assert.True(violations.Count == 0, $"axe found violations on {screen} ({state}): {line}");
+            Assert.True(violations.Length == 0, $"axe found violations on {screen} ({state}): {line}");
         }
 
         private static void Record(string line)

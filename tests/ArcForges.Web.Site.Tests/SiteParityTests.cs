@@ -109,8 +109,10 @@ public sealed class SiteParityTests
         Assert.Equal(reference.Lines, candidate.Lines);
         Assert.Contains(reference.Lines, line => line.Contains(HtmlNormaliser.StylesheetPlaceholder, StringComparison.Ordinal));
 
+        // The anchor is nested under <html><head/><body>, so it is not Lines[0]; its own line must keep the href verbatim.
         var anchor = HtmlNormaliser.Normalise("<a href=\"/assets/root-BPtceTrQ.css\">download</a>");
-        Assert.Contains("href=\"/assets/root-BPtceTrQ.css\"", anchor.Lines[0], StringComparison.Ordinal);
+        Assert.Contains("<a href=\"/assets/root-BPtceTrQ.css\">", anchor.Lines);
+        Assert.DoesNotContain(anchor.Lines, line => line.Contains(HtmlNormaliser.StylesheetPlaceholder, StringComparison.Ordinal));
     }
 
     [Fact]
