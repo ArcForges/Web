@@ -4,18 +4,18 @@
     "net10.0": {
       "ArcForges.Build.Policy": {
         "type": "Direct",
-        "requested": "[1.0.0-ci.94.1, )",
-        "resolved": "1.0.0-ci.94.1",
-        "contentHash": "PCpeEXikk2m87zhMF6L8tbHe2QrI87mO4Nc5lJBenEDhOePwwV4TkArc6IaM1G11Pm8ojVjurLAIoPW22ozb/A=="
+        "requested": "[1.0.0-ci.130.1, )",
+        "resolved": "1.0.0-ci.130.1",
+        "contentHash": "+9cGGo8JxDrOXzxlV8qLI3fG+ANxc2JG68eg1kpGcglI+6WzFf4oHqiRZKhkb3Wu+mkc0BYCsMYg3T1BnjeVwQ=="
       },
       "bunit": {
         "type": "Direct",
-        "requested": "[2.9.0, )",
-        "resolved": "2.9.0",
-        "contentHash": "Jz9ywwpjjYHppFDw4bIMkk5cNOy0vN74p3PzJFVIlCZicK8vpAovM5LsuNDLKE4bpwISNKrjwSrsw4SIVzT+0g==",
+        "requested": "[2.11.3, )",
+        "resolved": "2.11.3",
+        "contentHash": "tyHufngemDi1XAfS4kx0hNZBw3HT73M/Qsj+szQTMrDpLJB2BPPBFpWh70j/b1RF289ix1zDqd7vMcgf6rAysw==",
         "dependencies": {
-          "AngleSharp": "1.7.0",
-          "AngleSharp.Css": "1.0.1",
+          "AngleSharp": "1.8.1",
+          "AngleSharp.Css": "1.1.2",
           "AngleSharp.Diffing": "1.1.1",
           "Microsoft.AspNetCore.Components": "10.0.10",
           "Microsoft.AspNetCore.Components.Authorization": "10.0.10",
@@ -41,8 +41,8 @@
       },
       "AngleSharp.Css": {
         "type": "Transitive",
-        "resolved": "1.0.1",
-        "contentHash": "6S13xNHH+SUGPZd6EO1MhkuDbpEnFroUM6A8DZpLJHQnLRTvtBJb3Ydu65s618E4gWF9FSWmM5jhKk4RIfwT2A==",
+        "resolved": "1.1.2",
+        "contentHash": "7o5yCTuURjxmjy+O5/2EDQihTwnVlbeg9cIO+Zq8zDLt/7AZWebOfIxij+cejBGUBMad95wl5VlY3XFo3VQuCg==",
         "dependencies": {
           "AngleSharp": "[1.5.0, 2.0.0)"
         }
@@ -58,8 +58,8 @@
       },
       "ArcForges.Contracts.Foundation": {
         "type": "Transitive",
-        "resolved": "1.0.0-ci.287.1",
-        "contentHash": "Jwe5Z6K57vDsKmcxQFbbwyQZQUQsOkzYH26ogQIRb/biRtaGxLCtOsNg4felCuNTJt9bwRmC6AGx3eJyCoCk/g==",
+        "resolved": "1.0.0-ci.350.1",
+        "contentHash": "/+3FP6Ys+LTJ+FlsCndfdWd1dle0ZF4H6aBcSUnbBG1vYBUamo/+xf7NY8t0hLrBoPWI4d1fArxKSrcG4TvOMg==",
         "dependencies": {
           "Google.Protobuf": "3.36.1"
         }
@@ -449,22 +449,22 @@
       "arcforges.web.ui": {
         "type": "Project",
         "dependencies": {
-          "ArcForges.Contracts.PublicApi": "[1.0.0-ci.287.1, )"
+          "ArcForges.Contracts.PublicApi": "[1.0.0-ci.350.1, )"
         }
       },
       "AngleSharp": {
         "type": "CentralTransitive",
-        "requested": "[1.7.0, )",
-        "resolved": "1.7.0",
-        "contentHash": "v1R++46dblGRBo2/fKFUfgtZOaFnDGQhqBM0AarxgZSJuumj1e1vexBbjlTv2hx3Olr3qeoJa2yUoWyv5fuJ5A=="
+        "requested": "[1.8.4, )",
+        "resolved": "1.8.4",
+        "contentHash": "lbwt3oqjyxI6x01NT0kRqnudE+gxLqRAs/X49/iVWyguj6OtRfYCanV1mL+jYZgeeAqnGqWzqi7+s5gdtBF1Ag=="
       },
       "ArcForges.Contracts.PublicApi": {
         "type": "CentralTransitive",
-        "requested": "[1.0.0-ci.287.1, )",
-        "resolved": "1.0.0-ci.287.1",
-        "contentHash": "/chAZbT/NTs4yyQBV5dgh37/dWBTKt3PHCikIidI9T90LheydsJoCWxKHGC6Tjzw0rqA62rYxnQfXGzKhTea5Q==",
+        "requested": "[1.0.0-ci.350.1, )",
+        "resolved": "1.0.0-ci.350.1",
+        "contentHash": "oFFsXFCJdcfcNAO6ySzGABDHkMu7/NNAD8b9Nm6V97yHZ6Ug1XKEqbFnSZSwDSAkK4TP/d+hTw81XIGj7k+Lkg==",
         "dependencies": {
-          "ArcForges.Contracts.Foundation": "1.0.0-ci.287.1",
+          "ArcForges.Contracts.Foundation": "1.0.0-ci.350.1",
           "Google.Protobuf": "3.36.1",
           "Grpc.Core.Api": "2.84.0"
         }
