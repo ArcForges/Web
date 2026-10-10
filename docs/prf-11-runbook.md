@@ -27,7 +27,7 @@ This runbook is for the local opt-in live run of the PRF.11 proof, against the d
 1. Build the browser project locally, after a locked restore of `tests/browser/ArcForges.Web.Browser.Tests/ArcForges.Web.Browser.Tests.csproj`.
 2. Run the live specs with the variables above set, and with the CI markers unset:
 
-   `dotnet test tests/browser/ArcForges.Web.Browser.Tests/ArcForges.Web.Browser.Tests.csproj --no-build -c Release --filter "FullyQualifiedName~LivePrf11Specs"`
+   `dotnet test tests/browser/ArcForges.Web.Browser.Tests/ArcForges.Web.Browser.Tests.csproj -c Release --filter "FullyQualifiedName~LivePrf11Specs"`
 
 3. Read the skip reasons. A skipped cloud spec is "blocked on CLOUD.21/CLOUD.22, not proven" and is not evidence.
 

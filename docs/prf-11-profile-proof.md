@@ -127,6 +127,8 @@ Still not claimed: the live int64, uint64 and decimal calls through the deployed
 
 ### Status
 
+Note (2026-10-10, fix cycle 4, appended): the local opt-in live run against the proof origin is recorded in the section "Live record and review fixes (fix cycle 4)" at the end of this file. It supersedes the statements in this status section that no deployed result was observed.
+
 PRF.11 is **delivered on its offline units U1 to U9** (brief S20(d)). The offline units are committed in local commits on `task/prf-11`. The `base-uri` stop that fix1 and fix2 recorded is resolved by S36 and WEB.40 follow-up Web #38, and the fix3 merge carries that fix into this branch. The task is **not complete**: the completion edges CLOUD.21 and CLOUD.22 are not started, so the parts that need them are recorded as "blocked on CLOUD.21/CLOUD.22, not proven". Its local opt-in live run against proof.arcforges.com follows the CLOUD.85 follow-up proof redeploy, and no deployed result is claimed here. The task record names PRF.08 as superseded, and this record supersedes PRF.08 (`docs/prf-08-profile-proof.md` is history). PRF.11 is the successor of the WEB.40 app-proof row (ruling S28(i)).
 
 ### Offline receipt (WP-06.05, offline portion)
@@ -299,3 +301,86 @@ CLOUD.71 is ledger-complete for the React bytes only. Its start edge names PRF.1
 - The WA-08 numeric sustained chat memory budget (not found in the Design authority at `b01ae31`; the costing is by construction only).
 - Any macOS result (out of scope, P2-023), and any WSL2 or Linux result (hosted).
 - The deployed proof origin's shells, CSP and live calls: blocked on the CLOUD.85 follow-up redeploy and the local opt-in live run (not proven).
+
+## Live record and review fixes (fix cycle 4, 2026-10-10)
+
+Claimant: `w-deku-20261009-prf-11` (execution agent, Haiku 5.5, local-only). Reviewer of record: `w-deku-20261008-rev-prf-11` (S25; decision `approved`, reviewedOn `2026-10-09` on the earlier heads). Code head of the gate chain and the live run: `31888e1`. The commits after it change no gated input.
+
+This record cites CLOUD.85. It is the PRF.11 deployed proof-origin same-origin and base-href record that the CLOUD.85 evidence clause requires (the S36 follow-up, Cloud #82, deployed at `3c59ce34`).
+
+### Review findings at `2643127` (non-blocking, dispositions)
+
+| Finding | Disposition | Commits |
+| --- | --- | --- |
+| 1. Budget ceilings looser than the pre-PRF.11 WEB.40 ceiling | Re-measured at head. The baseline is restored to the WEB.40 values, byte-identical to `c5a5f2e`. Every ceiling equals its WEB.40 ceiling, so no ceiling is looser and no loosening remains. The table, the cross-check and the run-to-run variation are in `docs/prf-11-budgets.md`, "Head re-measurement and ceilings (review fix 1)". | `31888e1`, `6615398` |
+| 2. HelloProbe explicit bounds not discriminated | The send bound is discriminated. `HelloProbeTests.AGreetingRequestAboveTheUnaryBoundIsRefusedBeforeItsBytesReachTheTransport` fails when `MaxSendMessageSize` is removed (mutation run: the oversized body reaches the transport) and passes with the line restored. The receive bound cannot be discriminated offline, because the Grpc.Net.Client default receive bound is 4,194,304 bytes, the same as the unary class. The explicit receive line is recorded as a value pin, not as proven. | `158d8e9` |
+| 3. StreamFramingTests did not assert the kind | Every case whose name says Malformed asserts `FailureKind.Malformed`, through one helper. | `158d8e9` |
+| 4. Runbook without S25 fields | The reviewer, `decision: approved` and `reviewedOn` are in `docs/prf-11-runbook.md`. | `006b4b8` |
+| 5. D3 reading for `EmittedProfileContractTests` | Accepted. No change. | none |
+| 6. Largest static file not recorded | `_framework/dotnet.native.rw4kynp763.wasm`, 3,001,422 bytes (11.4 percent of the 25 MiB single-file limit), is recorded in the budgets doc and here. | `31888e1`, `6615398` |
+
+App tests are now 96 of 96 (95 before, plus the send-bound test). The mutation run was made in the worktree and reverted before the commit.
+
+### Gate chain at `31888e1` (CI conditions)
+
+Conditions: `GITHUB_ACTIONS=true`, `CI=true`, `GITHUB_REPOSITORY=ArcForges/Web`, placeholder run identity `1` (AFP006), a fresh `NUGET_PACKAGES` folder under the session scratchpad, and `git clean -fdX` first (ignored build output only). Every heavy command ran through `delivery.py build-slot run`, one stage script per call.
+
+| Gate | Result |
+| --- | --- |
+| Locked restores (`--locked-mode`), all 11 CSHARP_PROJECTS | passed |
+| `dotnet format --verify-no-changes --no-restore`, all 11 | passed |
+| `dotnet build -c Release --no-restore`, all 11 | passed, 0 warnings and 0 errors each |
+| `dotnet test --no-build -c Release`, the 6 CSHARP_TEST_PROJECTS | Tooling 56 of 56; Site 76 passed and 1 skipped by design (`SiteParityTests`); Ui 15 of 15; App 96 of 96; Operations 6 of 6; Policy 108 of 108 |
+| Profile publish: App to `artifacts/profiles/app`, Operations to `artifacts/profiles/operations` | passed (IL build, no AOT) |
+| Static Site built twice and compared | identical, 9 files |
+| Candidate publish of App to `artifacts/publish/app` | passed; 174 wwwroot files, 116 precompressed |
+| `profiles budget` | passed. Values at `31888e1`, the same for account and chat: initialRequests 58 (limit 62), htmlBytes 766 (790), initialCssGzip 2328 (2469), initialJsGzip 126015 (138538), initialWasmGzip 3236698 (3549958), initialDataGzip 848189 (933007), initialOtherGzip 238 (261), totalGzip 4213468 (4624236) |
+| `npm ci --ignore-scripts --engine-strict=false` | passed. The engine check is off because the local Node is 24.20.0 against the 24.21.0 pin |
+| Candidate worker and identity (`0.1.0-ci.1.1`, placeholder identity) | emitted |
+| Sealed candidate built twice and compared | identical, 21 files; verified, 20 members, at `31888e1` |
+| Profile bundle (`profiles bundle` and `profiles verify`) | passed; 175 members, 18,672,640 bytes |
+| `npm audit --audit-level=high` | 0 vulnerabilities |
+| `node tooling/project.ts licence-evaluated` | passed |
+| `npm run check:dependencies`, `npm run typecheck`, `npm run test:dependencies` | passed; the dependency tests are 15 of 15 |
+| `npm test` | 94 of 94 |
+| `npm run policy` | fails at the Node version assertion (`v24.20.0` against `v24.21.0`). Recorded as hosted, as the coordinator directed; the later assertions are not reached locally |
+| Browser opt-in project, restore (`--locked-mode`) and Release build | passed, 0 warnings and 0 errors. Built outside CI conditions, which the live run requires |
+
+Not rerun in this cycle: actionlint and gitleaks. The workflow is unchanged since the fix3 run, and the history scan is in the fix3 record. Hosted only, not run here: the Linux legs, CodeQL, dependency review (PR only), the verify job and the deploy job. `npm run deploy` was not run.
+
+### Preconditions observed for the live run (read-only)
+
+- Web PR #38 is merged at `049f6a58583c2b88ed03232d7d18bb975c428a95` (S36 `base-uri 'self'`, S37 Tailwind removal).
+- Cloud PR #82 (the CLOUD.85 S36 follow-up) is merged at `3c59ce34413c94c86ce400fd2950b6372d45abbd`, merged 2026-10-10T00:09:24Z. The Cloud CI run `38009326285` (workflow_dispatch on `main`) concluded success for that head. The proof Worker version `0de3e45a` and the release `web-0.1.0-ci.117.1` are as the coordinator reported. They were not read back from Cloudflare here.
+- Headers on the proof origin, by GET only on 2026-10-10: `/account/` and `/chat/` return 200 with the exact profile policy, which ends `base-uri 'self'; frame-ancestors 'none'; form-action 'none'`. `/` returns 200 with the Site policy, `base-uri 'none'`, as expected. The shell body has one `<base href="/" />` and loads `_framework/blazor.webassembly.js` from the root.
+
+### Live run against `https://proof.arcforges.com/` (local opt-in, installed Chrome)
+
+- Browser: Google Chrome 156.0.8078.12 (`C:\Program Files\Google\Chrome\Application\chrome.exe`; product version read from the file). It is named by `ARCFORGES_CHROMIUM_PATH` and driven by Microsoft.Playwright 1.62.0 through `ExecutablePath`. No browser was downloaded, and `playwright install` was not run. Host: Windows 11 Pro for Workstations 10.0.26300. Claimant-reported.
+- Opt-in: `ARCFORGES_LIVE_PRF11=1`, `ARCFORGES_PROOF_ORIGIN=https://proof.arcforges.com/`, `ARCFORGES_CHROMIUM_PATH` as above, and `ARCFORGES_PRF11_RESULTS` set to a folder outside the repository. `CI`, `GITHUB_ACTIONS`, `TF_BUILD`, `BUILD_BUILDID` and `GITLAB_CI` were unset. `ARCFORGES_PRF11_CLOUD_READY` was unset, because CLOUD.21 and CLOUD.22 are not delivered.
+- Command: `dotnet test tests/browser/ArcForges.Web.Browser.Tests/ArcForges.Web.Browser.Tests.csproj -c Release --filter "FullyQualifiedName~LivePrf11Specs"` at `31888e1`. Result: 4 total, 2 passed, 0 failed, 2 skipped, 14.97 s.
+- Requests: GET only, to the two profile shells, the root framework path and the two pages in the browser. No credential, form or write request was sent.
+
+| Spec | Result | CSP violations | Same-origin and base-href | App roots rendered | Timings |
+| --- | --- | --- | --- | --- | --- |
+| `TheShellsAreServedOnTheProofOriginWithRootBaseAndTheExactPolicy` | passed (HTTP only) | none. The exact profile policy is on both responses | one `<base href="/">` in each shell; `/_framework/blazor.webassembly.js` returns 200 at the root | not applicable (HTTP) | not applicable |
+| `TheShellsLoadInTheInstalledBrowserWithNoContentSecurityPolicyViolation` | passed | 0 reported on `/account/` and `/chat/`. The spec fails on any console or page error that names a Content Security Policy violation | inferred from the render: the root-relative framework loaded and the page rendered. The spec does not record request URLs, so this is not a recorded request trace | the heading in `#app h1` appeared within 60 s on both `/account/` and `/chat/` | not applicable |
+| `TheAnonymousGreetingRoundTripsOnTheDeployedIngress` | skipped: "Blocked on CLOUD.21/CLOUD.22 (and CLOUD.85 for the shells), not proven" | not run | not run | not run | not applicable |
+| `TheGreetingInteractionResponsivenessIsCapturedForTheRebaseline` | skipped: blocked on CLOUD.21/CLOUD.22, not proven | not run | not run | not run | no INP or interaction timing is captured or claimed. The AL-06 interaction re-baseline stays pending, owner PRF.11 |
+
+Items the specs do not cover:
+
+- Binary `application/grpc-web+proto` server stream (LS2): blocked on CLOUD.21/CLOUD.22, not proven. No stream was observed, and the transport decision stays open (grpc-web-text is not needed).
+- Exact int64, uint64 and decimal calls through the deployed probe, typed failures (CLOUD.22), cancellation after dispatch, and session, CSRF and logout receipt: blocked on CLOUD.21/CLOUD.22, not proven. None was attempted, because the runbook makes these manual and authenticated.
+- AOT benchmark: not run (no `wasm-tools` workload). Startup time: not measured.
+
+Operational notes:
+
+- The first attempts used `dotnet test ... --report-trx`. With the trx reporter, the Microsoft Testing Platform run reported "Zero tests ran" and exit code 5. With the same filter and no trx flag, the four specs ran. Two `--no-build` runs also reported zero tests in the first attempts; that was not isolated further. The recorded run is the build form without the trx flag, and `docs/prf-11-runbook.md` now gives that command.
+- The result is one local run on one host on 2026-10-10. It is claimant-reported. Nothing here is a CI result.
+
+### Completion status after this record
+
+- PRF.11 stays delivered on its offline units U1 to U9 and on this local live run (brief S20(d)). Its completion still waits on CLOUD.21 and CLOUD.22. Every part that needs them is recorded as "blocked on CLOUD.21/CLOUD.22, not proven", and none is recorded as passed or deferred.
+- The proof-origin shells, the exact served CSP, the root framework path and the in-browser CSP check are observed in this run. That is the deployed evidence that CLOUD.85 cites.
+- Still not claimed: the greeting round trip, INP, the binary stream, the exact-value calls, typed failures, cancellation, session and CSRF on the deployed origin, startup time, and the AOT benchmark.
