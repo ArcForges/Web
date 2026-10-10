@@ -2,6 +2,7 @@
 using System.Globalization;
 using System.Net;
 using System.Text;
+using ArcForges.Contracts.Foundation.Serialization;
 using ArcForges.Contracts.Hello.V1;
 using Grpc.Core;
 using Grpc.Net.Client;
@@ -62,6 +63,9 @@ public sealed class HelloProbe
             HttpHandler = new GrpcWebHandler(GrpcWebMode.GrpcWeb, new ObservingHandler(_transport, seen)),
             DisposeHttpClient = false,
             ThrowOperationCanceledOnCancellation = true,
+            // The greeting is a unary call, so both directions are bounded by the CON.92 unary message class (4 MiB).
+            MaxReceiveMessageSize = WireLimits.Bytes(WireLimit.UnaryMessage),
+            MaxSendMessageSize = WireLimits.Bytes(WireLimit.UnaryMessage),
         });
         try
         {

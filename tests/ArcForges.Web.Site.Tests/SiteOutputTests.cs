@@ -66,6 +66,24 @@ public sealed class SiteOutputTests
         }
     }
 
+    [Fact]
+    public async Task TheOutputCarriesNoScriptOrWebAssemblyFileAtAll()
+    {
+        // PRF.11 U5: the static Site is read without JavaScript, so no output file is a script, a module or a WebAssembly module.
+        var site = await SiteBuilder.BuildAsync(new SiteOptions(), TestContext.Current.CancellationToken);
+
+        Assert.DoesNotContain(site.Files, file =>
+            file.Path.EndsWith(".js", StringComparison.OrdinalIgnoreCase)
+            || file.Path.EndsWith(".mjs", StringComparison.OrdinalIgnoreCase)
+            || file.Path.EndsWith(".wasm", StringComparison.OrdinalIgnoreCase));
+        foreach (var path in HtmlPaths)
+        {
+            var file = Assert.Single(site.Files, candidate => candidate.Path == path);
+            var html = Encoding.UTF8.GetString(file.Content);
+            Assert.DoesNotContain("<script", html, StringComparison.OrdinalIgnoreCase);
+        }
+    }
+
     [Theory]
     [MemberData(nameof(HtmlFiles))]
     public async Task EveryPageIsReadableWithScriptingDisabled(string path)

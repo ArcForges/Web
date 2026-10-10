@@ -31,6 +31,31 @@ public sealed class WasmProfilePolicyTests
         Assert.True(policy.Length < WasmContentSecurityPolicy.HeaderLineBudget);
     }
 
+    /// <summary>
+    /// The exact policy that the emitted host page produces (PRF.11 U2, base-uri corrected by S36 and WEB.40 follow-up Web #38).
+    /// The shells carry the base element, so base-uri is 'self'; the Site policy keeps 'none'. Any change to the directive set
+    /// or to its order is a reviewed decision, because the proof deployment serves exactly this string on both profile paths.
+    /// </summary>
+    internal const string ExactPolicy =
+        "default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self'; img-src 'self' data:; font-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'self'; frame-ancestors 'none'; form-action 'none'";
+
+    [Fact]
+    public void TheEmittedPolicyIsTheExactReviewedString()
+    {
+        Assert.Equal(ExactPolicy, WasmContentSecurityPolicy.FromHostPages([AppSource("wwwroot/index.html")]));
+    }
+
+    [Fact]
+    public void TheHostPageDeclaresExactlyOneBaseAtTheRootAndTheShellsRelyOnIt()
+    {
+        // CLOUD.85 D1: the Account and Chat shells are served at /account/ and /chat/ under base href "/", so the framework
+        // resolves from the root. The host page carries one base element and it names the root.
+        var html = AppSource("wwwroot/index.html");
+        var bases = Regex.Matches(html, @"<base\s[^>]*>", RegexOptions.IgnoreCase);
+        var only = Assert.Single(bases);
+        Assert.Matches(@"^<base\s+href=""/""\s*/?>$", only.Value);
+    }
+
     [Fact]
     public void ARequiredInlineScriptAddsItsHashAndNothingElseToScriptSources()
     {
