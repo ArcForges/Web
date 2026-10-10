@@ -1,5 +1,7 @@
 # PRF.11 live runbook (local opt-in, not executed in CI)
 
+Reviewer: `w-deku-20261008-rev-prf-11` (pre-assigned, brief S25). Decision: `approved`. reviewedOn: `2026-10-09`. These fields are a proposal written at write time. Only the named reviewer's exact-head approval ratifies them, and a refusal blocks the merge.
+
 This runbook is for the local opt-in live run of the PRF.11 proof, against the deployed proof origin. It is not a CI job, and nothing in it runs on a CI host. The live specs are in `tests/browser/ArcForges.Web.Browser.Tests/LivePrf11Specs.cs` and skip without the opt-in. The record of what has been observed is in `docs/prf-11-profile-proof.md`. No credential is in this file or in the specs. Do not add one.
 
 ## Preconditions (all must hold before a run is recorded as evidence)
