@@ -27,29 +27,29 @@ The measured values are the same for `account` and `chat`, because both profiles
 
 The independent review of `2643127` found that the U6 baseline raised every ceiling above the pre-PRF.11 WEB.40 ceiling, while every head value fitted under the WEB.40 ceiling. The raised ceilings therefore loosened the gate by a margin the measurement did not require. This section records the re-measurement at the head and the decision that followed.
 
-- Measured at code head `006b4b8` under CI conditions (`GITHUB_ACTIONS=true`, `CI=true`, the placeholder run identity `1`, a fresh `NUGET_PACKAGES` folder), with `App` published to `artifacts/publish/app` and `profiles budget` run against it. The budget commit that follows changes only `eng/policy/profile-budgets.json` and this file, so the publish output is the same.
+- Measured under CI conditions (`GITHUB_ACTIONS=true`, `CI=true`, the placeholder run identity `1`, a fresh `NUGET_PACKAGES` folder) at two code heads: `006b4b8` (the first measurement, before the budget commit) and `31888e1` (the gate chain of record, the budget commit). `App` is published to `artifacts/publish/app` and `profiles budget` runs against it. The code between the two heads is test and document only, but the two publishes are not byte-identical: the measured values move by up to 10 bytes (see the run-to-run note below). The figures in the table are the `31888e1` chain values, with the `006b4b8` values in brackets where they differ.
 - The gate is `value <= baseline + baseline * regressionPercent / 100` (`ProfileBudget.Limit`, rounded down), with `regressionPercent` 10 unchanged.
 
-| Metric (gzip bytes unless stated) | WEB.40 baseline (`c5a5f2e`), the pre-PRF.11 ceiling basis | U6 baseline (`2a21bc3`, `c8588681` measurement), before this fix | Head measurement (`006b4b8`), account and chat | Ceiling now (= WEB.40 ceiling) | Headroom at head |
+| Metric (gzip bytes unless stated) | WEB.40 baseline (`c5a5f2e`), the pre-PRF.11 ceiling basis | U6 baseline (`2a21bc3`, `c8588681` measurement), before this fix | Head measurement, account and chat (`31888e1`; `006b4b8` in brackets) | Ceiling now (= WEB.40 ceiling) | Headroom at `31888e1` |
 | --- | --- | --- | --- | --- | --- |
 | initialRequests | 57 (ceiling 62) | 58 (ceiling 63) | 58 | 62 | 4 |
 | htmlBytes | 719 (ceiling 790) | 766 (ceiling 842) | 766 | 790 | 24 |
 | initialCssGzip | 2245 (ceiling 2469) | 2380 (ceiling 2618) | 2328 | 2469 | 141 |
-| initialJsGzip | 125944 (ceiling 138538) | 126011 (ceiling 138612) | 126013 | 138538 | 12525 |
-| initialWasmGzip | 3227235 (ceiling 3549958) | 3236688 (ceiling 3560356) | 3236690 | 3549958 | 313268 |
+| initialJsGzip | 125944 (ceiling 138538) | 126011 (ceiling 138612) | 126015 (126013) | 138538 | 12523 |
+| initialWasmGzip | 3227235 (ceiling 3549958) | 3236688 (ceiling 3560356) | 3236698 (3236690) | 3549958 | 313260 |
 | initialDataGzip | 848189 (ceiling 933007) | 848189 (ceiling 933007) | 848189 | 933007 | 84818 |
 | initialOtherGzip | 238 (ceiling 261) | 238 (ceiling 261) | 238 | 261 | 23 |
-| totalGzip | 4203851 (ceiling 4624236) | 4213506 (ceiling 4634856) | 4213458 | 4624236 | 410778 |
+| totalGzip | 4203851 (ceiling 4624236) | 4213506 (ceiling 4634856) | 4213468 (4213458) | 4624236 | 410768 |
 
 Decision (review fix 1): every head value fits under its pre-PRF.11 WEB.40 ceiling, so no measurement requires a looser ceiling. The baseline of both profiles is therefore the WEB.40 baseline (`eng/policy/profile-budgets.json` is byte-identical to `c5a5f2e`). Each ceiling equals its WEB.40 ceiling, and every ceiling is tighter than the U6 ceiling it replaces.
 
 - **Remaining loosening: none.** No ceiling is looser than the pre-PRF.11 WEB.40 ceiling.
-- The head measurement is above the WEB.40 baseline in six metrics: initialRequests +1, htmlBytes +47, initialCssGzip +83, initialJsGzip +69, initialWasmGzip +9455, and totalGzip +7607. These increases are inside the existing 10 percent allowance and are recorded as the head measurement, not as the baseline. The cause of each increase since `c5a5f2e` was not isolated, and it does not affect any ceiling.
-- Cross-check: the review measured a fresh clone at `2643127` and recorded initialWasmGzip 3236705 and totalGzip 4213473, 15 bytes above this measurement of `006b4b8` in each case. The other values matched. The 15-byte difference is not isolated. Both values fit under the same ceiling (3549958 and 4624236), so the decision does not depend on it.
+- The head measurement is above the WEB.40 baseline in six metrics: initialRequests +1, htmlBytes +47, initialCssGzip +83, initialJsGzip +71, initialWasmGzip +9463, and totalGzip +9617 (at `31888e1`). These increases are inside the existing 10 percent allowance and are recorded as the head measurement, not as the baseline. The cause of each increase since `c5a5f2e` was not isolated, and it does not affect any ceiling.
+- Run-to-run note: the same code gave different gzip totals on two clean publishes. At `006b4b8` the values were initialJsGzip 126013, initialWasmGzip 3236690 and totalGzip 4213458; at `31888e1` they were 126015, 3236698 and 4213468. The review's fresh clone at `2643127` recorded initialWasmGzip 3236705 and totalGzip 4213473. The variation is 2 to 15 bytes on the wasm and JS metrics and is not isolated. It is far below every ceiling (for example, the WASM headroom is 313260 bytes), so the decision does not depend on it. The budget gate is a ceiling check, and it does not require byte-stable publishes.
 
 ## Largest single static file (review fix 6)
 
-Measured at head `006b4b8` in `artifacts/publish/app/wwwroot` (174 files, 116 precompressed):
+Measured at `31888e1` in `artifacts/publish/app/wwwroot` (174 files, 116 precompressed; the same figures at `006b4b8`):
 
 - The largest single file is `_framework/dotnet.native.rw4kynp763.wasm`, 3,001,422 bytes uncompressed (2.86 MiB). That is 11.4 percent of the 25 MiB (26,214,400 bytes) single-file limit. Its precompressed variants are 1,207,786 bytes (`.gz`) and 976,255 bytes (`.br`).
 - The next largest files are `_framework/System.Private.CoreLib.o10ikxvddh.wasm` (1,682,197 bytes) and `_framework/icudt_no_CJK.lfu7j35m59.dat` (1,107,168 bytes).
@@ -67,7 +67,7 @@ Measured at head `006b4b8` in `artifacts/publish/app/wwwroot` (174 files, 116 pr
 - The published `wwwroot` holds 174 files, 116 of them precompressed (`.br` and `.gz`). Precompressed variants are counted, as the gate requires.
 - The profile bundle (`web-profiles-43f87a11...tar`, built and verified by `profiles bundle` and `profiles verify`) has 175 members: the manifest and 174 served files. The served set is the `wwwroot` set minus the shell and its two encodings (`index.html`, `index.html.br`, `index.html.gz`), plus the profile pages `account/index.html` and `chat/index.html` and `_headers`. The served count is therefore 174.
 - The platform limit, taken from the Cloudflare Workers platform limits page (Static Assets section, read on 2026-10-09): "Files per Worker version" is 20,000 on Workers Free and 100,000 on Workers Paid, and "Individual file size" is 25 MiB on both plans. The page does not say whether precompressed variants count. The gate uses the stricter 20,000.
-- Result: 174 files against 20,000 (0.87 percent), so the Blazor profiles are inside the limit whether or not the precompressed variants count. The Site adds nine files (`artifacts/site`). Even if the two outputs were served from one Worker version, the total is 183 files, 0.92 percent of the limit. The largest single static file is `dotnet.native` (`.wasm`), 3,001,422 bytes uncompressed, 11.4 percent of the 25 MiB single-file limit (measured at head `006b4b8`; see "Largest single static file (review fix 6)").
+- Result: 174 files against 20,000 (0.87 percent), so the Blazor profiles are inside the limit whether or not the precompressed variants count. The Site adds nine files (`artifacts/site`). Even if the two outputs were served from one Worker version, the total is 183 files, 0.92 percent of the limit. The largest single static file is `dotnet.native` (`.wasm`), 3,001,422 bytes uncompressed, 11.4 percent of the 25 MiB single-file limit (measured at `31888e1`; see "Largest single static file (review fix 6)").
 
 ## WA-08 costing of the non-virtualised lists
 
