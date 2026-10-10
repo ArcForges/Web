@@ -3,24 +3,24 @@
   "regressionPercent": 10,
   "profiles": {
     "account": {
-      "initialRequests": 58,
-      "htmlBytes": 766,
-      "initialCssGzip": 2380,
-      "initialJsGzip": 126011,
-      "initialWasmGzip": 3236688,
+      "initialRequests": 57,
+      "htmlBytes": 719,
+      "initialCssGzip": 2245,
+      "initialJsGzip": 125944,
+      "initialWasmGzip": 3227235,
       "initialDataGzip": 848189,
       "initialOtherGzip": 238,
-      "totalGzip": 4213506
+      "totalGzip": 4203851
     },
     "chat": {
-      "initialRequests": 58,
-      "htmlBytes": 766,
-      "initialCssGzip": 2380,
-      "initialJsGzip": 126011,
-      "initialWasmGzip": 3236688,
+      "initialRequests": 57,
+      "htmlBytes": 719,
+      "initialCssGzip": 2245,
+      "initialJsGzip": 125944,
+      "initialWasmGzip": 3227235,
       "initialDataGzip": 848189,
       "initialOtherGzip": 238,
-      "totalGzip": 4213506
+      "totalGzip": 4203851
     }
   },
   "interactionBudgets": {
