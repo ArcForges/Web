@@ -91,7 +91,10 @@ The exact-value helpers come from the pinned Contracts Foundation package (`ArcF
 
 The CON.92 registry bounds are read from `WireLimits.Bytes` and pinned: unary and helper messages 4 MiB, inline pages 256 KiB, stream frames 32 KiB, large read projections 64 MiB, and 100 nested message levels. `WireLimitTests` decodes at the exact bound (accepted) and one byte over (`TooLarge`), shows that the same bytes are admitted as a unary message and refused as a stream frame, refuses truncated, bare-tag and reserved-wire-type frames as `Malformed`, and checks that encoding refuses one byte over the class.
 
-`HelloProbe` now sets the gRPC channel's `MaxReceiveMessageSize` and `MaxSendMessageSize` to the unary class (4 MiB), so the greeting, a unary call, is bounded explicitly rather than by the library default. `HelloProbeTests.AGreetingReplyAboveTheUnaryMessageBoundIsRefusedNeverAccepted` pins that a reply whose message is over the class is `Malformed` and never a greeting.
+`HelloProbe` now sets the gRPC channel's `MaxReceiveMessageSize` and `MaxSendMessageSize` to the unary class (4 MiB), so the greeting, a unary call, is bounded explicitly rather than by the library default. Two tests cover the two bounds, with the following limits (review fix 2):
+
+- The send bound is discriminated. The Grpc.Net.Client default for `MaxSendMessageSize` is null (no bound). `HelloProbeTests.AGreetingRequestAboveTheUnaryBoundIsRefusedBeforeItsBytesReachTheTransport` sends a name one byte over the class, and it fails when the explicit line is removed (mutation run: the oversized body reaches the transport and the test fails; with the line restored it passes, 18 of 18 in the targeted run with the stream tests).
+- The receive bound is not discriminated. The library default for `MaxReceiveMessageSize` is 4,194,304 bytes (Grpc.Net.Client 2.84.0 documentation), which is the same value as the unary class, so removing the explicit line is not observable offline. `HelloProbeTests.AGreetingReplyAboveTheUnaryMessageBoundIsRefusedNeverAccepted` pins the behaviour of the bound (a reply over the class is `Malformed` and never a greeting), not the explicit option. The explicit receive line is recorded as a value pin, not as proven.
 
 ## Static Site: no-script reading and determinism (U5)
 

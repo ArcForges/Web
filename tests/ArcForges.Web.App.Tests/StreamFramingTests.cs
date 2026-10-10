@@ -46,6 +46,10 @@ public sealed class StreamFramingTests
         return frames;
     }
 
+    /// <summary>Asserts that a decode refuses its input as a malformed frame or body (never a partial message).</summary>
+    private static void AssertMalformed(Action decode) =>
+        Assert.Equal(FailureKind.Malformed, Assert.Throws<ProbeFailureException>(decode).Kind);
+
     /// <summary>The test-only grpc-web-text decoder: the whole body is base64, decoded before the frames are read.</summary>
     private static byte[] DecodeText(string body)
     {
@@ -107,7 +111,7 @@ public sealed class StreamFramingTests
         Assert.Single(DecodeBinary(atBound));
 
         var overBound = ProbeFixtures.Frame(new byte[bound + 1], 0);
-        Assert.Throws<ProbeFailureException>(() => DecodeBinary(overBound));
+        AssertMalformed(() => DecodeBinary(overBound));
     }
 
     [Fact]
@@ -115,23 +119,23 @@ public sealed class StreamFramingTests
     {
         // The header declares five payload bytes; only one remains.
         byte[] truncated = [0x00, 0x00, 0x00, 0x00, 0x05, 0x61];
-        Assert.Throws<ProbeFailureException>(() => DecodeBinary(truncated));
+        AssertMalformed(() => DecodeBinary(truncated));
 
         // A header cut short is malformed too.
         byte[] shortHeader = [0x00, 0x00, 0x00];
-        Assert.Throws<ProbeFailureException>(() => DecodeBinary(shortHeader));
+        AssertMalformed(() => DecodeBinary(shortHeader));
     }
 
     [Fact]
     public void AMalformedGrpcWebTextBodyIsMalformedAndNeverAMessage()
     {
         // Not a whole number of four-character groups.
-        Assert.Throws<ProbeFailureException>(() => DecodeText("AAAAA"));
+        AssertMalformed(() => DecodeText("AAAAA"));
         // A character outside the base64 alphabet.
-        Assert.Throws<ProbeFailureException>(() => DecodeText("AA!A"));
+        AssertMalformed(() => DecodeText("AA!A"));
         // A body that is valid base64 but whose frames are truncated is malformed at the framing layer.
         var truncated = Convert.ToBase64String(new byte[] { 0x00, 0x00, 0x00, 0x00, 0x09, 0x61 });
-        Assert.Throws<ProbeFailureException>(() => DecodeBinary(DecodeText(truncated)));
+        AssertMalformed(() => DecodeBinary(DecodeText(truncated)));
     }
 
     [Fact]
