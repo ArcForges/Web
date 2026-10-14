@@ -6,6 +6,10 @@ The public Site serves `/`, `/hello/` and `/cloud-hello/`. Its pages, texts, ele
 
 The Account and Chat profiles are not a product yet. They prove the cookie-session, CSRF, Origin and binary gRPC-Web paths, and are delivered as a digest-named profile bundle ([layout and rules](docs/profile-bundle.md)). The Operations profile is a skeleton on its own origin.
 
+## Flagship role
+
+Web is an active repository of the ArcForges flagship ([AD-0001](https://github.com/ArcForges/ArcForges-Design/blob/main/docs/decisions/AD-0001-flagship-pivot.md)). It provides the public ArcForges site (product pages and downloads) and the `account` (adapted) and `fleet` (new) profiles, and its Operations profile becomes the operator console ([architecture 01 §5](https://github.com/ArcForges/ArcForges-Design/blob/main/docs/architecture/01-system-overview.md#5-repository-and-project-map), [reuse classification](https://github.com/ArcForges/ArcForges-Design/blob/main/docs/reuse/inventory-and-classification.md#4-web)). The Chat profile is retained and not routed. Work is scheduled in the [ArcForges/Plan delivery graph](https://github.com/ArcForges/Plan/blob/main/delivery-graph.json) and delivered serially under its [execution policy](https://github.com/ArcForges/Plan/blob/main/execution-policy.md); flagship surfaces deploy dark until production activation.
+
 ## Toolchain
 
 - .NET SDK **10.0.401** (`global.json`), with central NuGet package management and locked restores.

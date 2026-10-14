@@ -8,7 +8,7 @@ This runbook is for the local opt-in live run of the PRF.11 proof, against the d
 
 - CLOUD.85 is delivered: the Account and Chat shells are served at `/account/` and `/chat/` under base href `/`, with the framework at the root and the exact CSP on the served responses (CLOUD.85 D1). Until then, the shell checks are "blocked on CLOUD.85, not proven".
 - CLOUD.21 and CLOUD.22 are delivered: the real generated methods are on the deployed gRPC-Web ingress, with the typed mapping. Until then, the exact-value, typed-failure and cancellation checks are "blocked on CLOUD.21/CLOUD.22, not proven".
-- The lease `RES-cloud-deployment` is held by the claimant for the live run only (the coordinator grants it). Release it when the run ends. Nothing in this runbook takes or renews a lease.
+- Historical: the live run was gated by the Plan lease `RES-cloud-deployment`, which is retired with the rest of the parallel model (AD-0014). Under serial delivery the live run happens only when the active Plan task calls for it. Nothing in this runbook takes or renews a lease.
 - The browser is the installed Google Chrome or Microsoft Edge, named by path. No browser is downloaded (no `playwright install`).
 - The run is on a developer machine (Windows 11 for this proof). It is not a CI host: `CI`, `GITHUB_ACTIONS`, `TF_BUILD`, `BUILD_BUILDID` and `GITLAB_CI` must be unset, or the gate refuses the run.
 

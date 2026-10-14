@@ -1,6 +1,6 @@
 # Reuse and artifact provenance
 
-Design's [current-repository and packaging profiles](https://github.com/ArcForges/ArcForges-Design/blob/5322d698a1b650a52a5a139d986dd85b00b48581/docs/assurance/reference-coverage-and-provenance.md#31-current-repository-implementation-profile) govern this owner. The current Web repository is the audit subject. Retired initialization repositories are not producers or build inputs.
+Design's [current-repository and packaging profiles](https://github.com/ArcForges/ArcForges-Design-Parallel/blob/5322d698a1b650a52a5a139d986dd85b00b48581/docs/assurance/reference-coverage-and-provenance.md#31-current-repository-implementation-profile) govern this owner. The current Web repository is the audit subject. Retired initialization repositories are not producers or build inputs.
 
 ## Before accepting material
 
