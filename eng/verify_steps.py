@@ -24,9 +24,13 @@ Differences from the hosted jobs:
 - `CI` and `GITHUB_*` are not set (the browser opt-in guards and the Site parity test read them). The two MSBuild
   properties that ci.yml's `CI=true` selects in Directory.Build.props are set directly: RestoreLockedMode (the implicit
   restores are locked, as the explicit `--locked-mode` restores are) and ContinuousIntegrationBuild (deterministic source
-  paths, as in the hosted build). WasmNativeWorkload=false keeps the installed wasm-tools workload out of the Blazor
-  build, as on a hosted runner (see ENV); on Windows, the installed workload set must also match the SDK
-  (`win-workload-preflight`, see WORKLOAD_PREFLIGHT). The Site and the candidate take `{sha}` where ci.yml passes GITHUB_SHA, and the
+  paths, as in the hosted build). The Blazor App is built as each hosted runner builds it (see WSL_ENV and WIN_ENV):
+  in WSL without the wasm-tools workload (WasmNativeWorkload=false; the ubuntu-latest runner has none and publishes
+  without relinking), on Windows with it (the windows-latest runner has wasm-tools and relinks dotnet.native with
+  Emscripten 10.0.12 in its Release build and publishes). The Windows steps use one SDK root whatever shell pushes:
+  DOTNET_ROOT, which the workstation's environment loaders set (Env.md: the user-local .dotnet of the user profile), first on
+  PATH; `win-workload-preflight` checks that its workload set and wasm-tools match the lock and the hosted runner (see
+  WORKLOAD_PREFLIGHT). The Site and the candidate take `{sha}` where ci.yml passes GITHUB_SHA, and the
   candidate's release version is the repository's local version `0.1.0-local` (hosted: `0.1.0-ci.<run number>.<attempt>`;
   the build identity is then `local.<commit>` instead of the run id). The candidate verification gets GITHUB_SHA={sha} for
   that one command only, because tooling/candidate.ts passes `--expected-source` from it (hosted: the same value). The
@@ -42,7 +46,27 @@ Differences from the hosted jobs:
 Every change runs the full profile: the naming scan and the provenance inventory read Markdown too.
 """
 
+import os
+import sys
+from pathlib import Path
+
 REPOSITORY = "Web"
+
+# The one .NET SDK root of the Windows steps: DOTNET_ROOT (a persistent user variable on this workstation, also set by
+# the environment loaders), not whichever dotnet the pushing shell finds first on PATH (a plain PowerShell finds
+# C:\Program Files\dotnet through the machine PATH; the loaders select the user-local root). Without a valid DOTNET_ROOT
+# the Windows tool probe fails and the push is rejected.
+WIN_DOTNET_ROOT = os.environ.get("DOTNET_ROOT", "") if os.name == "nt" else ""
+if WIN_DOTNET_ROOT and not Path(WIN_DOTNET_ROOT, "dotnet.exe").is_file():
+    WIN_DOTNET_ROOT = ""
+WIN_DOTNET = str(Path(WIN_DOTNET_ROOT, "dotnet.exe")) if WIN_DOTNET_ROOT else ""
+
+
+def _win_dotnet(*args: str) -> list[str]:
+    if WIN_DOTNET:
+        return [WIN_DOTNET, *args]
+    return [sys.executable, "-c", "import sys; sys.exit('DOTNET_ROOT does not name a .NET SDK root with dotnet.exe; set it "
+            "to the root the Windows steps use (Env.md: the user-local .dotnet of the user profile)')"]
 
 # The npm bundled with the Node that `node` selects (Windows; see above).
 _BUNDLED_NPM = ("require('path').join(require('path').dirname(process.execPath), 'node_modules', 'npm', "
@@ -51,11 +75,12 @@ _BUNDLED_NPM = ("require('path').join(require('path').dirname(process.execPath),
 # Tool versions that key a reusable pass (the python running eng/verify.py is added by the core).
 FINGERPRINT = {
     "win": {
-        "dotnet-sdks": ["dotnet", "--list-sdks"],
-        "dotnet-runtimes": ["dotnet", "--list-runtimes"],
+        "dotnet-root": [sys.executable, "-c", f"print({WIN_DOTNET_ROOT!r})"] if WIN_DOTNET else _win_dotnet(),
+        "dotnet-sdks": _win_dotnet("--list-sdks"),
+        "dotnet-runtimes": _win_dotnet("--list-runtimes"),
         "node": ["node", "--version"],
         "npm": ["node", "-p", "require(" + _BUNDLED_NPM.replace("'bin', 'npm-cli.js'", "'package.json'") + ").version"],
-        "dotnet-workloads": ["dotnet", "workload", "--version"],
+        "dotnet-workloads": _win_dotnet("workload", "--version"),
         "git": ["git", "--version"],
     },
     "wsl": {
@@ -95,14 +120,21 @@ VERSION = "0.1.0-local"
 # cache.
 
 # The environment of ci.yml without CI=true (see above). MSBuild node reuse is off, so that no build node outlives its step
-# (a step's process tree is what a timeout or a failure stops). WasmNativeWorkload=false gives the Blazor App the
-# evaluation of a hosted runner, which has no wasm-tools workload: this workstation has it installed on both hosts, and
-# with it the Release publish relinks dotnet.native with emcc instead of shipping the runtime pack's prebuilt files
-# (measured in WSL: initial JS 142154 gzip bytes, over the 138538 budget limit, against 125997 without the workload, at a
-# baseline of 125944). The App sets no property that needs the workload (no AOT, no native build).
+# (a step's process tree is what a timeout or a failure stops).
 ENV = {"DOTNET_NOLOGO": "1", "DOTNET_CLI_TELEMETRY_OPTOUT": "1", "DOTNET_SKIP_FIRST_TIME_EXPERIENCE": "1",
        "WRANGLER_SEND_METRICS": "false", "MSBUILDDISABLENODEREUSE": "1", "RestoreLockedMode": "true",
-       "ContinuousIntegrationBuild": "true", "WasmNativeWorkload": "false"}
+       "ContinuousIntegrationBuild": "true"}
+# WSL: the ubuntu-latest runner has no wasm-tools workload, so its Release publish ships the runtime pack's prebuilt
+# dotnet.native files ("Publishing without optimizations"). WSL Debian has wasm-tools installed, and with it the publish
+# relinks dotnet.native with emcc (measured: initial JS 142154 gzip bytes, over the 138538 budget limit, against 125997
+# without the workload, at a baseline of 125944). WasmNativeWorkload=false gives the App the runner's evaluation; the App
+# sets no property that needs the workload (no AOT, no native build).
+WSL_ENV = {**ENV, "WasmNativeWorkload": "false"}
+# Windows: the windows-latest runner has wasm-tools, and its Release build and publishes relink with Emscripten 10.0.12,
+# so the workload stays in. The SDK root is WIN_DOTNET_ROOT, first on PATH for every tool the steps start (pwsh, node and
+# python find dotnet through it).
+WIN_ENV = {**ENV, "DOTNET_ROOT": WIN_DOTNET_ROOT,
+           "PATH": os.pathsep.join(filter(None, [WIN_DOTNET_ROOT, os.environ.get("PATH", "")]))}
 
 # ci.yml's secret scan (same pinned image digest and redaction, with .gitleaks.toml named explicitly), over the pushed
 # range, without network and with a read-only mount of the verification clone.
@@ -152,28 +184,50 @@ CANDIDATE = (
     "dotnet \"$tool\" profiles verify --bundle \"${bundles[0]}\""
 )
 
-# The Blazor App's locked restore needs the Microsoft.NET.Sdk.WebAssembly.Pack version its packages.lock.json records
-# (the SDK's bundled version, as on the hosted runners and in WSL). An installed workload set of the SDK's feature band
-# overrides it with the version of its Mono toolchain manifest, so an older set fails the restore with NU1004. This
-# preflight names the prerequisite instead.
+# The Windows SDK root must build the App as the windows-latest runner does: Microsoft.NET.Sdk.WebAssembly.Pack at the
+# version the App's packages.lock.json records (the SDK's bundled version, as on the hosted runners and in WSL; an
+# installed workload set of the SDK's feature band replaces it with its Mono toolchain manifest's version, and a different
+# set fails the locked restore with NU1004), and the wasm-tools workload installed with the packs of its current
+# manifests (the runner relinks with it; a workload listed without those packs leaves WasmNativeWorkload10 unset). This
+# preflight checks both on WIN_DOTNET_ROOT, read-only, and names the exact commands for that root instead.
 WORKLOAD_PREFLIGHT = (
-    "import json, subprocess, sys\n"
+    "import json, os, subprocess, sys\n"
+    "root = os.environ.get('DOTNET_ROOT', '')\n"
+    "dotnet = os.path.join(root, 'dotnet.exe')\n"
     "app = 'src/ArcForges.Web.App/ArcForges.Web.App.csproj'\n"
     "def run(*a):\n"
-    "    r = subprocess.run(['dotnet', *a], capture_output=True, text=True)\n"
-    "    if r.returncode: sys.exit(f'dotnet {\" \".join(a)} failed ({r.returncode}):\\n{r.stdout}{r.stderr}')\n"
+    "    r = subprocess.run([dotnet, *a], capture_output=True, text=True)\n"
+    "    if r.returncode: sys.exit(f'{dotnet} {\" \".join(a)} failed ({r.returncode}):\\n{r.stdout}{r.stderr}')\n"
     "    return r.stdout\n"
-    "items = json.loads(run('msbuild', app, '-getItem:KnownWebAssemblySdkPack'))['Items']['KnownWebAssemblySdkPack']\n"
-    "sdk = {i['WebAssemblySdkPackVersion'] for i in items if i.get('TargetFramework') == 'net10.0'}\n"
+    "info = json.loads(run('msbuild', app, '-getItem:KnownWebAssemblySdkPack', '-getProperty:NETCoreSdkVersion',\n"
+    "                      '-getProperty:WasmNativeWorkload10'))\n"
+    "version = info['Properties']['NETCoreSdkVersion']\n"
+    "items = info['Items']['KnownWebAssemblySdkPack']\n"
+    "sdk = sorted({i['WebAssemblySdkPackVersion'] for i in items if i.get('TargetFramework') == 'net10.0'})\n"
     "lock = json.load(open('src/ArcForges.Web.App/packages.lock.json', encoding='utf-8'))\n"
     "locked = lock['dependencies']['net10.0']['Microsoft.NET.Sdk.WebAssembly.Pack']['resolved']\n"
-    "if sdk != {locked}:\n"
-    "    sys.exit(f'the Windows .NET SDK resolves Microsoft.NET.Sdk.WebAssembly.Pack {sorted(sdk)} for {app}, but its '\n"
-    "             f'packages.lock.json (like hosted CI and WSL) has {locked}: the installed workload set '\n"
-    "             f'{run(\"workload\", \"--version\").strip()} pins older WebAssembly manifests. Prerequisite (an install '\n"
-    "             'by the user): on Windows, select a workload set whose Mono toolchain manifest matches, e.g. '\n"
-    "             '`dotnet workload update --version 10.0.401`, then verify again.')\n"
-    "print(f'Microsoft.NET.Sdk.WebAssembly.Pack {locked} as locked')\n"
+    "workload_set = run('workload', '--version').strip()\n"
+    "wasm_tools = any(line.split()[:1] == ['wasm-tools'] for line in run('workload', 'list').splitlines())\n"
+    "problems, commands = [], []\n"
+    "if sdk != [locked]:\n"
+    "    problems.append(f'SDK {version} with workload set {workload_set} resolves Microsoft.NET.Sdk.WebAssembly.Pack '\n"
+    "                    f'{\", \".join(sdk)} for {app}, which differs from {locked} in its packages.lock.json (as on the '\n"
+    "                    'hosted runners and in WSL)')\n"
+    "    commands.append(f'& \"{dotnet}\" workload update --version {version}')\n"
+    "if not wasm_tools:\n"
+    "    problems.append('the wasm-tools workload, which the windows-latest runner builds and publishes the App with, is '\n"
+    "                    'not installed')\n"
+    "    commands.append(f'& \"{dotnet}\" workload install wasm-tools --version {version}')\n"
+    "elif info['Properties']['WasmNativeWorkload10'] != 'true':\n"
+    "    problems.append('wasm-tools is listed, but the packs of its current manifests are not installed, so the App '\n"
+    "                    'would not relink as on the windows-latest runner')\n"
+    "    if not commands: commands.append(f'& \"{dotnet}\" workload update --version {version}')\n"
+    "if problems:\n"
+    "    sys.exit(f'The Windows SDK root {root} does not build the App as hosted CI does: ' + '; '.join(problems)\n"
+    "             + '. Prerequisite (an install by the user, in PowerShell): ' + ' ; '.join(commands)\n"
+    "             + ' (the workload set whose Mono toolchain and Emscripten packs match the lock), then verify again.')\n"
+    "print(f'SDK root {root}: SDK {version}, workload set {workload_set}, wasm-tools installed, '\n"
+    "      f'Microsoft.NET.Sdk.WebAssembly.Pack {locked} as locked')\n"
 )
 
 # The Site built twice from the same commit and compared byte for byte (ci.yml uses `diff -r`; Windows has no diff on
@@ -214,11 +268,11 @@ def bash_each(projects: list[str], command: str) -> str:
 
 
 def win(step_id: str, cmd: list[str], timeout: int, **options) -> Step:
-    return Step(step_id, "win", cmd, timeout=timeout, env=ENV, **options)
+    return Step(step_id, "win", cmd, timeout=timeout, env=WIN_ENV, **options)
 
 
 def wsl(step_id: str, cmd: str, timeout: int, **options) -> Step:
-    return Step(step_id, "wsl", cmd, timeout=timeout, env=ENV, **options)
+    return Step(step_id, "wsl", cmd, timeout=timeout, env=WSL_ENV, **options)
 
 
 STEPS = [
