@@ -291,7 +291,10 @@
     "tests/browser/ArcForges.Web.Browser.Tests/LivePrf11OptIn.cs",
     "tests/browser/ArcForges.Web.Browser.Tests/LivePrf11OptInTests.cs",
     "tests/browser/ArcForges.Web.Browser.Tests/LivePrf11Specs.cs",
-    "tests/browser/ArcForges.Web.Browser.Tests/LocalNoScriptBrowserTests.cs"
+    "tests/browser/ArcForges.Web.Browser.Tests/LocalNoScriptBrowserTests.cs",
+    "eng/verify.py",
+    "eng/verify_steps.py",
+    "eng/policy/dependency-reviews/local-first-r1.json"
   ],
   "reused": {
     "LICENSE": "canonical-agpl-legal-r1",

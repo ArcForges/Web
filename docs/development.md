@@ -18,7 +18,8 @@ Run every command from the repository root. Use `npm ci --ignore-scripts` once a
 
 | Command | Purpose |
 | --- | --- |
-| `npm run hooks` | Enable the worktree-local hooks (`git diff --check` only) |
+| `python eng/verify.py install` | Install the pre-push verification and the staged-whitespace pre-commit check for every worktree of the clone (once, from the main checkout on `main`) |
+| `python eng/verify.py run` | Verify `HEAD` with the full local profile on Windows and WSL Debian; the push reuses the pass ([AGENTS.md](../AGENTS.md), Local verification) |
 | `npm run check` | Dependency admission, reviewed policy, Worker typecheck and the Node test suites |
 | `npm run policy` | Naming, licence, provenance, exact pins and lock provenance (requires the pinned Node) |
 | `npm run build:worker` | Emit the Worker JavaScript from `worker/index.ts` by type stripping |
@@ -68,4 +69,4 @@ Use the pinned npm for lock regeneration. A lock regenerated on a Node older tha
 
 ## Local validation limits (P2-017, P2-024)
 
-Hosted CI is the authority for the Linux locked restore and for the CI job graph. Linux-affected checks may run once, scope-limited, in the local WSL2 Debian distribution through PowerShell on a Linux-native filesystem (`wsl.exe -d Debian -- ...`, not `/mnt/c`). Record the distribution, kernel, SDK and toolchain. Toolchain installs inside WSL are performed by the user. A local Node older than the pin (24.20 against 24.21) is a recorded local gap: the policy script's Node assertion is not run locally, and hosted CI is authoritative.
+The owner's pull requests are verified by the pre-push hook (AD-0016): every validation job of `ci.yml` and the candidate, the Windows legs in a verification worktree and the Linux legs in a Linux-native clone in WSL Debian (`wsl.exe -d Debian`, not `/mnt/c`); hosted CI is the authority for external pull requests. Other Linux checks may run once, scope-limited, in the same distribution on a Linux-native filesystem. Record the distribution, kernel, SDK and toolchain. Toolchain installs inside WSL are performed by the user.
