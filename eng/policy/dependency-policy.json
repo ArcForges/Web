@@ -6,7 +6,7 @@
     "package.json"
   ],
   "inputs": {
-    ".github/workflows/ci.yml": "45457067f67bf6c94f3c237a4217004f2cf5b78970fa47096d73ab9501c2034a",
+    ".github/workflows/ci.yml": "870d6376db3eb1e74e6df3ce3ccb7a62388a0d10e7ecdacde889ad89d217fe07",
     ".node-version": "73fb1b615e2043a933be1c0895cde4358036acc28d785692509b822aa53c761f",
     ".npmrc": "73814024102037fcc5a961119bcbf39f81e0a73af504735653d3a6086651cef1",
     "Directory.Build.props": "2c1597403bd2a3eb04480ef96ba7accd57c0d2a9f7176ca1073a2d7a6fdcf3a0",
@@ -19,7 +19,7 @@
     "eng/provenance/records/browser-resources-r12.json": "6b470604b64d692d0eaa215be133506af065856dde0fde9ee8e702bba883bb88",
     "global.json": "67381be18aa807c04218165844967cf58235875477f30495ba98c3648248a9d4",
     "package-lock.json": "392b8874131b713ac07ab595ff541122fa3c2317f9ba81b34ffe6115f4363825",
-    "package.json": "60b8b8e853ae2ac0dfec58831d61c717b3e4fb26ed3848745b36e9a2ec370ea5",
+    "package.json": "17e4afd71eb337b9754144fcd141643538a232d41dba6afcd15abc80e6f56a08",
     "src/ArcForges.Web.App/ArcForges.Web.App.csproj": "3b7e2424cf6f9ce1d448cfe462ba825c7a4a486b77189c2f63ef665c52f9919b",
     "src/ArcForges.Web.App/packages.lock.json": "6ae92b481b6a892a9b4952f7e4b8da56b7caac8f6a6206151b017108e2c99229",
     "src/ArcForges.Web.Operations/ArcForges.Web.Operations.csproj": "ad7f8197fada085fb3ba6bee69f1d45716e3b79725ed7d388f0a9080ae290077",
@@ -48,11 +48,11 @@
   },
   "review": {
     "owner": "Web dependency maintainer",
-    "reviewer": "w-deku-20261008-rev-web-40",
-    "date": "2026-10-09",
-    "rationale": "WEB.40 successor of web-40-admission-r16 for the S20(a) Site release asset (CLOUD.85 decisions D2 option A and D3). The one bound input that changed since r16 is .github/workflows/ci.yml: the main-push release step that locates the Site archive no longer parses ls output (actionlint SC2012 in the hosted quality job at 4cca32e). It now collects web-site-*.tar with a nullglob bash array, requires exactly one archive, and requires the archive name to equal web-site-<sha256 of its bytes>.tar, all fail-closed; the release then attaches that single archive. The Site archive is a deterministic root member of the candidate, sealed by its digest and verified byte for byte against the regenerated Site; it is not part of the Cloudflare assets directory. The profile bundle drops the shell's precompressed siblings (index.html.br, index.html.gz) from the root, as in r16. No other bound input changed: the csproj files, packages.lock.json files, props, global.json, package.json, package-lock.json, wrangler.json, .node-version, .npmrc, NuGet.config and the browser-resources profile and record r11 and r12 keep their digests. Reviewer w-deku-20261008-rev-web-40; reviewed base efe787254ae64cc8027a6b801b3cbd9080481321. No package, version, source, licence, contentHash, nuspecSha256, closure coordinate or scanner exception changed: packages, scannerExceptions, packsFolderRows, con07Identity, browserWasmPacks, nugetClosure and nugetPackDownloads are copied from r16 unchanged. r16 is not edited. Verification is local only: actionlint reports no findings for .github/workflows/*.yml, the new release snippet was exercised in bash with zero, one, two and name-mismatched archives, and shellcheck, gitleaks and Docker are not installed locally, so the shell check is the hosted actionlint run at the exact head; the hosted quality and csharp jobs are the authority, and the exact-head review by w-deku-20261008-rev-web-40 remains a merge condition.",
+    "reviewer": "ArcForges local-first verification worker (Web, AD-0016; maintainer-authorized; independent pull-request review is recorded on the pull request)",
+    "date": "2026-10-17",
+    "rationale": "AD-0016 local-first verification, successor of web-40-admission-r17. Two bound inputs change and are rebound here: .github/workflows/ci.yml, whose validation and security jobs (source, csharp, quality, dependency review, CodeQL, Verify) skip for pull requests by deku2026 (verified by the pre-push hook, eng/verify.py) and for main pushes, CodeQL and the quality job (dependency audit, actionlint, the full-history secret scan) keep the weekly schedule, and the candidate and deploy jobs run on a main push without the skipped validation (deploy needs the candidate only; its environment, concurrency, secrets, steps and the main-push-only profile bundle upload are unchanged); and package.json, which drops the `hooks` script that set a per-worktree core.hooksPath (the hooks are installed by `python eng/verify.py install`). External pull requests, Dependabot included, and manual dispatches keep the full job set. No package, version, source, licence, contentHash, nuspecSha256, closure coordinate, toolchain pin or scanner exception changed: packages, scannerExceptions, packsFolderRows, con07Identity, browserWasmPacks, nugetClosure and nugetPackDownloads are copied from r17 unchanged, and the csproj files, packages.lock.json files, props, global.json, package-lock.json, wrangler.json, .node-version, .npmrc, NuGet.config and the browser-resources profile and record r11 and r12 keep their digests. r17 is not edited. The Gitleaks image digest and the actionlint pin are unchanged.",
     "inputs": {
-      ".github/workflows/ci.yml": "45457067f67bf6c94f3c237a4217004f2cf5b78970fa47096d73ab9501c2034a",
+      ".github/workflows/ci.yml": "870d6376db3eb1e74e6df3ce3ccb7a62388a0d10e7ecdacde889ad89d217fe07",
       ".node-version": "73fb1b615e2043a933be1c0895cde4358036acc28d785692509b822aa53c761f",
       ".npmrc": "73814024102037fcc5a961119bcbf39f81e0a73af504735653d3a6086651cef1",
       "Directory.Build.props": "2c1597403bd2a3eb04480ef96ba7accd57c0d2a9f7176ca1073a2d7a6fdcf3a0",
@@ -65,7 +65,7 @@
       "eng/provenance/records/browser-resources-r12.json": "6b470604b64d692d0eaa215be133506af065856dde0fde9ee8e702bba883bb88",
       "global.json": "67381be18aa807c04218165844967cf58235875477f30495ba98c3648248a9d4",
       "package-lock.json": "392b8874131b713ac07ab595ff541122fa3c2317f9ba81b34ffe6115f4363825",
-      "package.json": "60b8b8e853ae2ac0dfec58831d61c717b3e4fb26ed3848745b36e9a2ec370ea5",
+      "package.json": "17e4afd71eb337b9754144fcd141643538a232d41dba6afcd15abc80e6f56a08",
       "src/ArcForges.Web.App/ArcForges.Web.App.csproj": "3b7e2424cf6f9ce1d448cfe462ba825c7a4a486b77189c2f63ef665c52f9919b",
       "src/ArcForges.Web.App/packages.lock.json": "6ae92b481b6a892a9b4952f7e4b8da56b7caac8f6a6206151b017108e2c99229",
       "src/ArcForges.Web.Operations/ArcForges.Web.Operations.csproj": "ad7f8197fada085fb3ba6bee69f1d45716e3b79725ed7d388f0a9080ae290077",
@@ -103,7 +103,7 @@
     ],
     "runtimeAssessment": "The deployed public candidate is the C# static Site with no runtime JavaScript; the Worker stays the thin TypeScript adapter (worker/index.ts), emitted by Node type stripping. Node remains build and deploy tooling for wrangler only. The candidate job enforces the Blazor profile budgets and seals the Site and its Site archive; the deploy job ships the same sealed bytes under the unchanged main-push guards, and the Site archive is a release asset only, never a deployed asset. No hosted browser, device, macOS or live-service check is added.",
     "maintenance": "The npm closure is pinned exactly and admitted by this receipt; any change needs a successor receipt that names this file. The Contracts identity is the NuGet publication record eng/contracts/ArcForges.Contracts.PublicApi/1.0.0-ci.287.1, bound by eng/version-sources.json and Directory.Packages.props; any change needs a successor record. Published Contracts npm versions stay immutable on the registry and Web no longer consumes them. Historical receipts stay immutable.",
-    "previous": "eng/policy/dependency-reviews/web-40-admission-r16.json",
+    "previous": "eng/policy/dependency-reviews/web-40-admission-r17.json",
     "immutableHistory": "Admitted review records are retained in Git history. A dependency change requires a new reviewed source commit and updated input-bound rationale; never amend an already accepted provenance record."
   },
   "closure": {
@@ -811,7 +811,7 @@
     "unenv": "2.0.0-rc.24",
     "youch": "4.1.0-beta.10"
   },
-  "reviewRecord": "eng/policy/dependency-reviews/web-40-admission-r17.json",
+  "reviewRecord": "eng/policy/dependency-reviews/local-first-r1.json",
   "dependencyClasses": {
     "build-inputs": "Complete exact npm lock inventory; licence metadata is preserved, not inferred as a redistribution grant. Existing transitive development prereleases are named build-only migration inputs and cannot enter runtime/stable closures.",
     "runtime": "Only the independently enforced existing shipped artifact records admit runtime inputs and legal scopes.",

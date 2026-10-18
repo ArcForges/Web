@@ -18,7 +18,8 @@ Run every command from the repository root. Use `npm ci --ignore-scripts` once a
 
 | Command | Purpose |
 | --- | --- |
-| `npm run hooks` | Enable the worktree-local hooks (`git diff --check` only) |
+| `python eng/verify.py install` | Install the pre-push verification and the staged-whitespace pre-commit check for every worktree of the clone (once, from the main checkout on `main`) |
+| `python eng/verify.py run` | Verify `HEAD` with the full local profile on Windows and WSL Debian; the push reuses the pass ([AGENTS.md](../AGENTS.md), Local verification) |
 | `npm run check` | Dependency admission, reviewed policy, Worker typecheck and the Node test suites |
 | `npm run policy` | Naming, licence, provenance, exact pins and lock provenance (requires the pinned Node) |
 | `npm run build:worker` | Emit the Worker JavaScript from `worker/index.ts` by type stripping |
@@ -62,10 +63,10 @@ Browser checks are local opt-in and never run in CI. Set `ARCFORGES_LOCAL_BROWSE
 
 ## Dependencies
 
-Use exact direct versions. Change the NuGet closure only through a successor admission receipt (`eng/policy/dependency-reviews/web-40-admission-rN.json`) and `eng/policy/dependency-policy.json`. Change the npm closure (wrangler, TypeScript and `@types/node`) through the same receipt chain. Commit the root `package-lock.json` after intentional changes. The Contracts identity is the NuGet publication record under `eng/contracts` (bound by `eng/version-sources.json` and the central pin in `Directory.Packages.props`), and the naming authority is the byte copy under `eng/naming` (digests in `eng/policy/naming-candidate.json`); both are bound by provenance records. Prettier and Biome are retired. Formatting gates: `dotnet format <project> --verify-no-changes` for each C# project in the CI `csharp` job, the text rules (one final newline, no trailing whitespace) of the audited inputs in the policy suite, and `npm run typecheck` for the thin TypeScript Worker.
+Use exact direct versions. Change the NuGet closure only through a successor receipt in `eng/policy/dependency-reviews/` and `eng/policy/dependency-policy.json`. Change the npm closure (wrangler, TypeScript and `@types/node`) through the same receipt chain. Commit the root `package-lock.json` after intentional changes. The Contracts identity is the NuGet publication record under `eng/contracts` (bound by `eng/version-sources.json` and the central pin in `Directory.Packages.props`), and the naming authority is the byte copy under `eng/naming` (digests in `eng/policy/naming-candidate.json`); both are bound by provenance records. Prettier and Biome are retired. Formatting gates: `dotnet format <project> --verify-no-changes` for each C# project in the CI `csharp` job, the text rules (one final newline, no trailing whitespace) of the audited inputs in the policy suite, and `npm run typecheck` for the thin TypeScript Worker.
 
 Use the pinned npm for lock regeneration. A lock regenerated on a Node older than the pin needs `--engine-strict=false` for that one command; the repository setting stays `engine-strict=true`.
 
 ## Local validation limits (P2-017, P2-024)
 
-Hosted CI is the authority for the Linux locked restore and for the CI job graph. Linux-affected checks may run once, scope-limited, in the local WSL2 Debian distribution through PowerShell on a Linux-native filesystem (`wsl.exe -d Debian -- ...`, not `/mnt/c`). Record the distribution, kernel, SDK and toolchain. Toolchain installs inside WSL are performed by the user. A local Node older than the pin (24.20 against 24.21) is a recorded local gap: the policy script's Node assertion is not run locally, and hosted CI is authoritative.
+The owner's pull requests are verified by the pre-push hook (AD-0016): every validation job of `ci.yml` and the candidate, the Windows legs in a verification worktree and the Linux legs in a Linux-native clone in WSL Debian (`wsl.exe -d Debian`, not `/mnt/c`); hosted CI is the authority for external pull requests. Other Linux checks may run once, scope-limited, in the same distribution on a Linux-native filesystem. Record the distribution, kernel, SDK and toolchain. Toolchain installs inside WSL are performed by the user.

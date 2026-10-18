@@ -155,13 +155,8 @@ async function main() {
         evaluatedManagedLicences(root),
       );
       break;
-    case "hooks":
-      run("git", ["config", "extensions.worktreeConfig", "true"]);
-      run("git", ["config", "--worktree", "core.hooksPath", ".githooks"]);
-      console.log("Hooks enabled for this worktree.");
-      break;
     default:
-      throw new Error("Use policy, licence-evaluated or hooks.");
+      throw new Error("Use policy or licence-evaluated.");
   }
 }
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) await main();
