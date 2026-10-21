@@ -31,6 +31,9 @@ public sealed class ChatPageTests
     private static void WaitIdle(IRenderedComponent<Chat> cut) =>
         cut.WaitForAssertion(() => Assert.DoesNotContain("Sending…", cut.Markup, StringComparison.Ordinal));
 
+    private static void WaitSent(IRenderedComponent<Chat> cut, ScriptedServer server) =>
+        cut.WaitForAssertion(() => Assert.Equal(1, server.Count));
+
     [Fact]
     public void ChatSendsNothingUntilAskedThenShowsBothSidesOfOneAnonymousExchange()
     {
@@ -91,12 +94,16 @@ public sealed class ChatPageTests
         SendButton(cut).Click();
         cut.WaitForAssertion(() => Assert.Contains("Sending…", cut.Markup, StringComparison.Ordinal));
         Assert.Equal("true", SendButton(cut).GetAttribute("aria-disabled"));
-        // A second submit while one is pending does not send again.
+        // "Sending…" renders before the request reaches the double, which counts it asynchronously; wait for it.
+        WaitSent(cut, server);
+        // A second submit while one is pending does not send again: a second send would add its entry before any await.
         cut.Find("form").Submit();
+        Assert.Single(cut.FindAll("li"));
         Assert.Equal(1, server.Count);
 
         CancelButton(cut).Click();
         cut.WaitForAssertion(() => Assert.Contains("The request was cancelled.", cut.Markup, StringComparison.Ordinal));
+        Assert.Equal(1, server.Count);
         // Cancel stays in the document after the message ends, idle again: aria-disabled and out of the tab order.
         Assert.Equal("true", CancelButton(cut).GetAttribute("aria-disabled"));
         Assert.Equal("-1", CancelButton(cut).GetAttribute("tabindex"));
@@ -144,6 +151,7 @@ public sealed class ChatPageTests
         var cut = context.Render<Chat>();
         SendButton(cut).Click();
         cut.WaitForAssertion(() => Assert.Contains("Sending…", cut.Markup, StringComparison.Ordinal));
+        WaitSent(cut, server);
         // The control stays focusable, so a click on it reaches the handler, which refuses the second send.
         SendButton(cut).Click();
         cut.Find("form").Submit();
