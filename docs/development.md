@@ -19,7 +19,7 @@ Run every command from the repository root. Use `npm ci --ignore-scripts` once a
 | Command | Purpose |
 | --- | --- |
 | `python eng/verify.py install` | Install the pre-push verification and the staged-whitespace pre-commit check for every worktree of the clone (once, from the main checkout on `main`) |
-| `python eng/verify.py run` | Verify `HEAD` with the full local profile on Windows and WSL Debian; the push reuses the pass ([AGENTS.md](../AGENTS.md), Local verification) |
+| `python eng/verify.py run` | Verify this machine's leg of `HEAD` (Windows or Linux) with the full local profile; `python eng/verify.py import <record>` accepts the other leg's record; the push needs both ([AGENTS.md](../AGENTS.md), Local verification) |
 | `npm run check` | Dependency admission, reviewed policy, Worker typecheck and the Node test suites |
 | `npm run policy` | Naming, licence, provenance, exact pins and lock provenance (requires the pinned Node) |
 | `npm run build:worker` | Emit the Worker JavaScript from `worker/index.ts` by type stripping |
@@ -69,4 +69,4 @@ Use the pinned npm for lock regeneration. A lock regenerated on a Node older tha
 
 ## Local validation limits (P2-017, P2-024)
 
-The owner's pull requests are verified by the pre-push hook (AD-0016): every validation job of `ci.yml` and the candidate, the Windows legs in a verification worktree and the Linux legs in a Linux-native clone in WSL Debian (`wsl.exe -d Debian`, not `/mnt/c`); hosted CI is the authority for external pull requests. Other Linux checks may run once, scope-limited, in the same distribution on a Linux-native filesystem. Record the distribution, kernel, SDK and toolchain. Toolchain installs inside WSL are performed by the user.
+The owner's pull requests are verified by the pre-push hook (AD-0016): every validation job of `ci.yml` and the candidate, the Windows leg in a verification worktree on native Windows and the Linux leg in a Linux-native clone on the Linux MCP host, each reached through its MCP server and each with a pass record (ArcForges-Design AD-0018 and AD-0019; never through local WSL, not even as a fallback; if an MCP server is unavailable, verification stops and the push is rejected); hosted CI is the authority for external pull requests. Other Linux checks may run once, scope-limited, on the Linux MCP host on a Linux-native filesystem. Record the distribution, kernel, SDK and toolchain. Toolchain installs there are performed by the user.
