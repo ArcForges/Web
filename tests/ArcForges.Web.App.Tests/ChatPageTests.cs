@@ -31,8 +31,8 @@ public sealed class ChatPageTests
     private static void WaitIdle(IRenderedComponent<Chat> cut) =>
         cut.WaitForAssertion(() => Assert.DoesNotContain("Sending…", cut.Markup, StringComparison.Ordinal));
 
-    private static void WaitSent(IRenderedComponent<Chat> cut, ScriptedServer server) =>
-        cut.WaitForAssertion(() => Assert.Equal(1, server.Count));
+    // The double counts a request without a render, so this polls: WaitForAssertion re-checks only when the component renders.
+    private static Task WaitSent(ScriptedServer server) => AccountPageTests.WaitUntilAsync(() => server.Count == 1);
 
     [Fact]
     public void ChatSendsNothingUntilAskedThenShowsBothSidesOfOneAnonymousExchange()
@@ -80,7 +80,7 @@ public sealed class ChatPageTests
     }
 
     [Fact]
-    public void ChatCanCancelAPendingMessageReportsItAsCancelledAndDoesNotDoubleSend()
+    public async Task ChatCanCancelAPendingMessageReportsItAsCancelledAndDoesNotDoubleSend()
     {
         var server = new ScriptedServer(async (_, token) =>
         {
@@ -95,7 +95,7 @@ public sealed class ChatPageTests
         cut.WaitForAssertion(() => Assert.Contains("Sending…", cut.Markup, StringComparison.Ordinal));
         Assert.Equal("true", SendButton(cut).GetAttribute("aria-disabled"));
         // "Sending…" renders before the request reaches the double, which counts it asynchronously; wait for it.
-        WaitSent(cut, server);
+        await WaitSent(server);
         // A second submit while one is pending does not send again: a second send would add its entry before any await.
         cut.Find("form").Submit();
         Assert.Single(cut.FindAll("li"));
@@ -138,7 +138,7 @@ public sealed class ChatPageTests
     }
 
     [Fact]
-    public void APendingSendIgnoresAClickAndEnterSoItCannotSendTwice()
+    public async Task APendingSendIgnoresAClickAndEnterSoItCannotSendTwice()
     {
         var server = new ScriptedServer(async (_, token) =>
         {
@@ -151,7 +151,7 @@ public sealed class ChatPageTests
         var cut = context.Render<Chat>();
         SendButton(cut).Click();
         cut.WaitForAssertion(() => Assert.Contains("Sending…", cut.Markup, StringComparison.Ordinal));
-        WaitSent(cut, server);
+        await WaitSent(server);
         // The control stays focusable, so a click on it reaches the handler, which refuses the second send.
         SendButton(cut).Click();
         cut.Find("form").Submit();
