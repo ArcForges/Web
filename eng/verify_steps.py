@@ -7,13 +7,13 @@ profile bundle that `deploy` ships; main pushes no longer re-validate it), each 
   and the evaluated licence report; then `csharp (windows-latest)`: the locked restore, the formatting gate, the Release
   build and tests of the CSHARP_PROJECTS / CSHARP_TEST_PROJECTS of ci.yml, the Account and Chat and Operations publishes,
   and the static Site built twice and compared byte for byte.
-- lane `wsl` (WSL Debian, in ~/.cache/arcforges-verify/Web): `clone-identity`, `fresh-artifacts`, the dependency audit of
+- lane `linux` (Linux, in ~/.cache/arcforges-verify/Web): `clone-identity`, `fresh-artifacts`, the dependency audit of
   `quality`, `csharp (ubuntu-latest)` (the same steps as on Windows), `source (ubuntu-latest)` (`npm run check`, which
   runs the candidate tests against the Release tool the csharp build produced from the same locked restore; hosted, the
   source job builds that tool itself), then `candidate`. Everything that runs dotnet or npm in one checkout is in one lane:
   concurrent restores or builds of shared projects in one checkout would race.
 - lane `scan`: the whitespace check of the pushed range (the former pre-push hook, `git diff --check`) and the secret
-  scan of `quality` (the pinned gitleaks image digest, .gitleaks.toml) over the pushed range ({range}), in WSL Docker
+  scan of `quality` (the pinned gitleaks image digest, .gitleaks.toml) over the pushed range ({range}), in Docker
   without network and with a read-only mount of the clone; lane `actionlint` only when .github/workflows/** changed.
 
 Differences from the hosted jobs:
@@ -24,8 +24,8 @@ Differences from the hosted jobs:
 - `CI` and `GITHUB_*` are not set (the browser opt-in guards and the Site parity test read them). The two MSBuild
   properties that ci.yml's `CI=true` selects in Directory.Build.props are set directly: RestoreLockedMode (the implicit
   restores are locked, as the explicit `--locked-mode` restores are) and ContinuousIntegrationBuild (deterministic source
-  paths, as in the hosted build). The Blazor App is built as each hosted runner builds it (see WSL_ENV and WIN_ENV):
-  in WSL without the wasm-tools workload (WasmNativeWorkload=false; the ubuntu-latest runner has none and publishes
+  paths, as in the hosted build). The Blazor App is built as each hosted runner builds it (see LINUX_ENV and WIN_ENV):
+  on Linux without the wasm-tools workload (WasmNativeWorkload=false; the ubuntu-latest runner has none and publishes
   without relinking), on Windows with it (the windows-latest runner has wasm-tools and relinks dotnet.native with
   Emscripten 10.0.12 in its Release build and publishes). The Windows steps use one SDK root whatever shell pushes:
   DOTNET_ROOT, which the workstation's environment loaders set (Env.md: the user-local .dotnet of the user profile), first on
@@ -85,7 +85,7 @@ FINGERPRINT = {
         # log), and which git a shell finds differs here (Git Bash: Scoop's 2.56; PowerShell: Git for Windows 2.55 from
         # the machine PATH), so it would key the pass to the pushing shell instead of the tools that build and test.
     },
-    "wsl": {
+    "linux": {
         "dotnet-sdks": "dotnet --list-sdks | tr '\\n' ' '",
         "dotnet-runtimes": "dotnet --list-runtimes | tr '\\n' ' '",
         "dotnet-workloads": "dotnet workload --version",
@@ -126,12 +126,13 @@ VERSION = "0.1.0-local"
 ENV = {"DOTNET_NOLOGO": "1", "DOTNET_CLI_TELEMETRY_OPTOUT": "1", "DOTNET_SKIP_FIRST_TIME_EXPERIENCE": "1",
        "WRANGLER_SEND_METRICS": "false", "MSBUILDDISABLENODEREUSE": "1", "RestoreLockedMode": "true",
        "ContinuousIntegrationBuild": "true"}
-# WSL: the ubuntu-latest runner has no wasm-tools workload, so its Release publish ships the runtime pack's prebuilt
-# dotnet.native files ("Publishing without optimizations"). WSL Debian has wasm-tools installed, and with it the publish
-# relinks dotnet.native with emcc (measured: initial JS 142154 gzip bytes, over the 138538 budget limit, against 125997
-# without the workload, at a baseline of 125944). WasmNativeWorkload=false gives the App the runner's evaluation; the App
-# sets no property that needs the workload (no AOT, no native build).
-WSL_ENV = {**ENV, "WasmNativeWorkload": "false"}
+# Linux: the ubuntu-latest runner has no wasm-tools workload, so its Release publish ships the runtime pack's prebuilt
+# dotnet.native files ("Publishing without optimizations"). A Linux host with wasm-tools installed would relink
+# dotnet.native with emcc (measured on the workstation's former Linux environment: initial JS 142154 gzip bytes, over the
+# 138538 budget limit, against 125997 without the workload, at a baseline of 125944). WasmNativeWorkload=false gives the
+# App the runner's evaluation on any Linux host; the App sets no property that needs the workload (no AOT, no native
+# build).
+LINUX_ENV = {**ENV, "WasmNativeWorkload": "false"}
 # Windows: the windows-latest runner has wasm-tools, and its Release build and publishes relink with Emscripten 10.0.12,
 # so the workload stays in. The SDK root is WIN_DOTNET_ROOT, first on PATH for every tool the steps start (pwsh, node and
 # python find dotnet through it).
@@ -148,7 +149,7 @@ SECRET_SCAN = (
     "--log-opts=\"--full-history {range}\""
 )
 
-# actionlint as pinned in ci.yml, cached once in WSL; the archive is checked on every run.
+# actionlint as pinned in ci.yml, cached once on the Linux host; the archive is checked on every run.
 ACTIONLINT = (
     "set -euo pipefail; v=1.7.12; "
     "sum=8aca8db96f1b94770f1b0d72b6dddcb1ebb8123cb3712530b08cc387b349a3d8; "
@@ -187,7 +188,7 @@ CANDIDATE = (
 )
 
 # The Windows SDK root must build the App as the windows-latest runner does: Microsoft.NET.Sdk.WebAssembly.Pack at the
-# version the App's packages.lock.json records (the SDK's bundled version, as on the hosted runners and in WSL; an
+# version the App's packages.lock.json records (the SDK's bundled version, as on the hosted runners and on Linux; an
 # installed workload set of the SDK's feature band replaces it with its Mono toolchain manifest's version, and a different
 # set fails the locked restore with NU1004), and the wasm-tools workload installed with the packs of its current
 # manifests (the runner relinks with it; a workload listed without those packs leaves WasmNativeWorkload10 unset). This
@@ -214,7 +215,7 @@ WORKLOAD_PREFLIGHT = (
     "if sdk != [locked]:\n"
     "    problems.append(f'SDK {version} with workload set {workload_set} resolves Microsoft.NET.Sdk.WebAssembly.Pack '\n"
     "                    f'{\", \".join(sdk)} for {app}, which differs from {locked} in its packages.lock.json (as on the '\n"
-    "                    'hosted runners and in WSL)')\n"
+    "                    'hosted runners and on Linux)')\n"
     "    commands.append(f'& \"{dotnet}\" workload update --version {version}')\n"
     "if not wasm_tools:\n"
     "    problems.append('the wasm-tools workload, which the windows-latest runner builds and publishes the App with, is '\n"
@@ -273,8 +274,8 @@ def win(step_id: str, cmd: list[str], timeout: int, **options) -> Step:
     return Step(step_id, "win", cmd, timeout=timeout, env=WIN_ENV, **options)
 
 
-def wsl(step_id: str, cmd: str, timeout: int, **options) -> Step:
-    return Step(step_id, "wsl", cmd, timeout=timeout, env=WSL_ENV, **options)
+def linux(step_id: str, cmd: str, timeout: int, **options) -> Step:
+    return Step(step_id, "linux", cmd, timeout=timeout, env=LINUX_ENV, **options)
 
 
 STEPS = [
@@ -300,28 +301,28 @@ STEPS = [
         "python -I -c '" + COMPARE.replace("'", "''") + "' artifacts/site artifacts/site-repeat; "
         "if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }; Remove-Item -Recurse -Force artifacts/site-repeat"), 300),
     # the dependency audit of quality, csharp (ubuntu-latest), source (ubuntu-latest), then candidate
-    wsl("clone-identity", "set -e; git config remote.origin.url https://github.com/ArcForges/Web.git; "
+    linux("clone-identity", "set -e; git config remote.origin.url https://github.com/ArcForges/Web.git; "
         "git checkout -q -B arcforges-verify {sha}; git update-ref refs/remotes/origin/main {base}", 60),
-    wsl("fresh-artifacts", "rm -rf artifacts", 120),
-    wsl("npm-ci", "npm ci --ignore-scripts", 300),
-    wsl("npm-audit", "npm audit --audit-level=high", 300),
-    wsl("restore", bash_each(CSHARP_PROJECTS, "restore \"$p\" --locked-mode"), 600),
-    wsl("format", bash_each(CSHARP_PROJECTS, "format \"$p\" --verify-no-changes --no-restore"), 900),
-    wsl("build", bash_each(CSHARP_PROJECTS, "build \"$p\" --no-restore -c Release"), 600),
-    wsl("test", bash_each(CSHARP_TEST_PROJECTS, "test \"$p\" --no-build -c Release"), 300),
-    wsl("publish-profiles", "set -euo pipefail; "
+    linux("fresh-artifacts", "rm -rf artifacts", 120),
+    linux("npm-ci", "npm ci --ignore-scripts", 300),
+    linux("npm-audit", "npm audit --audit-level=high", 300),
+    linux("restore", bash_each(CSHARP_PROJECTS, "restore \"$p\" --locked-mode"), 600),
+    linux("format", bash_each(CSHARP_PROJECTS, "format \"$p\" --verify-no-changes --no-restore"), 900),
+    linux("build", bash_each(CSHARP_PROJECTS, "build \"$p\" --no-restore -c Release"), 600),
+    linux("test", bash_each(CSHARP_TEST_PROJECTS, "test \"$p\" --no-build -c Release"), 300),
+    linux("publish-profiles", "set -euo pipefail; "
         "dotnet publish src/ArcForges.Web.App/ArcForges.Web.App.csproj --no-restore -c Release -o artifacts/profiles/app; "
         "dotnet publish src/ArcForges.Web.Operations/ArcForges.Web.Operations.csproj --no-restore -c Release "
         "-o artifacts/profiles/operations", 600),
-    wsl("site-twice", f"set -euo pipefail; tool={TOOL}; "
+    linux("site-twice", f"set -euo pipefail; tool={TOOL}; "
         "dotnet \"$tool\" site build --out artifacts/site --source-ref {sha}; "
         "dotnet \"$tool\" site build --out artifacts/site-repeat --source-ref {sha}; "
         "diff -r artifacts/site artifacts/site-repeat; rm -rf artifacts/site-repeat", 300),
-    wsl("check", "set -euo pipefail; npm run check; "
+    linux("check", "set -euo pipefail; npm run check; "
         "test -f artifacts/evidence/licence-boundary.json; test -f artifacts/evidence/source-provenance.json", 600),
-    wsl("candidate", CANDIDATE, 600),
+    linux("candidate", CANDIDATE, 600),
     # the former pre-push hook, and quality's secret scan, over the pushed range; actionlint when a workflow changed
-    wsl("whitespace", "git diff --check {base} {sha}", 120, lane="scan"),
-    wsl("secret-scan", SECRET_SCAN, 600, lane="scan"),
-    wsl("actionlint", ACTIONLINT, 300, lane="actionlint", when=workflows_changed),
+    linux("whitespace", "git diff --check {base} {sha}", 120, lane="scan"),
+    linux("secret-scan", SECRET_SCAN, 600, lane="scan"),
+    linux("actionlint", ACTIONLINT, 300, lane="actionlint", when=workflows_changed),
 ]
