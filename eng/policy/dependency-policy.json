@@ -6,7 +6,7 @@
     "package.json"
   ],
   "inputs": {
-    ".github/workflows/ci.yml": "870d6376db3eb1e74e6df3ce3ccb7a62388a0d10e7ecdacde889ad89d217fe07",
+    ".github/workflows/ci.yml": "3dd7c58fb577d1004f13ecfd1298f61eb9ba729f0936811a6906c58e173b435b",
     ".node-version": "73fb1b615e2043a933be1c0895cde4358036acc28d785692509b822aa53c761f",
     ".npmrc": "73814024102037fcc5a961119bcbf39f81e0a73af504735653d3a6086651cef1",
     "Directory.Build.props": "2c1597403bd2a3eb04480ef96ba7accd57c0d2a9f7176ca1073a2d7a6fdcf3a0",
@@ -49,10 +49,10 @@
   "review": {
     "owner": "Web dependency maintainer",
     "reviewer": "ArcForges local-first verification worker (Web, AD-0016; maintainer-authorized; independent pull-request review is recorded on the pull request)",
-    "date": "2026-10-17",
-    "rationale": "AD-0016 local-first verification, successor of web-40-admission-r17. Two bound inputs change and are rebound here: .github/workflows/ci.yml, whose validation and security jobs (source, csharp, quality, dependency review, CodeQL, Verify) skip for pull requests by deku2026 (verified by the pre-push hook, eng/verify.py) and for main pushes, CodeQL and the quality job (dependency audit, actionlint, the full-history secret scan) keep the weekly schedule, and the candidate and deploy jobs run on a main push without the skipped validation (deploy needs the candidate only; its environment, concurrency, secrets, steps and the main-push-only profile bundle upload are unchanged); and package.json, which drops the `hooks` script that set a per-worktree core.hooksPath (the hooks are installed by `python eng/verify.py install`). External pull requests, Dependabot included, and manual dispatches keep the full job set. No package, version, source, licence, contentHash, nuspecSha256, closure coordinate, toolchain pin or scanner exception changed: packages, scannerExceptions, packsFolderRows, con07Identity, browserWasmPacks, nugetClosure and nugetPackDownloads are copied from r17 unchanged, and the csproj files, packages.lock.json files, props, global.json, package-lock.json, wrangler.json, .node-version, .npmrc, NuGet.config and the browser-resources profile and record r11 and r12 keep their digests. r17 is not edited. The Gitleaks image digest and the actionlint pin are unchanged.",
+    "date": "2026-10-22",
+    "rationale": "Successor of local-first-r1 for the hosted .NET SDK isolation. The one bound input that changes is .github/workflows/ci.yml: every actions/setup-dotnet step now sets DOTNET_INSTALL_DIR to ${{ runner.temp }}/dotnet, so the pinned SDK 10.0.401 is installed into an empty per-job root instead of the runner image's shared dotnet root. Runner image ubuntu-24.04 20261018.339 preinstalls SDK 10.0.402 in /usr/share/dotnet; SDK 10.0.401 installed beside it resolved the image's newer mono toolchain workload manifest (10.0.113), whose WorkloadManifest.targets sets the Microsoft.NET.Sdk.WebAssembly.Pack implicit version, so the main-push candidate's locked restore of ArcForges.Web.App failed with NU1004 ([10.0.12, ) to [10.0.13, )). In an isolated root the pinned SDK resolves only its own manifests and the locked closure (10.0.12) restores unchanged. No package, version, source, licence, contentHash, nuspecSha256, closure coordinate, toolchain pin or scanner exception changed: packages, scannerExceptions, packsFolderRows, con07Identity, browserWasmPacks, nugetClosure and nugetPackDownloads are copied from local-first-r1 unchanged; global.json, the csproj files and every packages.lock.json keep their digests, RestoreLockedMode and --locked-mode are unchanged, and the setup-dotnet pin, the job graph, the deploy environment, concurrency and secrets are unchanged. local-first-r1 is not edited.",
     "inputs": {
-      ".github/workflows/ci.yml": "870d6376db3eb1e74e6df3ce3ccb7a62388a0d10e7ecdacde889ad89d217fe07",
+      ".github/workflows/ci.yml": "3dd7c58fb577d1004f13ecfd1298f61eb9ba729f0936811a6906c58e173b435b",
       ".node-version": "73fb1b615e2043a933be1c0895cde4358036acc28d785692509b822aa53c761f",
       ".npmrc": "73814024102037fcc5a961119bcbf39f81e0a73af504735653d3a6086651cef1",
       "Directory.Build.props": "2c1597403bd2a3eb04480ef96ba7accd57c0d2a9f7176ca1073a2d7a6fdcf3a0",
@@ -103,7 +103,7 @@
     ],
     "runtimeAssessment": "The deployed public candidate is the C# static Site with no runtime JavaScript; the Worker stays the thin TypeScript adapter (worker/index.ts), emitted by Node type stripping. Node remains build and deploy tooling for wrangler only. The candidate job enforces the Blazor profile budgets and seals the Site and its Site archive; the deploy job ships the same sealed bytes under the unchanged main-push guards, and the Site archive is a release asset only, never a deployed asset. No hosted browser, device, macOS or live-service check is added.",
     "maintenance": "The npm closure is pinned exactly and admitted by this receipt; any change needs a successor receipt that names this file. The Contracts identity is the NuGet publication record eng/contracts/ArcForges.Contracts.PublicApi/1.0.0-ci.287.1, bound by eng/version-sources.json and Directory.Packages.props; any change needs a successor record. Published Contracts npm versions stay immutable on the registry and Web no longer consumes them. Historical receipts stay immutable.",
-    "previous": "eng/policy/dependency-reviews/web-40-admission-r17.json",
+    "previous": "eng/policy/dependency-reviews/local-first-r1.json",
     "immutableHistory": "Admitted review records are retained in Git history. A dependency change requires a new reviewed source commit and updated input-bound rationale; never amend an already accepted provenance record."
   },
   "closure": {
@@ -811,7 +811,7 @@
     "unenv": "2.0.0-rc.24",
     "youch": "4.1.0-beta.10"
   },
-  "reviewRecord": "eng/policy/dependency-reviews/local-first-r1.json",
+  "reviewRecord": "eng/policy/dependency-reviews/local-first-r2.json",
   "dependencyClasses": {
     "build-inputs": "Complete exact npm lock inventory; licence metadata is preserved, not inferred as a redistribution grant. Existing transitive development prereleases are named build-only migration inputs and cannot enter runtime/stable closures.",
     "runtime": "Only the independently enforced existing shipped artifact records admit runtime inputs and legal scopes.",
