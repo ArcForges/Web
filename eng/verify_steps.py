@@ -12,8 +12,8 @@ profile bundle that `deploy` ships; main pushes no longer re-validate it), each 
   runs the candidate tests against the Release tool the csharp build produced from the same locked restore; hosted, the
   source job builds that tool itself), then `candidate`. Everything that runs dotnet or npm in one checkout is in one lane:
   concurrent restores or builds of shared projects in one checkout would race.
-- lane `scan`: the whitespace check of the pushed range (the former pre-push hook, `git diff --check`) and the secret
-  scan of `quality` (the pinned gitleaks image digest, .gitleaks.toml) over the pushed range ({range}), in Docker
+- lane `scan`: the whitespace check of the commits since the merge base (`git diff --check`) and the secret
+  scan of `quality` (the pinned gitleaks image digest, .gitleaks.toml) over the same range ({range}), in Docker
   without network and with a read-only mount of the clone; lane `actionlint` only when .github/workflows/** changed.
 
 Differences from the hosted jobs:
@@ -73,7 +73,7 @@ def _win_dotnet(*args: str) -> list[str]:
 _BUNDLED_NPM = ("require('path').join(require('path').dirname(process.execPath), 'node_modules', 'npm', "
                 "'bin', 'npm-cli.js')")
 
-# Tool versions that key a reusable pass (the python running eng/verify.py is added by the core).
+# Tool versions recorded in each leg's summary (the python running eng/verify.py is added by the core).
 FINGERPRINT = {
     "win": {
         "dotnet-root": [sys.executable, "-c", f"print({WIN_DOTNET_ROOT!r})"] if WIN_DOTNET else _win_dotnet(),
@@ -322,7 +322,7 @@ STEPS = [
     linux("check", "set -euo pipefail; npm run check; "
         "test -f artifacts/evidence/licence-boundary.json; test -f artifacts/evidence/source-provenance.json", 600),
     linux("candidate", CANDIDATE, 600),
-    # the former pre-push hook, and quality's secret scan, over the pushed range; actionlint when a workflow changed
+    # the whitespace check and quality's secret scan over the commits since the merge base; actionlint when a workflow changed
     linux("whitespace", "git diff --check {base} {sha}", 120, lane="scan"),
     linux("secret-scan", SECRET_SCAN, 600, lane="scan"),
     linux("actionlint", ACTIONLINT, 300, lane="actionlint", when=workflows_changed),
