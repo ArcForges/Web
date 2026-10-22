@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 // Port of tests/unit/app-hello.test.ts: the anonymous binary gRPC-Web greeting through the generated Contracts client over
 // Grpc.Net.Client.Web. The server is a test-only double; every answer is a real gRPC-Web frame sequence.
+using System.Diagnostics;
 using System.Net;
 using System.Text;
 using ArcForges.Contracts.Foundation.Serialization;
@@ -224,6 +225,27 @@ public sealed class HelloProbeTests
         Assert.True(failure == FailureKind.Timeout);
     }
 
+    [Fact]
+    public async Task TheLibraryDeadlineFiringFirstIsStillATimeout()
+    {
+        // The probe's own deadline timer never fires here, so the gRPC library's deadline alone ends the call, which it
+        // reports as a cancellation of a request the transport saw cancelled. Which of the two timers fires first must not
+        // decide the kind.
+        var probe = new HelloProbe(new NeverAnswers(), new ProbeOrigin(ProbeFixtures.Origin), TimeSpan.FromMilliseconds(200), new SystemClock(fireTimers: false));
+        Assert.True(await FailureOf(() => probe.SayHelloAsync("ArcForges", CancellationToken.None)) == FailureKind.Timeout);
+    }
+
+    [Fact]
+    public async Task TheProbeDeadlineFiringFirstIsATimeout()
+    {
+        // The probe's own deadline timer fires at once, long before the library's ten second deadline is reached; the
+        // bound on the elapsed time shows that the probe's timer, not the library's, ended the call.
+        var probe = new HelloProbe(new NeverAnswers(), new ProbeOrigin(ProbeFixtures.Origin), HelloProbe.DefaultDeadline, new SystemClock(fireTimers: true));
+        var elapsed = Stopwatch.StartNew();
+        Assert.True(await FailureOf(() => probe.SayHelloAsync("ArcForges", CancellationToken.None)) == FailureKind.Timeout);
+        Assert.True(elapsed.Elapsed < TimeSpan.FromSeconds(5), $"The call ended after {elapsed.Elapsed}.");
+    }
+
     private static HttpResponseMessage Raw(byte[] body)
     {
         var response = new HttpResponseMessage(HttpStatusCode.OK) { Content = new ByteArrayContent(body) };
@@ -235,6 +257,30 @@ public sealed class HelloProbeTests
     {
         protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken) =>
             Task.FromException<HttpResponseMessage>(failure);
+    }
+
+    /// <summary>The system clock with timers that either never fire or fire at once, whatever their due time.</summary>
+    private sealed class SystemClock(bool fireTimers) : TimeProvider
+    {
+        public override DateTimeOffset GetUtcNow() => TimeProvider.System.GetUtcNow();
+
+        public override ITimer CreateTimer(TimerCallback callback, object? state, TimeSpan dueTime, TimeSpan period)
+        {
+            if (fireTimers)
+                _ = Task.Run(() => callback(state));
+            return new IdleTimer();
+        }
+
+        private sealed class IdleTimer : ITimer
+        {
+            public bool Change(TimeSpan dueTime, TimeSpan period) => true;
+
+            public void Dispose()
+            {
+            }
+
+            public ValueTask DisposeAsync() => ValueTask.CompletedTask;
+        }
     }
 
     /// <summary>A test-only transport that never answers and records the token it was given, as a stalled fetch does.</summary>
