@@ -40,7 +40,8 @@ Differences from the hosted jobs:
   fresh hosted checkout does.
 - npm on Windows is the npm bundled with the selected Node (hosted: setup-node's Node with its bundled npm), because a
   globally installed newer npm earlier on PATH fails the repository's engine-strict pin.
-- The secret scan covers the pushed range, not the full history: history before it was scanned when it was pushed.
+- The secret scan covers the commits since the merge base, not the full history: history before it is main, scanned
+  when its own PRs were verified.
 - Not reproduced: GitHub dependency review (a GitHub service; external PRs keep it; the locked restores with NuGet audit
   and `npm audit` cover vulnerable packages locally) and CodeQL (external PRs, dispatch and the weekly schedule).
 - The browser test project stays local opt-in, as in CI: it is not in the project lists and is never restored or built.
