@@ -85,7 +85,7 @@ FINGERPRINT = {
         "dotnet-workloads": _win_dotnet("workload", "--version"),
         # No Windows git entry: the steps use git only for read-only plumbing queries (ls-files, rev-parse, status, show,
         # log), and which git a shell finds differs here (Git Bash: Scoop's 2.56; PowerShell: Git for Windows 2.55 from
-        # the machine PATH), so it would key the pass to the pushing shell instead of the tools that build and test.
+        # the machine PATH), so it would record the running shell instead of the tools that build and test.
     },
     "linux": {
         "dotnet-sdks": "dotnet --list-sdks | tr '\\n' ' '",
