@@ -31,6 +31,7 @@ public sealed class HelloProbe
     private readonly HttpMessageHandler _transport;
     private readonly Uri _apiBase;
     private readonly TimeSpan _deadline;
+    private readonly TimeProvider _time;
 
     /// <summary>Creates the probe with the ten second deadline.</summary>
     public HelloProbe(HttpMessageHandler transport, ProbeOrigin origin)
@@ -40,14 +41,25 @@ public sealed class HelloProbe
 
     /// <summary>Creates the probe with an explicit deadline (tests shorten it; the page uses the default).</summary>
     public HelloProbe(HttpMessageHandler transport, ProbeOrigin origin, TimeSpan deadline)
+        : this(transport, origin, deadline, TimeProvider.System)
+    {
+    }
+
+    /// <summary>
+    /// Creates the probe with an explicit deadline and the clock its deadline timer and deadline check read (tests replace
+    /// the timer; the page uses the system clock).
+    /// </summary>
+    public HelloProbe(HttpMessageHandler transport, ProbeOrigin origin, TimeSpan deadline, TimeProvider time)
     {
         ArgumentNullException.ThrowIfNull(transport);
         ArgumentNullException.ThrowIfNull(origin);
+        ArgumentNullException.ThrowIfNull(time);
         if (deadline <= TimeSpan.Zero)
             throw new ArgumentOutOfRangeException(nameof(deadline));
         _transport = transport;
         _apiBase = new Uri(origin.Value, ApiBasePath);
         _deadline = deadline;
+        _time = time;
     }
 
     /// <summary>Sends one anonymous greeting and returns the reply, which must be the greeting for this name.</summary>
@@ -56,8 +68,13 @@ public sealed class HelloProbe
     {
         ArgumentNullException.ThrowIfNull(name);
         var seen = new Observation();
-        using var deadline = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-        deadline.CancelAfter(_deadline);
+        // Two timers end the call at the deadline: this source and the gRPC library's own deadline (which also sends
+        // grpc-timeout). Either may fire first, and the library reports its own as a cancellation, so the deadline counts
+        // as fired when this timer fired or the clock has reached the deadline. The library fires its deadline only once
+        // its clock (the system clock) has reached it, so that check holds whichever timer won.
+        var expires = _time.GetUtcNow().Add(_deadline);
+        using var expiry = new CancellationTokenSource(_deadline, _time);
+        using var deadline = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, expiry.Token);
         using var channel = GrpcChannel.ForAddress(_apiBase, new GrpcChannelOptions
         {
             HttpHandler = new GrpcWebHandler(GrpcWebMode.GrpcWeb, new ObservingHandler(_transport, seen)),
@@ -71,7 +88,7 @@ public sealed class HelloProbe
         {
             var client = new HelloService.HelloServiceClient(channel);
             var options = new CallOptions(
-                deadline: DateTime.UtcNow.Add(_deadline),
+                deadline: expires.UtcDateTime,
                 cancellationToken: deadline.Token);
             var reply = await client.SayHelloAsync(new SayHelloRequest { Name = name }, options).ResponseAsync.ConfigureAwait(false);
             if (reply.Message != $"Hello, {name}!")
@@ -80,7 +97,7 @@ public sealed class HelloProbe
         }
         catch (Exception exception) when (exception is not ProbeFailureException)
         {
-            throw Classify(exception, seen, cancellationToken, deadline.IsCancellationRequested);
+            throw Classify(exception, seen, cancellationToken, expiry.IsCancellationRequested || _time.GetUtcNow() >= expires);
         }
     }
 
