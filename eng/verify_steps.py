@@ -28,7 +28,7 @@ Differences from the hosted jobs:
   on Linux without the wasm-tools workload (WasmNativeWorkload=false; the ubuntu-latest runner has none and publishes
   without relinking), on Windows with it (the hosted Windows C# job installs wasm-tools at workload set 10.0.401 into its
   isolated SDK root and relinks dotnet.native with Emscripten 10.0.12 in its Release build and publishes). The Windows
-  steps use one SDK root whatever shell pushes: DOTNET_ROOT, which the workstation's environment loaders set (Env.md:
+  steps use one SDK root whatever shell runs the leg: DOTNET_ROOT, which the workstation's environment loaders set (Env.md:
   the user-local .dotnet of the user profile), first on PATH; `win-workload-preflight` checks that its workload set and
   wasm-tools match the lock and the hosted runner (see WORKLOAD_PREFLIGHT). The Site and the candidate take `{sha}` where
   ci.yml passes GITHUB_SHA, and the
