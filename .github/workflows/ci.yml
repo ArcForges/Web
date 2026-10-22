@@ -65,7 +65,7 @@ jobs:
         with:
           fetch-depth: 0
           persist-credentials: false
-      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version-file: .node-version
           # Avoid blocking Windows validation on optional cache upload retries.
@@ -101,7 +101,7 @@ jobs:
         run: node tooling/project.ts licence-evaluated
       - name: Retain source licence and provenance evidence
         if: always()
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
           name: licence-evidence-${{ matrix.os }}-${{ github.run_id }}-${{ github.run_attempt }}
           path: |
@@ -185,7 +185,7 @@ jobs:
           rm -rf artifacts/site-repeat
       - name: Retain the C# candidate outputs
         if: runner.os == 'Linux'
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
           name: web-csharp-${{ github.run_id }}-${{ github.run_attempt }}
           path: |
@@ -204,7 +204,7 @@ jobs:
         with:
           fetch-depth: 0
           persist-credentials: false
-      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version-file: .node-version
           cache: npm
@@ -257,7 +257,7 @@ jobs:
           DOTNET_INSTALL_DIR: ${{ runner.temp }}/dotnet
         with:
           dotnet-version: "10.0.401"
-      - uses: github/codeql-action/init@1c5b675653bb5c22dbe9b12b556ec555138e09fd # v4
+      - uses: github/codeql-action/init@6f2ac81f5cd81fe351a197ba0b00d91d03cd2aee # v4
         with:
           languages: ${{ matrix.language }}
           # C# is built explicitly with the locked restore below, so CodeQL observes the real compilation.
@@ -272,7 +272,7 @@ jobs:
           for project in $CSHARP_PROJECTS; do
             dotnet build "$project" --no-restore -c Release
           done
-      - uses: github/codeql-action/analyze@1c5b675653bb5c22dbe9b12b556ec555138e09fd # v4
+      - uses: github/codeql-action/analyze@6f2ac81f5cd81fe351a197ba0b00d91d03cd2aee # v4
         with:
           category: /language:${{ matrix.language }}
 
@@ -295,7 +295,7 @@ jobs:
         with:
           fetch-depth: 0
           persist-credentials: false
-      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version-file: .node-version
           cache: npm
@@ -341,7 +341,7 @@ jobs:
       - name: Verify the sealed candidate before upload
         run: node tooling/candidate.ts verify artifacts/candidate
       - id: upload
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
           name: web-candidate-${{ github.run_id }}-${{ github.run_attempt }}
           path: artifacts/candidate
@@ -356,7 +356,7 @@ jobs:
           dotnet tools/ArcForges.Web.Tooling/bin/Release/net10.0/ArcForges.Web.Tooling.dll profiles verify --bundle "$(ls artifacts/profiles/web-profiles-*.tar)"
       - id: upload-profiles
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
           name: web-profiles-${{ github.run_id }}-${{ github.run_attempt }}
           path: artifacts/profiles
@@ -409,7 +409,7 @@ jobs:
         with:
           fetch-depth: 0
           persist-credentials: false
-      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version-file: .node-version
           cache: npm
@@ -425,12 +425,12 @@ jobs:
           set -euo pipefail
           dotnet restore tools/ArcForges.Web.Tooling/ArcForges.Web.Tooling.csproj --locked-mode
           dotnet build tools/ArcForges.Web.Tooling/ArcForges.Web.Tooling.csproj --no-restore -c Release
-      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8
         with:
           artifact-ids: ${{ needs.candidate.outputs.artifact-id }}
           path: artifacts/candidate
           merge-multiple: true
-      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8
         with:
           artifact-ids: ${{ needs.candidate.outputs.profiles-artifact-id }}
           path: artifacts/profiles
@@ -459,7 +459,7 @@ jobs:
           gh release create "web-${VERSION}" "artifacts/web-${VERSION}.tar.gz" artifacts/deployment.json artifacts/profiles/web-profiles-*.tar "$site_archive" --target "$GITHUB_SHA" --title "Web ${VERSION}" --prerelease --generate-notes
       - name: Preserve deployment evidence
         if: always()
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
           name: cloudflare-evidence-${{ github.run_id }}-${{ github.run_attempt }}
           path: |
