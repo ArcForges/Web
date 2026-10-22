@@ -12,8 +12,8 @@ profile bundle that `deploy` ships; main pushes no longer re-validate it), each 
   runs the candidate tests against the Release tool the csharp build produced from the same locked restore; hosted, the
   source job builds that tool itself), then `candidate`. Everything that runs dotnet or npm in one checkout is in one lane:
   concurrent restores or builds of shared projects in one checkout would race.
-- lane `scan`: the whitespace check of the pushed range (the former pre-push hook, `git diff --check`) and the secret
-  scan of `quality` (the pinned gitleaks image digest, .gitleaks.toml) over the pushed range ({range}), in Docker
+- lane `scan`: the whitespace check of the commits since the merge base (`git diff --check`) and the secret
+  scan of `quality` (the pinned gitleaks image digest, .gitleaks.toml) over the same range ({range}), in Docker
   without network and with a read-only mount of the clone; lane `actionlint` only when .github/workflows/** changed.
 
 Differences from the hosted jobs:
@@ -28,7 +28,7 @@ Differences from the hosted jobs:
   on Linux without the wasm-tools workload (WasmNativeWorkload=false; the ubuntu-latest runner has none and publishes
   without relinking), on Windows with it (the hosted Windows C# job installs wasm-tools at workload set 10.0.401 into its
   isolated SDK root and relinks dotnet.native with Emscripten 10.0.12 in its Release build and publishes). The Windows
-  steps use one SDK root whatever shell pushes: DOTNET_ROOT, which the workstation's environment loaders set (Env.md:
+  steps use one SDK root whatever shell runs the leg: DOTNET_ROOT, which the workstation's environment loaders set (Env.md:
   the user-local .dotnet of the user profile), first on PATH; `win-workload-preflight` checks that its workload set and
   wasm-tools match the lock and the hosted runner (see WORKLOAD_PREFLIGHT). The Site and the candidate take `{sha}` where
   ci.yml passes GITHUB_SHA, and the
@@ -40,7 +40,8 @@ Differences from the hosted jobs:
   fresh hosted checkout does.
 - npm on Windows is the npm bundled with the selected Node (hosted: setup-node's Node with its bundled npm), because a
   globally installed newer npm earlier on PATH fails the repository's engine-strict pin.
-- The secret scan covers the pushed range, not the full history: history before it was scanned when it was pushed.
+- The secret scan covers the commits since the merge base, not the full history: history before it is main, scanned
+  when its own PRs were verified.
 - Not reproduced: GitHub dependency review (a GitHub service; external PRs keep it; the locked restores with NuGet audit
   and `npm audit` cover vulnerable packages locally) and CodeQL (external PRs, dispatch and the weekly schedule).
 - The browser test project stays local opt-in, as in CI: it is not in the project lists and is never restored or built.
@@ -54,9 +55,9 @@ from pathlib import Path
 REPOSITORY = "Web"
 
 # The one .NET SDK root of the Windows steps: DOTNET_ROOT (a persistent user variable on this workstation, also set by
-# the environment loaders), not whichever dotnet the pushing shell finds first on PATH (a plain PowerShell finds
+# the environment loaders), not whichever dotnet the running shell finds first on PATH (a plain PowerShell finds
 # C:\Program Files\dotnet through the machine PATH; the loaders select the user-local root). Without a valid DOTNET_ROOT
-# the Windows tool probe fails and the push is rejected.
+# the Windows tool probe fails and the leg reports an error.
 WIN_DOTNET_ROOT = os.environ.get("DOTNET_ROOT", "") if os.name == "nt" else ""
 if WIN_DOTNET_ROOT and not Path(WIN_DOTNET_ROOT, "dotnet.exe").is_file():
     WIN_DOTNET_ROOT = ""
@@ -73,7 +74,7 @@ def _win_dotnet(*args: str) -> list[str]:
 _BUNDLED_NPM = ("require('path').join(require('path').dirname(process.execPath), 'node_modules', 'npm', "
                 "'bin', 'npm-cli.js')")
 
-# Tool versions that key a reusable pass (the python running eng/verify.py is added by the core).
+# Tool versions recorded in each leg's summary (the python running eng/verify.py is added by the core).
 FINGERPRINT = {
     "win": {
         "dotnet-root": [sys.executable, "-c", f"print({WIN_DOTNET_ROOT!r})"] if WIN_DOTNET else _win_dotnet(),
@@ -84,7 +85,7 @@ FINGERPRINT = {
         "dotnet-workloads": _win_dotnet("workload", "--version"),
         # No Windows git entry: the steps use git only for read-only plumbing queries (ls-files, rev-parse, status, show,
         # log), and which git a shell finds differs here (Git Bash: Scoop's 2.56; PowerShell: Git for Windows 2.55 from
-        # the machine PATH), so it would key the pass to the pushing shell instead of the tools that build and test.
+        # the machine PATH), so it would record the running shell instead of the tools that build and test.
     },
     "linux": {
         "dotnet-sdks": "dotnet --list-sdks | tr '\\n' ' '",
@@ -322,7 +323,7 @@ STEPS = [
     linux("check", "set -euo pipefail; npm run check; "
         "test -f artifacts/evidence/licence-boundary.json; test -f artifacts/evidence/source-provenance.json", 600),
     linux("candidate", CANDIDATE, 600),
-    # the former pre-push hook, and quality's secret scan, over the pushed range; actionlint when a workflow changed
+    # the whitespace check and quality's secret scan over the commits since the merge base; actionlint when a workflow changed
     linux("whitespace", "git diff --check {base} {sha}", 120, lane="scan"),
     linux("secret-scan", SECRET_SCAN, 600, lane="scan"),
     linux("actionlint", ACTIONLINT, 300, lane="actionlint", when=workflows_changed),

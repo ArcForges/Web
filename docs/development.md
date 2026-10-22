@@ -18,8 +18,8 @@ Run every command from the repository root. Use `npm ci --ignore-scripts` once a
 
 | Command | Purpose |
 | --- | --- |
-| `python eng/verify.py install` | Install the pre-push verification and the staged-whitespace pre-commit check for every worktree of the clone (once, from the main checkout on `main`) |
-| `python eng/verify.py run` | Verify this machine's leg of `HEAD` (Windows or Linux) with the full local profile; `python eng/verify.py import <record>` accepts the other leg's record; the push needs both ([AGENTS.md](../AGENTS.md), Local verification) |
+| `python eng/verify.py install` | Install the staged-whitespace pre-commit check for every worktree of the clone and remove the retired pre-push hook (once, from the main checkout on `main`) |
+| `python eng/verify.py run-and-report` | On a verification host, in a worktree at the pushed commit: verify this host's leg (Windows or Linux) with the full profile and report its commit status (`arcforges/windows` or `arcforges/linux`), which `main` requires; `python eng/verify.py run` runs the leg without reporting |
 | `npm run check` | Dependency admission, reviewed policy, Worker typecheck and the Node test suites |
 | `npm run policy` | Naming, licence, provenance, exact pins and lock provenance (requires the pinned Node) |
 | `npm run build:worker` | Emit the Worker JavaScript from `worker/index.ts` by type stripping |
@@ -69,4 +69,4 @@ Use the pinned npm for lock regeneration. A lock regenerated on a Node older tha
 
 ## Local validation limits (P2-017, P2-024)
 
-The owner's pull requests are verified by the pre-push hook (AD-0016): every validation job of `ci.yml` and the candidate, the Windows leg in a verification worktree on native Windows and the Linux leg in a Linux-native clone on the Linux MCP host, each reached through its MCP server and each with a pass record (ArcForges-Design AD-0018 and AD-0019; never through local WSL, not even as a fallback; if an MCP server is unavailable, verification stops and the push is rejected); hosted CI is the authority for external pull requests. Other Linux checks may run once, scope-limited, on the Linux MCP host on a Linux-native filesystem. Record the distribution, kernel, SDK and toolchain. Toolchain installs there are performed by the user.
+Every pull request is verified after the push (ArcForges-Design AD-0020): every validation job of `ci.yml` and the candidate, the Windows leg in a verification worktree on native Windows and the Linux leg in a Linux-native clone on the Linux MCP host, each reached through its MCP server and each reported as a commit status that `main` requires (ArcForges-Design AD-0019; never through local WSL, not even as a fallback; if an MCP server is unavailable, verification stops and the PR cannot merge); hosted CI is the authority for external pull requests. Other Linux checks may run once, scope-limited, on the Linux MCP host on a Linux-native filesystem. Record the distribution, kernel, SDK and toolchain. Toolchain installs there are performed by the user.
