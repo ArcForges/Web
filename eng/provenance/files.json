@@ -296,7 +296,8 @@
     "eng/verify_steps.py",
     "eng/policy/dependency-reviews/local-first-r1.json",
     "eng/policy/dependency-reviews/local-first-r2.json",
-    "eng/policy/dependency-reviews/local-first-r3.json"
+    "eng/policy/dependency-reviews/local-first-r3.json",
+    "eng/policy/dependency-reviews/local-first-r4.json"
   ],
   "reused": {
     "LICENSE": "canonical-agpl-legal-r1",

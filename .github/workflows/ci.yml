@@ -24,10 +24,10 @@ env:
   DOTNET_CLI_TELEMETRY_OPTOUT: "1"
   DOTNET_NOLOGO: "1"
   DOTNET_SKIP_FIRST_TIME_EXPERIENCE: "1"
-  # On Linux every setup-dotnet step installs the pinned SDK into an empty per-job root (its DOTNET_INSTALL_DIR), not
-  # the image's shared /usr/share/dotnet: the ubuntu images preinstall newer SDKs there, and the pinned SDK would resolve
-  # their workload manifests, moving the implicit Microsoft.NET.Sdk.WebAssembly.Pack version off the locked closure.
-  # Windows keeps the image's root, whose wasm-tools workload the Windows build relinks with (eng/verify_steps.py).
+  # Every setup-dotnet step installs the pinned SDK into an empty per-job root (its DOTNET_INSTALL_DIR), never the
+  # image's shared dotnet root: the hosted images preinstall newer SDKs there, and the pinned SDK would resolve their
+  # workload manifests, moving the implicit Microsoft.NET.Sdk.WebAssembly.Pack version off the locked closure. The
+  # Windows C# job installs wasm-tools at the pinned workload set into that root (eng/verify_steps.py WIN_ENV).
   # The C# product projects. The browser test project (tests/browser) is local opt-in tooling and is never restored
   # or built in CI (validation policy). win.slnx is not used here: the explicit project list is the CI authority.
   CSHARP_PROJECTS: >-
@@ -92,6 +92,8 @@ jobs:
       - name: Set up the IDE project evaluation toolchain
         if: runner.os == 'Windows'
         uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6
+        env:
+          DOTNET_INSTALL_DIR: ${{ runner.temp }}/dotnet
         with:
           dotnet-version: "10.0.401"
       - name: Verify effective IDE project declarations
@@ -128,9 +130,16 @@ jobs:
       - name: Set up the pinned .NET SDK
         uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6
         env:
-          DOTNET_INSTALL_DIR: ${{ runner.os == 'Linux' && format('{0}/dotnet', runner.temp) || '' }}
+          DOTNET_INSTALL_DIR: ${{ runner.temp }}/dotnet
         with:
           dotnet-version: "10.0.401"
+      # The Windows build and publishes relink the App with Emscripten 10.0.12, as the Windows leg of the pre-push
+      # verification does: wasm-tools at the workload set of the pinned SDK (its Mono toolchain manifest keeps
+      # Microsoft.NET.Sdk.WebAssembly.Pack at the locked 10.0.12). `workload install --version` pins the set; the
+      # setup-dotnet `workloads` input is not used because it runs `workload update` first, which would move it.
+      - name: Install the wasm-tools workload at the pinned workload set
+        if: runner.os == 'Windows'
+        run: dotnet workload install wasm-tools --version 10.0.401
       - name: Restore with the locked NuGet closure
         run: |
           set -euo pipefail

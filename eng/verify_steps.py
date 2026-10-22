@@ -26,11 +26,12 @@ Differences from the hosted jobs:
   restores are locked, as the explicit `--locked-mode` restores are) and ContinuousIntegrationBuild (deterministic source
   paths, as in the hosted build). The Blazor App is built as each hosted runner builds it (see LINUX_ENV and WIN_ENV):
   on Linux without the wasm-tools workload (WasmNativeWorkload=false; the ubuntu-latest runner has none and publishes
-  without relinking), on Windows with it (the windows-latest runner has wasm-tools and relinks dotnet.native with
-  Emscripten 10.0.12 in its Release build and publishes). The Windows steps use one SDK root whatever shell pushes:
-  DOTNET_ROOT, which the workstation's environment loaders set (Env.md: the user-local .dotnet of the user profile), first on
-  PATH; `win-workload-preflight` checks that its workload set and wasm-tools match the lock and the hosted runner (see
-  WORKLOAD_PREFLIGHT). The Site and the candidate take `{sha}` where ci.yml passes GITHUB_SHA, and the
+  without relinking), on Windows with it (the hosted Windows C# job installs wasm-tools at workload set 10.0.401 into its
+  isolated SDK root and relinks dotnet.native with Emscripten 10.0.12 in its Release build and publishes). The Windows
+  steps use one SDK root whatever shell pushes: DOTNET_ROOT, which the workstation's environment loaders set (Env.md:
+  the user-local .dotnet of the user profile), first on PATH; `win-workload-preflight` checks that its workload set and
+  wasm-tools match the lock and the hosted runner (see WORKLOAD_PREFLIGHT). The Site and the candidate take `{sha}` where
+  ci.yml passes GITHUB_SHA, and the
   candidate's release version is the repository's local version `0.1.0-local` (hosted: `0.1.0-ci.<run number>.<attempt>`;
   the build identity is then `local.<commit>` instead of the run id). The candidate verification gets GITHUB_SHA={sha} for
   that one command only, because tooling/candidate.ts passes `--expected-source` from it (hosted: the same value). The
@@ -133,9 +134,9 @@ ENV = {"DOTNET_NOLOGO": "1", "DOTNET_CLI_TELEMETRY_OPTOUT": "1", "DOTNET_SKIP_FI
 # App the runner's evaluation on any Linux host; the App sets no property that needs the workload (no AOT, no native
 # build).
 LINUX_ENV = {**ENV, "WasmNativeWorkload": "false"}
-# Windows: the windows-latest runner has wasm-tools, and its Release build and publishes relink with Emscripten 10.0.12,
-# so the workload stays in. The SDK root is WIN_DOTNET_ROOT, first on PATH for every tool the steps start (pwsh, node and
-# python find dotnet through it).
+# Windows: the hosted Windows C# job installs wasm-tools at workload set 10.0.401 into its isolated SDK root, and its
+# Release build and publishes relink with Emscripten 10.0.12, so the workload stays in. The SDK root is WIN_DOTNET_ROOT,
+# first on PATH for every tool the steps start (pwsh, node and python find dotnet through it).
 WIN_ENV = {**ENV, "DOTNET_ROOT": WIN_DOTNET_ROOT,
            "PATH": os.pathsep.join(filter(None, [WIN_DOTNET_ROOT, os.environ.get("PATH", "")]))}
 

@@ -193,7 +193,7 @@ public sealed class NuGetClosureAdmissionTests
             PacksFolder: "Microsoft.NETCore.App.Runtime.Mono.browser-wasm",
             Version: "10.0.12",
             Marker: Path.Combine("runtimes", "browser-wasm", "native", "dotnet.native.wasm"),
-            Reason: "The hosted windows-2025-vs2026 image (runner image 20260925.250.1, CI job 113727560820) preinstalls the wasm.tools workload into C:\\Program Files\\dotnet, which holds this pack at the bundled version 10.0.12 (the same run's build lists the 10.0.12 Emscripten workload packs in that folder), so the SDK adds no NuGet download. A local machine whose packs folder lacks 10.0.12 restores the NuGet copy and it is verified by digest there."),
+            Reason: "The hosted Windows C# job (ci.yml) installs the wasm-tools workload at workload set 10.0.401 into its isolated SDK root, as the Windows verification leg requires of its SDK root, and that packs folder holds this pack at the bundled version 10.0.12, so the SDK adds no NuGet download. A local machine whose packs folder lacks 10.0.12 restores the NuGet copy and it is verified by digest there."),
         new(
             Key: "microsoft.netcore.app.runtime.mono.browser-wasm/10.0.12",
             Platform: "Linux",
