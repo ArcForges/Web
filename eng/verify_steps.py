@@ -55,9 +55,9 @@ from pathlib import Path
 REPOSITORY = "Web"
 
 # The one .NET SDK root of the Windows steps: DOTNET_ROOT (a persistent user variable on this workstation, also set by
-# the environment loaders), not whichever dotnet the pushing shell finds first on PATH (a plain PowerShell finds
+# the environment loaders), not whichever dotnet the running shell finds first on PATH (a plain PowerShell finds
 # C:\Program Files\dotnet through the machine PATH; the loaders select the user-local root). Without a valid DOTNET_ROOT
-# the Windows tool probe fails and the push is rejected.
+# the Windows tool probe fails and the leg reports an error.
 WIN_DOTNET_ROOT = os.environ.get("DOTNET_ROOT", "") if os.name == "nt" else ""
 if WIN_DOTNET_ROOT and not Path(WIN_DOTNET_ROOT, "dotnet.exe").is_file():
     WIN_DOTNET_ROOT = ""
