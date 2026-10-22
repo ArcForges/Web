@@ -47,7 +47,8 @@ public sealed class HelloProbe
 
     /// <summary>
     /// Creates the probe with an explicit deadline and the clock its deadline timer and deadline check read (tests replace
-    /// the timer; the page uses the system clock).
+    /// the timer; the page uses the system clock). Its current time must be the system clock's: the gRPC library compares
+    /// the call deadline against the system clock, so only the timers may differ.
     /// </summary>
     public HelloProbe(HttpMessageHandler transport, ProbeOrigin origin, TimeSpan deadline, TimeProvider time)
     {

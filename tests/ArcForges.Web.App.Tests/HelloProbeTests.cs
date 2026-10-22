@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 // Port of tests/unit/app-hello.test.ts: the anonymous binary gRPC-Web greeting through the generated Contracts client over
 // Grpc.Net.Client.Web. The server is a test-only double; every answer is a real gRPC-Web frame sequence.
+using System.Diagnostics;
 using System.Net;
 using System.Text;
 using ArcForges.Contracts.Foundation.Serialization;
@@ -237,9 +238,12 @@ public sealed class HelloProbeTests
     [Fact]
     public async Task TheProbeDeadlineFiringFirstIsATimeout()
     {
-        // The probe's own deadline timer fires at once, long before the library's ten second deadline is reached.
+        // The probe's own deadline timer fires at once, long before the library's ten second deadline is reached; the
+        // bound on the elapsed time shows that the probe's timer, not the library's, ended the call.
         var probe = new HelloProbe(new NeverAnswers(), new ProbeOrigin(ProbeFixtures.Origin), HelloProbe.DefaultDeadline, new SystemClock(fireTimers: true));
+        var elapsed = Stopwatch.StartNew();
         Assert.True(await FailureOf(() => probe.SayHelloAsync("ArcForges", CancellationToken.None)) == FailureKind.Timeout);
+        Assert.True(elapsed.Elapsed < TimeSpan.FromSeconds(5), $"The call ended after {elapsed.Elapsed}.");
     }
 
     private static HttpResponseMessage Raw(byte[] body)
