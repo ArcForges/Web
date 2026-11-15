@@ -188,19 +188,19 @@ public sealed class NuGetClosureAdmissionTests
     private static readonly PacksFolderRow[] PacksFolderRows =
     [
         new(
-            Key: "microsoft.netcore.app.runtime.mono.browser-wasm/10.0.12",
+            Key: "microsoft.netcore.app.runtime.mono.browser-wasm/11.0.0",
             Platform: "Windows",
             PacksFolder: "Microsoft.NETCore.App.Runtime.Mono.browser-wasm",
-            Version: "10.0.12",
+            Version: "11.0.0",
             Marker: Path.Combine("runtimes", "browser-wasm", "native", "dotnet.native.wasm"),
-            Reason: "The hosted Windows C# job (ci.yml) installs the wasm-tools workload at workload set 10.0.401 into its isolated SDK root, as the Windows verification leg requires of its SDK root, and that packs folder holds this pack at the bundled version 10.0.12, so the SDK adds no NuGet download. A local machine whose packs folder lacks 10.0.12 restores the NuGet copy and it is verified by digest there."),
+            Reason: "The hosted Windows C# job (ci.yml) installs the wasm-tools workload at workload set 11.0.100 into its isolated SDK root, as the Windows verification leg requires of its SDK root, and that packs folder holds this pack at the bundled version 11.0.0, so the SDK adds no NuGet download. A local machine whose packs folder lacks 11.0.0 restores the NuGet copy and it is verified by digest there."),
         new(
-            Key: "microsoft.netcore.app.runtime.mono.browser-wasm/10.0.12",
+            Key: "microsoft.netcore.app.runtime.mono.browser-wasm/11.0.0",
             Platform: "Linux",
             PacksFolder: "Microsoft.NETCore.App.Runtime.Mono.browser-wasm",
-            Version: "10.0.12",
+            Version: "11.0.0",
             Marker: Path.Combine("runtimes", "browser-wasm", "native", "dotnet.native.wasm"),
-            Reason: "The Ubuntu hosted image carries no WebAssembly workload, so this row is checked there and not satisfied: the SDK adds the implicit pack as a NuGet download, restores it and the test verifies its digest. The NuGet copy is skipped only when a 10.0.12 packs copy with the marker exists locally, and in that case the SDK does not download the pack either."),
+            Reason: "The Ubuntu hosted image carries no WebAssembly workload, so this row is checked there and not satisfied: the SDK adds the implicit pack as a NuGet download, restores it and the test verifies its digest. The NuGet copy is skipped only when a 11.0.0 packs copy with the marker exists locally, and in that case the SDK does not download the pack either."),
     ];
 
     private sealed record PacksFolderRow(string Key, string Platform, string PacksFolder, string Version, string Marker, string Reason);

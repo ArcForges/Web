@@ -10,10 +10,10 @@
     "url": "https://github.com/ArcForges/Web.git"
   },
   "engines": {
-    "node": ">=24.21.0 <25",
-    "npm": ">=11.19.0 <12"
+    "node": ">=26.13.1 <27",
+    "npm": ">=12.2.2 <13"
   },
-  "packageManager": "npm@11.19.0",
+  "packageManager": "npm@12.2.2",
   "scripts": {
     "policy": "node tooling/project.ts policy",
     "build:worker": "node tooling/candidate.ts worker artifacts/inputs/index.js",
@@ -23,17 +23,42 @@
     "check:dependencies": "node tooling/dependency-policy.ts",
     "check": "npm run check:dependencies && npm run policy && npm run typecheck && npm run test:dependencies && npm run test",
     "verify:candidate": "node tooling/candidate.ts verify",
-    "preview": "wrangler dev --config artifacts/candidate/wrangler.json --local --persist-to .wrangler/state --ip 127.0.0.1 --port 4173",
+    "preview": "node --import ./tooling/wrangler-init.ts node_modules/wrangler/bin/wrangler.js dev --config artifacts/candidate/wrangler.json --local --persist-to .wrangler/state --ip 127.0.0.1 --port 4173",
     "deploy": "node tooling/cloudflare.ts deploy",
     "test:live": "node tooling/cloudflare.ts smoke"
   },
   "devDependencies": {
-    "@types/node": "24.13.5",
+    "blake3-wasm": "3.0.0",
+    "@types/node": "26.6.6",
     "typescript": "7.0.2",
-    "wrangler": "4.143.1"
+    "wrangler": "4.162.0"
   },
   "overrides": {
-    "sharp": "0.35.5"
+    "@c4312/blake3-internal": "3.0.0",
+    "@cloudflare/workerd-darwin-64": "1.20261114.1",
+    "@cloudflare/workerd-darwin-arm64": "1.20261114.1",
+    "@cloudflare/workerd-linux-64": "1.20261114.1",
+    "@cloudflare/workerd-linux-arm64": "1.20261114.1",
+    "@cloudflare/workerd-windows-64": "1.20261114.1",
+    "@jridgewell/trace-mapping": "0.3.31",
+    "@poppinss/dumper": "0.7.0",
+    "@sindresorhus/is": "8.1.0",
+    "@speed-highlight/core": "2.1.0",
+    "blake3-wasm": "3.0.0",
+    "cookie": "2.0.2",
+    "error-stack-parser-es": "2.0.1",
+    "miniflare": "4.20260730.0",
+    "mime": "4.1.2",
+    "path-to-regexp": "9.0.0",
+    "pathe": "2.0.3",
+    "sharp": "0.35.5",
+    "supports-color": "11.0.0",
+    "undici": "8.12.4",
+    "undici-types": "8.12.4",
+    "unenv": "1.10.0",
+    "workerd": "1.20261114.1",
+    "ws": "8.23.0",
+    "youch": "4.1.1"
   },
   "arcforges": {
     "licenceBoundary": "AGPL"

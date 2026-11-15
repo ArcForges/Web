@@ -84,8 +84,10 @@ test("source cannot escape into a sibling repository", () => {
 });
 test("stable closure cannot inherit foundation candidates", () => {
   const policy = structuredClone(baseline);
+  const packages = structuredClone(lock.packages);
   policy.channel = "stable";
-  assert.throws(() => validateClosure(policy, lock.packages), /Prerelease/u);
+  packages[firstDependency].version = "99.0.0-rc.1";
+  assert.throws(() => validateClosure(policy, packages), /Prerelease/u);
 });
 test("input hashes are portable, content sensitive and independent of outer metadata", () => {
   assert.equal(digest("a\r\n"), digest("a\n"));

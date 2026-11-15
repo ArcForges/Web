@@ -57,14 +57,14 @@ public sealed class NuGetPackDownloadAdmissionTests
             Assert.StartsWith("https://api.nuget.org/v3-flatcontainer/", row["source"]?.GetValue<string>() ?? string.Empty, StringComparison.Ordinal);
             var licence = row["licence"]?.GetValue<string>() ?? string.Empty;
             Assert.Contains(licence, PermissiveLicences);
-            Assert.EndsWith("/10.0.12", entry.Key, StringComparison.Ordinal);
+            Assert.EndsWith("/11.0.0", entry.Key, StringComparison.Ordinal);
         }
     }
 
     [Fact]
     public void AspNetCoreBrowserWasmPackIsNotAdmitted()
     {
-        Assert.False(AdmittedDownloads(RepositoryRoot.Find()).ContainsKey("microsoft.aspnetcore.app.runtime.browser-wasm/10.0.12"));
+        Assert.False(AdmittedDownloads(RepositoryRoot.Find()).ContainsKey("microsoft.aspnetcore.app.runtime.browser-wasm/11.0.0"));
     }
 
     private static JsonObject AdmittedDownloads(string root)

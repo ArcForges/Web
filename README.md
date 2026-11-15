@@ -12,9 +12,9 @@ Web is an active repository of the ArcForges flagship ([AD-0001](https://github.
 
 ## Toolchain
 
-- .NET SDK **10.0.401** (`global.json`), with central NuGet package management and locked restores.
-- Node.js **24.21.0** and npm **11.19.0** (`.node-version`, `packageManager`), for the Worker adapter, wrangler and the reviewed policy checks.
-- Exact versions throughout: Blazor WebAssembly standalone with `RunAOTCompilation=false`, Contracts packages at **1.0.0-ci.287.1**, wrangler **4.143.1**, TypeScript **7.0.2**.
+- .NET SDK **11.0.100** (`global.json`), with central NuGet package management and locked restores.
+- Node.js **26.13.1** and npm **12.2.2** (`.node-version`, `packageManager`), for the Worker adapter, wrangler and the reviewed policy checks.
+- Exact versions throughout: Blazor WebAssembly standalone with `RunAOTCompilation=false`, Contracts packages at **1.0.0-ci.287.1**, wrangler **4.162.0**, TypeScript **7.0.2**.
 
 Start with [development](docs/development.md) for the commands and the solution layout.
 
