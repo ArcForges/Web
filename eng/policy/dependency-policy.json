@@ -857,7 +857,7 @@
     ]
   },
   "buildToolPrereleases": {},
-  "reviewRecord": "eng/policy/dependency-reviews/afv2-env-01-r1.json",
+  "reviewRecord": "eng/policy/dependency-reviews/afv2-env-01-r2.json",
   "dependencyClasses": {
     "build-inputs": "Complete current exact stable npm lock; version major compatibility is implemented in owned CLI integration. No prerelease build-tool qualification is used.",
     "runtime": "Only the independently enforced existing shipped artifact records admit runtime inputs and legal scopes.",
