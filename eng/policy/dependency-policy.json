@@ -1,12 +1,12 @@
 {
   "schemaVersion": 1,
   "repository": "Web",
-  "sourceCommit": "829cf665f52e595b767c0a209815096f448912af",
+  "sourceCommit": "12957013fb8b91dea3eca8212b57630833e2db05",
   "manifests": [
     "package.json"
   ],
   "inputs": {
-    ".github/workflows/ci.yml": "bfa128e469a04f8bd73f3ff1ae934f34bc8d0ef90fc37e8f9680c94ebf9e154b",
+    ".github/workflows/ci.yml": "7ec15358596c620ac64c16220a718d681192e3b4e4f77fe0ca90197792c05177",
     ".node-version": "5c293036fc0a61ad76e15d85f454c3c7cec157e181e035b69f95058a2c239144",
     ".npmrc": "73814024102037fcc5a961119bcbf39f81e0a73af504735653d3a6086651cef1",
     ".python-version": "673e2ba07f95bfcfe0a543258b8e267954e403d1f466481c546f467f86b31d46",
@@ -58,11 +58,11 @@
   },
   "review": {
     "owner": "Web dependency maintainer",
-    "reviewer": "design_parity (independent source/licence review, APPROVED_SOURCE 2026-11-15)",
+    "reviewer": "Root coordinator (directed CI provisioning correction from observed main run 43693462156)",
     "date": "2026-11-15",
-    "rationale": "AFV2-ENV-01: SDK 11/net11/C#15, Node 26/npm12, completed stable dependency upgrades, exact shared Build.Policy 150.1 publication and local/CI preflight. Retain the actual published compatible Contracts 287.1 inputs under the final user direction; a new producer cohort is not required for this change.",
+    "rationale": "AFV2-ENV-01 CI successor: the official setup-node 26.13.1 distribution in ordinary main CI run 43693462156 supplied npm 11.20.0, while packageManager and engine-strict require npm 12.2.2. Every existing setup-node job now explicitly installs and verifies exact npm 12.2.2 inside the selected Node prefix through that installation's absolute npm CLI before project commands; the C# test job also selects the same Node/npm pair before checking its build tools. Package versions, lock bytes, required checks and guarded deployment conditions remain unchanged.",
     "inputs": {
-      ".github/workflows/ci.yml": "bfa128e469a04f8bd73f3ff1ae934f34bc8d0ef90fc37e8f9680c94ebf9e154b",
+      ".github/workflows/ci.yml": "7ec15358596c620ac64c16220a718d681192e3b4e4f77fe0ca90197792c05177",
       ".node-version": "5c293036fc0a61ad76e15d85f454c3c7cec157e181e035b69f95058a2c239144",
       ".npmrc": "73814024102037fcc5a961119bcbf39f81e0a73af504735653d3a6086651cef1",
       ".python-version": "673e2ba07f95bfcfe0a543258b8e267954e403d1f466481c546f467f86b31d46",
@@ -121,9 +121,9 @@
       "sbom",
       "framework-posture"
     ],
-    "runtimeAssessment": "Owned Ui 15 and App 98 tests passed; SDK11 Release compilation passed without warnings. Full trim and development-only framework source-map exclusion keep original profile budgets, and the existing bundle graph build passes. The complete frozen source candidate received independent source approval; Windows wasm-tools installation, exact-head host verification and ordinary delivery remain pending. No browser/device/live result claimed.",
+    "runtimeAssessment": "The preceding merged upgrade passed both native host profiles at its exact candidate. This successor corrects hosted npm provisioning only; targeted author checks and new exact-head verification are reported separately, without claiming that a hosted or native full profile has already passed.",
     "maintenance": "Completed version selections are retained with their dated official source observations and complete resolved graph inventory. No additional per-dependency research or producer replacement is required for this change.",
-    "previous": "eng/policy/dependency-reviews/local-first-r3.json",
+    "previous": "eng/policy/dependency-reviews/afv2-env-01-r2.json",
     "immutableHistory": "Admitted review records are retained in Git history. A dependency change requires a new reviewed source commit and updated input-bound rationale; never amend an already accepted provenance record."
   },
   "closure": {
@@ -857,7 +857,7 @@
     ]
   },
   "buildToolPrereleases": {},
-  "reviewRecord": "eng/policy/dependency-reviews/afv2-env-01-r2.json",
+  "reviewRecord": "eng/policy/dependency-reviews/afv2-env-01-r3.json",
   "dependencyClasses": {
     "build-inputs": "Complete current exact stable npm lock; version major compatibility is implemented in owned CLI integration. No prerelease build-tool qualification is used.",
     "runtime": "Only the independently enforced existing shipped artifact records admit runtime inputs and legal scopes.",

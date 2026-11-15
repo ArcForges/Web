@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "repository": "Web",
   "task": "AFV2-ENV-01",
-  "status": "Implementation source independently reviewed; exact-head host verification and ordinary delivery pending.",
+  "status": "Merged upgrade retained; hosted npm provisioning follow-up prepared. Exact-head checks for the follow-up remain pending.",
   "sourceBaseline": "829cf665f52e595b767c0a209815096f448912af",
   "observedOn": "2026-11-15",
   "tools": {
@@ -12676,5 +12676,19 @@
       "Actual emitted-candidate local HTTP200 and canonical redirect308 passed; no inspector-disable flag.",
       "Local-only Miniflare dispatch200 and deploy dry-run passed."
     ]
+  },
+  "hostedNpmProvisioning": {
+    "observedRun": "https://github.com/ArcForges/Web/actions/runs/43693462156/job/132748790793",
+    "observedNode": "26.13.1",
+    "observedBundledNpm": "11.20.0",
+    "requiredNpm": "12.2.2",
+    "jobs": [
+      "source",
+      "csharp",
+      "quality",
+      "candidate",
+      "deploy"
+    ],
+    "change": "Derive the selected Node prefix from process.execPath; run its absolute npm CLI with --global --prefix SAME_PREFIX npm@12.2.2, then assert the absolute CLI version before project commands. No deployment was invoked."
   }
 }
