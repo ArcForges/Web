@@ -57,6 +57,7 @@
     "eng/policy/dependency-reviews/admission-r2.json",
     "eng/policy/dependency-reviews/afv2-env-01-r1.json",
     "eng/policy/dependency-reviews/afv2-env-01-r2.json",
+    "eng/policy/dependency-reviews/afv2-env-01-r3.json",
     "eng/policy/dependency-reviews/cloud71-admission-r1.json",
     "eng/policy/dependency-reviews/gov11-naming-r1.json",
     "eng/policy/dependency-reviews/local-first-r1.json",

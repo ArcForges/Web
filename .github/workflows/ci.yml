@@ -72,6 +72,15 @@ jobs:
           # Avoid blocking Windows validation on optional cache upload retries.
           cache: ${{ matrix.os == 'ubuntu-26.04' && 'npm' || '' }}
           package-manager-cache: false
+      - name: Install and verify the pinned npm
+        shell: bash
+        run: >-
+          node --input-type=module -e "import {dirname,join} from 'node:path';
+          import {execFileSync} from 'node:child_process'; import assert from 'node:assert/strict';
+          const prefix=process.platform==='win32'?dirname(process.execPath):dirname(dirname(process.execPath));
+          const cli=join(prefix,process.platform==='win32'?'node_modules/npm/bin/npm-cli.js':'lib/node_modules/npm/bin/npm-cli.js');
+          execFileSync(process.execPath,[cli,'install','--global','--prefix',prefix,'npm@12.2.2','--ignore-scripts','--no-fund'],{stdio:'inherit'});
+          assert.equal(execFileSync(process.execPath,[cli,'--version'],{encoding:'utf8'}).trim(),'12.2.2');"
       - run: npm ci --ignore-scripts
       # The candidate tests (tests/provenance/csharp-candidate.test.ts) run the built C# tool. Its Release build is produced
       # here from the locked restore, so this job never depends on stale bin/ output from an earlier local run.
@@ -139,6 +148,19 @@ jobs:
         with:
           fetch-depth: 0
           persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .node-version
+          package-manager-cache: false
+      - name: Install and verify the pinned npm
+        shell: bash
+        run: >-
+          node --input-type=module -e "import {dirname,join} from 'node:path';
+          import {execFileSync} from 'node:child_process'; import assert from 'node:assert/strict';
+          const prefix=process.platform==='win32'?dirname(process.execPath):dirname(dirname(process.execPath));
+          const cli=join(prefix,process.platform==='win32'?'node_modules/npm/bin/npm-cli.js':'lib/node_modules/npm/bin/npm-cli.js');
+          execFileSync(process.execPath,[cli,'install','--global','--prefix',prefix,'npm@12.2.2','--ignore-scripts','--no-fund'],{stdio:'inherit'});
+          assert.equal(execFileSync(process.execPath,[cli,'--version'],{encoding:'utf8'}).trim(),'12.2.2');"
       - name: Set up the pinned .NET SDK
         uses: actions/setup-dotnet@0f4a354dd5547a28c70b7853dbd95d5b67886e73 # v6.1.0
         env:
@@ -155,8 +177,8 @@ jobs:
       - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
         with:
           python-version-file: .python-version
-      - name: Verify selected SDK and Python
-        run: python eng/check_toolchain.py --tools python dotnet
+      - name: Verify selected build tools
+        run: python eng/check_toolchain.py
       - name: Restore with the locked NuGet closure
         run: |
           set -euo pipefail
@@ -225,6 +247,15 @@ jobs:
         with:
           node-version-file: .node-version
           cache: npm
+      - name: Install and verify the pinned npm
+        shell: bash
+        run: >-
+          node --input-type=module -e "import {dirname,join} from 'node:path';
+          import {execFileSync} from 'node:child_process'; import assert from 'node:assert/strict';
+          const prefix=process.platform==='win32'?dirname(process.execPath):dirname(dirname(process.execPath));
+          const cli=join(prefix,process.platform==='win32'?'node_modules/npm/bin/npm-cli.js':'lib/node_modules/npm/bin/npm-cli.js');
+          execFileSync(process.execPath,[cli,'install','--global','--prefix',prefix,'npm@12.2.2','--ignore-scripts','--no-fund'],{stdio:'inherit'});
+          assert.equal(execFileSync(process.execPath,[cli,'--version'],{encoding:'utf8'}).trim(),'12.2.2');"
       - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
         with:
           python-version-file: .python-version
@@ -328,6 +359,15 @@ jobs:
         with:
           node-version-file: .node-version
           cache: npm
+      - name: Install and verify the pinned npm
+        shell: bash
+        run: >-
+          node --input-type=module -e "import {dirname,join} from 'node:path';
+          import {execFileSync} from 'node:child_process'; import assert from 'node:assert/strict';
+          const prefix=process.platform==='win32'?dirname(process.execPath):dirname(dirname(process.execPath));
+          const cli=join(prefix,process.platform==='win32'?'node_modules/npm/bin/npm-cli.js':'lib/node_modules/npm/bin/npm-cli.js');
+          execFileSync(process.execPath,[cli,'install','--global','--prefix',prefix,'npm@12.2.2','--ignore-scripts','--no-fund'],{stdio:'inherit'});
+          assert.equal(execFileSync(process.execPath,[cli,'--version'],{encoding:'utf8'}).trim(),'12.2.2');"
       - run: npm ci --ignore-scripts
       - name: Set up the pinned .NET SDK
         uses: actions/setup-dotnet@0f4a354dd5547a28c70b7853dbd95d5b67886e73 # v6.1.0
@@ -447,6 +487,15 @@ jobs:
         with:
           node-version-file: .node-version
           cache: npm
+      - name: Install and verify the pinned npm
+        shell: bash
+        run: >-
+          node --input-type=module -e "import {dirname,join} from 'node:path';
+          import {execFileSync} from 'node:child_process'; import assert from 'node:assert/strict';
+          const prefix=process.platform==='win32'?dirname(process.execPath):dirname(dirname(process.execPath));
+          const cli=join(prefix,process.platform==='win32'?'node_modules/npm/bin/npm-cli.js':'lib/node_modules/npm/bin/npm-cli.js');
+          execFileSync(process.execPath,[cli,'install','--global','--prefix',prefix,'npm@12.2.2','--ignore-scripts','--no-fund'],{stdio:'inherit'});
+          assert.equal(execFileSync(process.execPath,[cli,'--version'],{encoding:'utf8'}).trim(),'12.2.2');"
       - run: npm ci --ignore-scripts
       - name: Set up the pinned .NET SDK
         uses: actions/setup-dotnet@0f4a354dd5547a28c70b7853dbd95d5b67886e73 # v6.1.0
