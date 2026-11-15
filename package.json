@@ -28,8 +28,8 @@
     "test:live": "node tooling/cloudflare.ts smoke"
   },
   "devDependencies": {
-    "blake3-wasm": "3.0.0",
     "@types/node": "26.6.6",
+    "blake3-wasm": "3.0.0",
     "typescript": "7.0.2",
     "wrangler": "4.162.0"
   },
