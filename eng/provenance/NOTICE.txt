@@ -2,10 +2,10 @@ Web source provenance
 
 Original material retains its recorded licence and full legal text.
 
-browser-resources-r12
-https://github.com/ArcForges/Web @ c5a5f2ed71870961237fadd2f20061abe48e34a0
+browser-resources-r13
+https://github.com/ArcForges/Web @ 829cf665f52e595b767c0a209815096f448912af
 AGPL-3.0-only
-Web generated public resources: AGPL-3.0-only owned code and a Tailwind CSS v4.3.3 stylesheet (MIT). Retain the complete Tailwind notice and the full AGPL text in every published candidate.
+Web generated public resources: AGPL-3.0-only owned code and Tailwind CSS v4.3.5 preflight (MIT). Retain the full Tailwind notice and AGPL terms in published candidates.
 
 canonical-agpl-legal-r1
 https://github.com/github/choosealicense.com @ 58267f8f2c5c0099810849cfd7677f52ae0c0eb3
@@ -17,7 +17,7 @@ https://github.com/ArcForges/Cloud @ c5a5f2ed71870961237fadd2f20061abe48e34a0
 AGPL-3.0-only
 Build identity tooling adapted from ArcForges Cloud, Copyright ArcForges contributors, AGPL-3.0-only.
 
-cloud-dependency-policy-r3
+cloud-dependency-policy-r4
 https://github.com/ArcForges/Cloud @ 3f1a778cf9766cb795e9a2671f43a98e155f6108
 AGPL-3.0-only
 Dependency admission tooling and guide copied from ArcForges Cloud, Copyright ArcForges contributors, AGPL-3.0-only. Exact source commit and target hashes are retained.

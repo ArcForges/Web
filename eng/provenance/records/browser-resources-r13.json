@@ -1,0 +1,128 @@
+{
+  "schemaVersion": 1,
+  "id": "browser-resources-r13",
+  "kind": "generated",
+  "sourceRepository": "https://github.com/ArcForges/Web",
+  "sourceCommit": "829cf665f52e595b767c0a209815096f448912af",
+  "sourcePaths": [
+    "LICENSE",
+    "eng/provenance/profiles/browser-resources-r12.json",
+    "src/ArcForges.Web.Site/Assets/site.css",
+    "third-party/tailwind.LICENSE.txt",
+    "tooling/candidate.ts",
+    "tooling/project.ts",
+    "tools/ArcForges.Web.Tooling/Candidate/CandidateCore.cs",
+    "worker/index.ts",
+    "wrangler.json"
+  ],
+  "licence": {
+    "spdx": "AGPL-3.0-only",
+    "category": "agpl-compatible",
+    "evidence": [
+      {
+        "path": "LICENSE",
+        "sha256": "8486a10c4393cee1c25392769ddd3b2d6c242d6ec7928e1414efff7dfb2f07ef",
+        "finding": "First-party AGPL-3.0-only owner of the public candidate, its Worker adapter and the tooling that emits it."
+      },
+      {
+        "path": "third-party/tailwind.LICENSE.txt",
+        "sha256": "60e0b68c0f35c078eef3a5d29419d0b03ff84ec1df9c3f9d6e39a519a5ae7985",
+        "finding": "MIT notice of the Tailwind v4.3.5 stylesheet carried byte for byte in the public Site."
+      }
+    ],
+    "scope": "Current generated public candidate stylesheet and unchanged static Site/Worker structure, improved from the recorded original Web lineage. Tailwind 4.3.5 generator and original raw style input are separately pinned in generation metadata; current target and artifact-profile hashes bind the reviewed result.",
+    "copyingPermission": null
+  },
+  "attribution": [
+    "ArcForges contributors; Tailwind CSS 4.3.5 (MIT, Tailwind Labs). First-party style declarations retain AGPL-3.0-only."
+  ],
+  "targets": [
+    {
+      "path": "src/ArcForges.Web.Site/Assets/site.css",
+      "sha256": "b033c055ff06b02c379192f6e026161a98c337b1efaafa252667552a3178d019",
+      "normalization": "lf"
+    }
+  ],
+  "artifactTargets": [
+    {
+      "project": "src/ArcForges.Web.Site/ArcForges.Web.Site.csproj",
+      "package": "ArcForges.Web.Site",
+      "kind": "static-browser-candidate",
+      "profile": "eng/provenance/profiles/browser-resources-r13.json",
+      "sha256": "68b15054ddee11b8349d4ec7c9b83735443c103dc32fa90522a62a956364f96f"
+    }
+  ],
+  "disposition": "Improve",
+  "verification": {
+    "kind": "actual-input-graph-and-regenerated-candidate",
+    "command": "Regenerate the stylesheet with @tailwindcss/cli 4.3.5 --minify from tools/styles/site.input.css; run the existing Site/candidate/provenance tests and final host profiles.",
+    "expected": "The candidate verifier regenerates the Site, the notices, the SBOM and the headers from the reviewed inputs; the policy suite finds no drift.",
+    "artifacts": []
+  },
+  "notice": {
+    "required": true,
+    "text": "Web generated public resources: AGPL-3.0-only owned code and Tailwind CSS v4.3.5 preflight (MIT). Retain the full Tailwind notice and AGPL terms in published candidates.",
+    "files": [
+      "LICENSE",
+      "third-party/tailwind.LICENSE.txt"
+    ],
+    "distribution": "Published with the public candidate as license.txt and third-party-notices.txt.",
+    "reason": "The public Site ships the Tailwind-derived stylesheet; the full AGPL text is required by the licence boundary."
+  },
+  "lifetime": {
+    "status": "permanent",
+    "owner": "Web Licensing and Provenance Owner",
+    "removalTrigger": null
+  },
+  "generation": {
+    "generators": [
+      {
+        "repository": "https://github.com/tailwindlabs/tailwindcss",
+        "commit": "9b2c925c19aae46ff4f9cf54a2fa6d2dbac7fa19",
+        "paths": [
+          "packages/@tailwindcss-cli/src",
+          "packages/tailwindcss/preflight.css",
+          "packages/tailwindcss/src/index.ts",
+          "packages/tailwindcss/theme.css"
+        ],
+        "spdx": "MIT",
+        "evidence": [
+          {
+            "path": "LICENSE",
+            "sha256": "60e0b68c0f35c078eef3a5d29419d0b03ff84ec1df9c3f9d6e39a519a5ae7985",
+            "finding": "Full current tag/package MIT text matches retained original bytes."
+          }
+        ]
+      }
+    ],
+    "inputs": [
+      {
+        "repository": "https://github.com/ArcForges/Web",
+        "commit": "80900a1430c0fbb483e4a220e20980e3c18728b3",
+        "paths": [
+          "packages/ui/src/styles.css"
+        ],
+        "spdx": "AGPL-3.0-only",
+        "evidence": [
+          {
+            "path": "LICENSE",
+            "sha256": "8486a10c4393cee1c25392769ddd3b2d6c242d6ec7928e1414efff7dfb2f07ef",
+            "finding": "Original first-party style source retained under the identical owner grant; only retired React @source directives are removed."
+          }
+        ]
+      }
+    ],
+    "command": "Copy the retained tools/styles/site.input.css beside exact @tailwindcss/cli and tailwindcss 4.3.5 registry artifacts; run node node_modules/@tailwindcss/cli/dist/index.mjs --input site.input.css --output site.css --minify. Original style declarations are unchanged; source(none) excludes retired React scanning.",
+    "outputSpdx": "AGPL-3.0-only"
+  },
+  "review": {
+    "owner": "Licensing and Provenance Owner",
+    "reviewer": "design_parity (independent source/licence review, APPROVED_SOURCE 2026-11-15)",
+    "reviewedOn": "2026-11-15",
+    "decision": "approved",
+    "rationale": "AFV2-ENV-01 successor for current Tailwind 4.3.5 and SDK11 candidate integration. Independent source/licence review verified original style declarations, the MIT grant, exact generator/source identities and generated bytes; existing local candidate and budget checks passed. This source approval does not assert that exact-head host verification has passed.",
+    "baselineCommit": "829cf665f52e595b767c0a209815096f448912af",
+    "reconciliation": true
+  },
+  "supersedes": "browser-resources-r12"
+}
