@@ -26,8 +26,8 @@ Differences from the hosted jobs:
   restores are locked, as the explicit `--locked-mode` restores are) and ContinuousIntegrationBuild (deterministic source
   paths, as in the hosted build). The Blazor App is built as each hosted runner builds it (see LINUX_ENV and WIN_ENV):
   on Linux without the wasm-tools workload (WasmNativeWorkload=false; the ubuntu-latest runner has none and publishes
-  without relinking), on Windows with it (the hosted Windows C# job installs wasm-tools at workload set 10.0.401 into its
-  isolated SDK root and relinks dotnet.native with Emscripten 10.0.12 in its Release build and publishes). The Windows
+  without relinking), on Windows with it (the hosted Windows C# job installs wasm-tools at workload set 11.0.100 into its
+  isolated SDK root and relinks dotnet.native with Emscripten 6.0.2 (pack 11.0.0) in its Release build and publishes). The Windows
   steps use one SDK root whatever shell runs the leg: DOTNET_ROOT, which the workstation's environment loaders set (Env.md:
   the user-local .dotnet of the user profile), first on PATH; `win-workload-preflight` checks that its workload set and
   wasm-tools match the lock and the hosted runner (see WORKLOAD_PREFLIGHT). The Site and the candidate take `{sha}` where
@@ -115,7 +115,7 @@ CSHARP_PROJECTS = [
 ]
 CSHARP_TEST_PROJECTS = [p for p in CSHARP_PROJECTS if p.startswith("tests/")]
 
-TOOL = "tools/ArcForges.Web.Tooling/bin/Release/net10.0/ArcForges.Web.Tooling.dll"
+TOOL = "tools/ArcForges.Web.Tooling/bin/Release/net11.0/ArcForges.Web.Tooling.dll"
 VERSION = "0.1.0-local"
 
 # Timeouts are five to ten times the warm durations measured on this workstation (18 logical processors, both hosts'
@@ -126,6 +126,7 @@ VERSION = "0.1.0-local"
 # The environment of ci.yml without CI=true (see above). MSBuild node reuse is off, so that no build node outlives its step
 # (a step's process tree is what a timeout or a failure stops).
 ENV = {"DOTNET_NOLOGO": "1", "DOTNET_CLI_TELEMETRY_OPTOUT": "1", "DOTNET_SKIP_FIRST_TIME_EXPERIENCE": "1",
+       "PYTHONDONTWRITEBYTECODE": "1",
        "WRANGLER_SEND_METRICS": "false", "MSBUILDDISABLENODEREUSE": "1", "RestoreLockedMode": "true",
        "ContinuousIntegrationBuild": "true"}
 # Linux: the ubuntu-latest runner has no wasm-tools workload, so its Release publish ships the runtime pack's prebuilt
@@ -135,8 +136,8 @@ ENV = {"DOTNET_NOLOGO": "1", "DOTNET_CLI_TELEMETRY_OPTOUT": "1", "DOTNET_SKIP_FI
 # App the runner's evaluation on any Linux host; the App sets no property that needs the workload (no AOT, no native
 # build).
 LINUX_ENV = {**ENV, "WasmNativeWorkload": "false"}
-# Windows: the hosted Windows C# job installs wasm-tools at workload set 10.0.401 into its isolated SDK root, and its
-# Release build and publishes relink with Emscripten 10.0.12, so the workload stays in. The SDK root is WIN_DOTNET_ROOT,
+# Windows: the hosted Windows C# job installs wasm-tools at workload set 11.0.100 into its isolated SDK root, and its
+# Release build and publishes relink with Emscripten 6.0.2 (pack 11.0.0), so the workload stays in. The SDK root is WIN_DOTNET_ROOT,
 # first on PATH for every tool the steps start (pwsh, node and python find dotnet through it).
 WIN_ENV = {**ENV, "DOTNET_ROOT": WIN_DOTNET_ROOT,
            "PATH": os.pathsep.join(filter(None, [WIN_DOTNET_ROOT, os.environ.get("PATH", "")]))}
@@ -162,7 +163,7 @@ ACTIONLINT = (
     "echo \"$sum  $t.part\" | sha256sum --check --quiet; mv \"$t.part\" \"$t\"; fi; "
     "echo \"$sum  $t\" | sha256sum --check --quiet; "
     "mkdir -p \"$d/actionlint-$v\"; tar -xzf \"$t\" -C \"$d/actionlint-$v\" actionlint; "
-    "\"$d/actionlint-$v/actionlint\" -color"
+    "\"$d/actionlint-$v/actionlint\" -config-file eng/actionlint.yaml -color"
 )
 
 # ci.yml `candidate`, from the clean checkout CI builds it from. The tool's locked restore and Release build are the
@@ -193,7 +194,7 @@ CANDIDATE = (
 # version the App's packages.lock.json records (the SDK's bundled version, as on the hosted runners and on Linux; an
 # installed workload set of the SDK's feature band replaces it with its Mono toolchain manifest's version, and a different
 # set fails the locked restore with NU1004), and the wasm-tools workload installed with the packs of its current
-# manifests (the runner relinks with it; a workload listed without those packs leaves WasmNativeWorkload10 unset). This
+# manifests (the runner relinks with it; a workload listed without those packs leaves WasmNativeWorkload11 unset). This
 # preflight checks both on WIN_DOTNET_ROOT, read-only, and names the exact commands for that root instead.
 WORKLOAD_PREFLIGHT = (
     "import json, os, subprocess, sys\n"
@@ -205,12 +206,12 @@ WORKLOAD_PREFLIGHT = (
     "    if r.returncode: sys.exit(f'{dotnet} {\" \".join(a)} failed ({r.returncode}):\\n{r.stdout}{r.stderr}')\n"
     "    return r.stdout\n"
     "info = json.loads(run('msbuild', app, '-getItem:KnownWebAssemblySdkPack', '-getProperty:NETCoreSdkVersion',\n"
-    "                      '-getProperty:WasmNativeWorkload10'))\n"
+    "                      '-getProperty:WasmNativeWorkload11'))\n"
     "version = info['Properties']['NETCoreSdkVersion']\n"
     "items = info['Items']['KnownWebAssemblySdkPack']\n"
-    "sdk = sorted({i['WebAssemblySdkPackVersion'] for i in items if i.get('TargetFramework') == 'net10.0'})\n"
+    "sdk = sorted({i['WebAssemblySdkPackVersion'] for i in items if i.get('TargetFramework') == 'net11.0'})\n"
     "lock = json.load(open('src/ArcForges.Web.App/packages.lock.json', encoding='utf-8'))\n"
-    "locked = lock['dependencies']['net10.0']['Microsoft.NET.Sdk.WebAssembly.Pack']['resolved']\n"
+    "locked = lock['dependencies']['net11.0']['Microsoft.NET.Sdk.WebAssembly.Pack']['resolved']\n"
     "workload_set = run('workload', '--version').strip()\n"
     "wasm_tools = any(line.split()[:1] == ['wasm-tools'] for line in run('workload', 'list').splitlines())\n"
     "problems, commands = [], []\n"
@@ -223,7 +224,7 @@ WORKLOAD_PREFLIGHT = (
     "    problems.append('the wasm-tools workload, which the windows-latest runner builds and publishes the App with, is '\n"
     "                    'not installed')\n"
     "    commands.append(f'& \"{dotnet}\" workload install wasm-tools --version {version}')\n"
-    "elif info['Properties']['WasmNativeWorkload10'] != 'true':\n"
+    "elif info['Properties']['WasmNativeWorkload11'] != 'true':\n"
     "    problems.append('wasm-tools is listed, but the packs of its current manifests are not installed, so the App '\n"
     "                    'would not relink as on the windows-latest runner')\n"
     "    if not commands: commands.append(f'& \"{dotnet}\" workload update --version {version}')\n"
@@ -283,6 +284,8 @@ def linux(step_id: str, cmd: str, timeout: int, **options) -> Step:
 STEPS = [
     # ci.yml source (windows-latest), then csharp (windows-latest)
     win("win-fresh-artifacts", pwsh("if (Test-Path artifacts) { Remove-Item -Recurse -Force artifacts }"), 120),
+    win("win-toolchain", ["python", "eng/check_toolchain.py"], 120),
+    win("win-toolchain-tests", ["python", "-m", "unittest", "discover", "-s", "tests/tooling", "-v"], 120),
     win("win-npm-ci", pwsh(f"node (node -p \"{_BUNDLED_NPM}\") ci --ignore-scripts"), 300),
     win("win-licence-evaluated", ["node", "tooling/project.ts", "licence-evaluated"], 300),
     win("win-workload-preflight", ["python", "-I", "-c", WORKLOAD_PREFLIGHT], 120),
@@ -306,6 +309,8 @@ STEPS = [
     linux("clone-identity", "set -e; git config remote.origin.url https://github.com/ArcForges/Web.git; "
         "git checkout -q -B arcforges-verify {sha}; git update-ref refs/remotes/origin/main {base}", 60),
     linux("fresh-artifacts", "rm -rf artifacts", 120),
+    linux("toolchain", "python eng/check_toolchain.py", 120),
+    linux("toolchain-tests", "python -m unittest discover -s tests/tooling -v", 120),
     linux("npm-ci", "npm ci --ignore-scripts", 300),
     linux("npm-audit", "npm audit --audit-level=high", 300),
     linux("restore", bash_each(CSHARP_PROJECTS, "restore \"$p\" --locked-mode"), 600),

@@ -6,9 +6,10 @@ The Web product is C#-first (P2-021): the public Site is a static C# generator, 
 
 | Tool | Pin | Source |
 | --- | --- | --- |
-| .NET SDK | 10.0.401 (`global.json`, rollForward disabled) | `dotnet --version` |
-| Node.js | 24.21.0 (`.node-version`, `engines`) | `node --version` |
-| npm | 11.19.0 (`packageManager`) | `npm --version` |
+| .NET SDK | 11.0.100 (`global.json`, rollForward disabled) | `dotnet --version` |
+| Node.js | 26.13.1 (`.node-version`, `engines`) | `node --version` |
+| npm | 12.2.2 (`packageManager`) | `npm --version` |
+| Python | 3.15.2 (`.python-version`) | invoking interpreter and `python` on PATH |
 
 Restores are locked: every project has a `packages.lock.json` and CI runs `dotnet restore --locked-mode`. NuGet versions are central in `Directory.Packages.props`. Every package is admitted by a receipt in `eng/policy/dependency-reviews/`.
 
@@ -20,6 +21,7 @@ Run every command from the repository root. Use `npm ci --ignore-scripts` once a
 | --- | --- |
 | `python eng/verify.py install` | Install the staged-whitespace pre-commit check for every worktree of the clone and remove the retired pre-push hook (once, from the main checkout on `main`) |
 | `python eng/verify.py run-and-report` | On a verification host, in a worktree at the pushed commit: verify this host's leg (Windows or Linux) with the full profile and report its commit status (`arcforges/windows` or `arcforges/linux`), which `main` requires; `python eng/verify.py run` runs the leg without reporting |
+| `python eng/check_toolchain.py` | Check selected versions, actual SDK/MSBuild roots and lock fingerprints before restoring |
 | `npm run check` | Dependency admission, reviewed policy, Worker typecheck and the Node test suites |
 | `npm run policy` | Naming, licence, provenance, exact pins and lock provenance (requires the pinned Node) |
 | `npm run build:worker` | Emit the Worker JavaScript from `worker/index.ts` by type stripping |
@@ -34,10 +36,10 @@ dotnet restore <project> --locked-mode
 dotnet build <project> --no-restore -c Release
 dotnet test <test-project> --no-build -c Release
 dotnet publish src/ArcForges.Web.App/ArcForges.Web.App.csproj --no-restore -c Release -o artifacts/publish/app
-dotnet tools/ArcForges.Web.Tooling/bin/Release/net10.0/ArcForges.Web.Tooling.dll site build --out artifacts/site --source-ref <40-hex>
-dotnet tools/ArcForges.Web.Tooling/bin/Release/net10.0/ArcForges.Web.Tooling.dll profiles budget --publish artifacts/publish/app --budgets eng/policy/profile-budgets.json
-dotnet tools/ArcForges.Web.Tooling/bin/Release/net10.0/ArcForges.Web.Tooling.dll candidate build|verify ...
-dotnet tools/ArcForges.Web.Tooling/bin/Release/net10.0/ArcForges.Web.Tooling.dll profiles bundle|verify ...
+dotnet tools/ArcForges.Web.Tooling/bin/Release/net11.0/ArcForges.Web.Tooling.dll site build --out artifacts/site --source-ref <40-hex>
+dotnet tools/ArcForges.Web.Tooling/bin/Release/net11.0/ArcForges.Web.Tooling.dll profiles budget --publish artifacts/publish/app --budgets eng/policy/profile-budgets.json
+dotnet tools/ArcForges.Web.Tooling/bin/Release/net11.0/ArcForges.Web.Tooling.dll candidate build|verify ...
+dotnet tools/ArcForges.Web.Tooling/bin/Release/net11.0/ArcForges.Web.Tooling.dll profiles bundle|verify ...
 ```
 
 `tools/ArcForges.Web.Tooling` is the only build tool of the Web product. Its commands are listed in `Program.cs`; every other command is refused.

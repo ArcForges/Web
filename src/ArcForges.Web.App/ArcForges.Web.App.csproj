@@ -2,6 +2,7 @@
   <!-- SPDX-License-Identifier: AGPL-3.0-only -->
   <PropertyGroup>
     <RunAOTCompilation>false</RunAOTCompilation>
+    <TrimMode>full</TrimMode>
     <DisableTransitiveFrameworkReferences>true</DisableTransitiveFrameworkReferences>
   </PropertyGroup>
   <ItemGroup>
@@ -10,8 +11,8 @@
     <PackageReference Include="Grpc.Net.Client.Web" />
   </ItemGroup>
   <ItemGroup>
-    <!-- WEB.40 section 10 browser-wasm admission (receipt web-40-admission-r2.json): the WebAssembly SDK pack at the SDK 10.0.401 bundled runtime version 10.0.12. The Mono browser-wasm runtime pack is added implicitly by the SDK at the same version. -->
-    <PackageDownload Include="Microsoft.NET.Runtime.WebAssembly.Sdk" Version="[10.0.12]" />
+    <!-- AFV2-ENV-01: exact SDK 11 browser-wasm tool pack; the runtime pack is selected by the same SDK/workload set. -->
+    <PackageDownload Include="Microsoft.NET.Runtime.WebAssembly.Sdk" Version="[11.0.0]" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="../ArcForges.Web.Ui/ArcForges.Web.Ui.csproj" />
@@ -20,4 +21,15 @@
     <LicenceBoundary>AGPL</LicenceBoundary>
     <PackageLicenseExpression>AGPL-3.0-only</PackageLicenseExpression>
   </PropertyGroup>
+  <!-- Framework JavaScript source maps are development diagnostics, not profile runtime resources. .NET 11 adds
+       this map to the package asset manifest; keep it available to builds and exclude it from published profiles. -->
+  <Target Name="ArcForgesKeepFrameworkSourceMapBuildOnly" BeforeTargets="GenerateStaticWebAssetsPublishManifest">
+    <ItemGroup>
+      <StaticWebAsset Update="@(StaticWebAsset)"
+                      Condition="$([System.String]::Copy('%(StaticWebAsset.Identity)').EndsWith('blazor.webassembly.js.map')) Or $([System.String]::Copy('%(StaticWebAsset.RelatedAsset)').EndsWith('blazor.webassembly.js.map'))">
+        <AssetKind>Build</AssetKind>
+        <CopyToPublishDirectory>Never</CopyToPublishDirectory>
+      </StaticWebAsset>
+    </ItemGroup>
+  </Target>
 </Project>

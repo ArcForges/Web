@@ -54,7 +54,6 @@
         using var controller = new CancellationTokenSource();
         _active = controller;
         _state = ConnectionState.Pending;
-        StateHasChanged();
         try
         {
             var message = await CheckConnection(controller.Token);

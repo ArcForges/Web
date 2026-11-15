@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import { spawnSync } from "node:child_process";
 import { join, resolve } from "node:path";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 import { setTimeout as delay } from "node:timers/promises";
 import { verifyCandidate } from "./candidate.ts";
 import { candidate, digest, json, root, run, save } from "./project.ts";
@@ -90,6 +90,8 @@ export async function waitForDelivery(
 async function dryRun() {
   await verifyCandidate();
   const output = run(process.execPath, [
+    "--import",
+    pathToFileURL(join(root, "tooling/wrangler-init.ts")).href,
     join(root, "node_modules/wrangler/bin/wrangler.js"),
     "deploy",
     "--dry-run",
@@ -161,6 +163,8 @@ async function deploy() {
   await save(statePath, { ...state, status: "deploying" });
   try {
     const output = run(process.execPath, [
+      "--import",
+      pathToFileURL(join(root, "tooling/wrangler-init.ts")).href,
       join(root, "node_modules/wrangler/bin/wrangler.js"),
       "deploy",
       "--config",

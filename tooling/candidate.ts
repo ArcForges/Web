@@ -15,7 +15,7 @@ import { candidate, root, run, save, workerScript } from "./project.ts";
 
 export const toolLibrary = join(
   root,
-  "tools/ArcForges.Web.Tooling/bin/Release/net10.0/ArcForges.Web.Tooling.dll",
+  "tools/ArcForges.Web.Tooling/bin/Release/net11.0/ArcForges.Web.Tooling.dll",
 );
 
 export interface SealedManifest {
