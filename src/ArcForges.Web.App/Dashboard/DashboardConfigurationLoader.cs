@@ -57,25 +57,38 @@ public static class DashboardConfigurationLoader
     private static DashboardCenterConfiguration Parse(Uri page, ReadOnlyMemory<byte> bytes, DashboardCenterConfiguration unconfigured)
     {
         using var document = JsonDocument.Parse(bytes, new JsonDocumentOptions { MaxDepth = 8 });
-        var root = document.RootElement;
-        if (root.ValueKind != JsonValueKind.Object ||
-            root.EnumerateObject().Count(field => field.NameEquals("Dashboard")) != 1 ||
-            root.GetProperty("Dashboard") is not { ValueKind: JsonValueKind.Object } dashboard)
-        {
-            return unconfigured;
-        }
+        var fields = ProjectSettings(document.RootElement);
+        return fields is null ? unconfigured : DashboardCenterConfiguration.FromDeployment(page,
+            fields.GetValueOrDefault("CenterOrigin"), fields.GetValueOrDefault("Mode"), fields.GetValueOrDefault("Name"));
+    }
 
-        var fields = new Dictionary<string, string>(StringComparer.Ordinal);
-        foreach (var field in dashboard.EnumerateObject())
+    private static Dictionary<string, string>? ProjectSettings(JsonElement root)
+    {
+        try
         {
-            if (field.Name is not ("CenterOrigin" or "Mode" or "Name") ||
-                field.Value.ValueKind != JsonValueKind.String ||
-                !fields.TryAdd(field.Name, field.Value.GetString() ?? string.Empty))
+            if (root.ValueKind != JsonValueKind.Object ||
+                root.EnumerateObject().Count(field => field.NameEquals("Dashboard")) != 1 ||
+                root.GetProperty("Dashboard") is not { ValueKind: JsonValueKind.Object } dashboard)
             {
-                return unconfigured;
+                return null;
             }
+
+            var fields = new Dictionary<string, string>(StringComparer.Ordinal);
+            foreach (var field in dashboard.EnumerateObject())
+            {
+                if (field.Name is not ("CenterOrigin" or "Mode" or "Name") ||
+                    field.Value.ValueKind != JsonValueKind.String ||
+                    !fields.TryAdd(field.Name, field.Value.GetString() ?? string.Empty))
+                {
+                    return null;
+                }
+            }
+            return fields;
         }
-        return DashboardCenterConfiguration.FromDeployment(page, fields.GetValueOrDefault("CenterOrigin"),
-            fields.GetValueOrDefault("Mode"), fields.GetValueOrDefault("Name"));
+        catch (InvalidOperationException)
+        {
+            // JsonDocument can defer invalid Unicode escapes until a property's name or value is decoded.
+            return null;
+        }
     }
 }

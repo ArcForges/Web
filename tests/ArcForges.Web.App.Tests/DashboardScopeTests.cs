@@ -76,6 +76,8 @@ public sealed class DashboardScopeTests
     [InlineData(HttpStatusCode.NotFound, null)]
     [InlineData(HttpStatusCode.Redirect, null)]
     [InlineData(HttpStatusCode.OK, "{malformed}")]
+    [InlineData(HttpStatusCode.OK, "{\"Dashboard\":{\"CenterOrigin\":\"https://managed.example.test\",\"Mode\":\"self-hosted\",\"Name\":\"\\uD800\"}}")]
+    [InlineData(HttpStatusCode.OK, "{\"Dashboard\":{\"CenterOrigin\":\"https://managed.example.test\",\"Mode\":\"self-hosted\",\"\\uDC00\":\"invalid name\"}}")]
     [InlineData(HttpStatusCode.OK, "{\"Dashboard\":{\"CenterOrigin\":\"https://other.example.test\",\"Mode\":\"self-hosted\"}}")]
     [InlineData(HttpStatusCode.OK, "{\"Dashboard\":{\"CenterOrigin\":\"https://managed.example.test\",\"Mode\":\"official-hosted\",\"Mode\":\"self-hosted\"}}")]
     public async Task MissingRedirectedMalformedOrForeignSettingsNeverConfigureACenter(HttpStatusCode status, string? json)
