@@ -396,7 +396,11 @@ internal sealed class DashboardCenter(
 
     private Uri RequireOrigin() => Configuration.Origin ?? throw new DashboardApiException(DashboardFailure.NotConfigured);
 
-    private static RequestMeta Meta(SessionState session) => new() { RecoveryGeneration = session.RecoveryGeneration };
+    private static RequestMeta Meta(SessionState session) => new()
+    {
+        CorrelationId = ExactId(Guid.NewGuid()),
+        RecoveryGeneration = session.RecoveryGeneration,
+    };
 
     private static Id ExactId(Guid id) => id == Guid.Empty ? throw new DashboardApiException(DashboardFailure.Validation) :
         new Id { Value = ByteString.CopyFrom(id.ToByteArray(bigEndian: true)) };

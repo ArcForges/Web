@@ -293,7 +293,7 @@ public sealed class LocalDashboardBrowserTests
         Phase("browser-assertions-complete");
     }
 
-    private sealed record RevokeWire(byte[] Request, byte[] Response);
+    private sealed record RevokeWire(byte[] Request, byte[] Response, string ResponseEncoding);
 
     private static async Task CheckScopedRunsAsync(IPage page, JsonElement scope, Action<string> phase)
     {
@@ -318,7 +318,7 @@ public sealed class LocalDashboardBrowserTests
         var reply = await response.BodyAsync();
         if (request is null || request.Length is < 5 or > 4096 || reply.Length is < 5 or > 65536)
             throw new InvalidOperationException("The real device revoke did not carry one bounded request and response.");
-        return new RevokeWire(request, reply);
+        return new RevokeWire(request, reply, response.Headers.GetValueOrDefault("grpc-encoding") ?? "");
     }
 
     private static async Task WritePrivateAsync<T>(string directory, string name, T value, CancellationToken token)

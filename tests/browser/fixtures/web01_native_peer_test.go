@@ -6,12 +6,14 @@ package main
 
 import (
 	"bytes"
+	"compress/gzip"
 	"context"
 	"crypto/sha256"
 	"crypto/x509"
 	"encoding/base64"
 	"encoding/binary"
 	"encoding/json"
+	"io"
 	"math/big"
 	"net"
 	"net/http"
@@ -306,6 +308,7 @@ func web01VerifyRevokeWire(t *testing.T, exchange string, device platform.ID) (p
 	body, err := os.ReadFile(filepath.Join(exchange, "revoke-wire.json"))
 	var attempts []struct {
 		Request, Response []byte
+		ResponseEncoding  string
 	}
 	if err != nil || len(body) > 192*1024 || json.Unmarshal(body, &attempts) != nil || len(attempts) != 2 {
 		t.Fatal("expected exactly two bounded real browser revoke exchanges")
@@ -329,7 +332,7 @@ func web01VerifyRevokeWire(t *testing.T, exchange string, device platform.ID) (p
 			t.Fatal("the browser's authorized retry changed its original device mutation identity")
 		}
 		reply := new(managementv2.DeviceServiceRevokeResponse)
-		payload := web01ResponseMessage(t, attempt.Response)
+		payload := web01ResponseMessage(t, attempt.Response, attempt.ResponseEncoding)
 		if proto.Unmarshal(payload, reply) != nil {
 			t.Fatal("the real gRPC-Web response did not decode as DeviceService.Revoke")
 		}
@@ -353,20 +356,51 @@ func web01VerifyRevokeWire(t *testing.T, exchange string, device platform.ID) (p
 	return platform.ID{}, 0
 }
 
-func web01ResponseMessage(t *testing.T, body []byte) []byte {
+func web01ResponseMessage(t *testing.T, body []byte, encoding string) []byte {
 	t.Helper()
 	if len(body) < ingress.HeaderLength || len(body) > 65536 {
 		t.Fatal("the browser typed response is not bounded")
 	}
-	end := uint64(binary.BigEndian.Uint32(body[1:])) + ingress.HeaderLength
-	if end > uint64(len(body)) || !bytes.Equal(body[end:], ingress.TrailerFrame(ingress.StatusOK, "", false)) {
-		t.Fatal("the browser revoke response lacks its exact gRPC success trailer")
+	if encoding != "" && encoding != "identity" && encoding != "gzip" {
+		t.Fatal("the browser typed response declared an unsupported gRPC encoding")
 	}
-	message, ok := ingress.ReadSingleMessage(body[:end])
-	if !ok {
-		t.Fatal("the browser revoke response does not carry one typed result")
+	message, tail := web01ResponseFrame(t, body, 0, encoding)
+	trailer, remaining := web01ResponseFrame(t, tail, 128, encoding)
+	wantTrailer := ingress.TrailerFrame(ingress.StatusOK, "", false)[ingress.HeaderLength:]
+	if len(remaining) != 0 || !bytes.Equal(trailer, wantTrailer) {
+		t.Fatal("the browser revoke response lacks its exact single gRPC success trailer")
 	}
 	return message
+}
+
+func web01ResponseFrame(t *testing.T, body []byte, kind byte, encoding string) ([]byte, []byte) {
+	t.Helper()
+	if len(body) < ingress.HeaderLength || (body[0] != kind && body[0] != kind|1) {
+		t.Fatal("the browser revoke response did not carry the expected gRPC-Web frame")
+	}
+	end := uint64(binary.BigEndian.Uint32(body[1:5])) + ingress.HeaderLength
+	if end > uint64(len(body)) {
+		t.Fatal("the browser revoke response carried a truncated gRPC-Web frame")
+	}
+	payload := body[ingress.HeaderLength:end]
+	if body[0]&1 == 0 {
+		return payload, body[end:]
+	}
+	if encoding != "gzip" {
+		t.Fatal("the browser revoke frame used compression without matching gRPC gzip negotiation")
+	}
+	source := bytes.NewReader(payload)
+	zipped, err := gzip.NewReader(source)
+	if err != nil {
+		t.Fatal("the browser revoke frame did not carry a valid gzip stream")
+	}
+	zipped.Multistream(false)
+	decoded, readErr := io.ReadAll(io.LimitReader(zipped, 65536+1))
+	closeErr := zipped.Close()
+	if readErr != nil || closeErr != nil || len(decoded) > 65536 || source.Len() != 0 {
+		t.Fatal("the browser revoke frame did not carry exactly one bounded gzip stream")
+	}
+	return decoded, body[end:]
 }
 
 func web01GrantRunList(t *testing.T, node *host03Node, sandbox host03Sandbox, enrollment host03Enrollment) (string, string) {
