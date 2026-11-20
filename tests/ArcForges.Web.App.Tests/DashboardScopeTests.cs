@@ -242,7 +242,7 @@ public sealed class DashboardScopeTests
         public bool WasCalled { get; private set; }
 
         public ValueTask<TValue> InvokeAsync<TValue>(string identifier, object?[]? args) =>
-            InvokeAsync<TValue>(identifier, CancellationToken.None, args);
+            throw new InvalidOperationException("The Dashboard should pass its cancellation token to the browser.");
 
         public ValueTask<TValue> InvokeAsync<TValue>(string identifier, CancellationToken cancellationToken, object?[]? args)
         {

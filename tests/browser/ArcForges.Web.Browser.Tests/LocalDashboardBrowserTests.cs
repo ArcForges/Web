@@ -23,7 +23,12 @@ public sealed class LocalDashboardBrowserTests
         if (!LocalOptIn.IsEnabled(environment) || string.IsNullOrEmpty(directory))
             Assert.Skip("This local-only browser journey needs the live WEB-01 peer and explicit local opt-in.");
         Assert.True(Path.IsPathFullyQualified(directory), "The scoped browser exchange must be absolute.");
+        var phaseFile = environment.GetValueOrDefault("ARCFORGES_WEB01_PHASE_LOG");
+        Assert.False(string.IsNullOrEmpty(phaseFile), "The scoped local launcher must provide a private phase log.");
+        Assert.True(Path.IsPathFullyQualified(phaseFile));
+        void Phase(string name) => File.AppendAllText(phaseFile, DateTimeOffset.UtcNow.ToString("O") + " " + name + Environment.NewLine);
         var token = TestContext.Current.CancellationToken;
+        Phase("chromium-open");
         var launch = await ReadAsync(directory, "browser.json", token);
         var origin = new Uri(Text(launch, "origin"));
         Assert.True(origin.IsLoopback && origin.Scheme == Uri.UriSchemeHttps && origin.AbsolutePath == "/" &&
@@ -126,6 +131,7 @@ public sealed class LocalDashboardBrowserTests
         });
 
         await BootstrapThenSignOutAsync(page, origin, Text(launch, "bootstrap"));
+        Phase("dashboard-open");
         var shell = await page.GotoAsync(new Uri(origin, "/overview").AbsoluteUri)
             ?? throw new InvalidOperationException("The exact Dashboard shell did not respond.");
         var policy = await shell.HeaderValueAsync("content-security-policy");
@@ -169,6 +175,7 @@ public sealed class LocalDashboardBrowserTests
         await page.WaitForURLAsync(new Uri(origin, "/overview").AbsoluteUri);
         await Link(page, "Devices").ClickAsync();
         await Heading(page, "No enrolled devices").WaitForAsync();
+        Phase("signed-in-empty-registry");
 
         Signal(directory, "enroll-node");
         var offer = await ReadAsync(directory, "consent.json", token);
@@ -179,29 +186,40 @@ public sealed class LocalDashboardBrowserTests
         await page.Locator("#node-fingerprint").WaitForAsync();
         await page.Locator("#approve button").ClickAsync();
         var observed = await ReadAsync(directory, "device.json", token);
+        Phase("installed-node-ready");
         var deviceId = Text(observed, "deviceId");
         Assert.True(Guid.TryParseExact(deviceId, "D", out var device) && device.ToString("D") == deviceId);
         var detail = "/devices/" + deviceId;
+        Phase("populated-registry-navigation");
         await page.GotoAsync(new Uri(origin, "/devices").AbsoluteUri);
+        Phase("populated-registry-navigation-returned");
         await Heading(page, "Enrolled devices").WaitForAsync();
         var row = page.Locator("a[href='" + detail + "']");
         await row.WaitForAsync();
         Assert.Single(await row.AllAsync());
+        Phase("populated-device-link");
         await row.ClickAsync();
         await page.WaitForURLAsync(new Uri(origin, detail).AbsoluteUri);
+        Phase("device-detail-route");
         await Heading(page, "Run activity").WaitForAsync();
         await page.GetByText("Run data unavailable", new() { Exact = true }).WaitForAsync();
+        Phase("device-detail-run-unavailable");
 
+        Phase("mobile-viewport");
         await page.SetViewportSizeAsync(390, 844);
         Assert.True(await page.EvaluateAsync<bool>("() => document.documentElement.scrollWidth <= window.innerWidth"));
+        Phase("keyboard-skip-focus");
         await Link(page, "Skip to content").FocusAsync();
+        Phase("keyboard-skip-activate");
         await page.Keyboard.PressAsync("Enter");
         Assert.True(await page.Locator("#dashboard-content").EvaluateAsync<bool>("el => document.activeElement === el"));
+        Phase("keyboard-skip-confirmed");
 
-        await CheckScopedRunsAsync(page, observed);
+        await CheckScopedRunsAsync(page, observed, Phase);
         var empty = page.GetByText("No runs in this Sandbox", new() { Exact = true });
         await empty.WaitForAsync();
         Assert.Equal(1, controlReplies.GetValueOrDefault(RunList));
+        Phase("run-empty-confirmed");
 
         Signal(directory, "disconnect-node");
         await ReadAsync(directory, "offline.json", token);
@@ -209,6 +227,7 @@ public sealed class LocalDashboardBrowserTests
         await page.GetByText("Device offline", new() { Exact = true }).WaitForAsync();
         Assert.False(await empty.IsVisibleAsync(), "An offline device must not present a fresh empty result.");
         Assert.Equal(1, controlReplies.GetValueOrDefault(RunList));
+        Phase("offline-confirmed");
 
         Signal(directory, "reconnect-node");
         await ReadAsync(directory, "rejoined.json", token);
@@ -218,9 +237,11 @@ public sealed class LocalDashboardBrowserTests
         Assert.Equal(1, controlReplies.GetValueOrDefault(RunList));
         // A restored connection requires a fresh owner selection before each
         // new scoped observation. The app clears the former form and count.
-        await CheckScopedRunsAsync(page, observed);
+        Phase("scope-reset-after-rejoin");
+        await CheckScopedRunsAsync(page, observed, Phase);
         await empty.WaitForAsync();
         Assert.Equal(2, controlReplies.GetValueOrDefault(RunList));
+        Phase("run-empty-reconfirmed-after-explicit-scope");
         Assert.Empty(await page.GetByRole(AriaRole.Link, new() { NameRegex = new("subscription|checkout", System.Text.RegularExpressions.RegexOptions.IgnoreCase) }).AllAsync());
 
         var revoke = Button(page, "Revoke access");
@@ -233,6 +254,7 @@ public sealed class LocalDashboardBrowserTests
         await page.Keyboard.PressAsync("Escape");
         await confirmation.WaitForAsync(new() { State = WaitForSelectorState.Hidden });
         await page.WaitForFunctionAsync("el => document.activeElement === el", await revoke.ElementHandleAsync());
+        Phase("revoke-dialog-cancel-focus-returned");
 
         await page.Keyboard.PressAsync("Enter");
         await confirmation.WaitForAsync();
@@ -246,6 +268,7 @@ public sealed class LocalDashboardBrowserTests
         // headers. The exact-Contracts Go peer interprets them in private.
         await WritePrivateAsync(directory, "revoke-wire.json", revokeWire, token);
         Signal(directory, "browser-revoked");
+        Phase("real-revoke-confirmed");
 
         Assert.True(controlReplies.GetValueOrDefault(DeviceApi + "List") >= 2, "The browser did not observe empty and populated actual typed device lists.");
         Assert.True(controlReplies.GetValueOrDefault(DeviceApi + "Inspect") >= 3, "The actual details, offline and online observations were not fetched.");
@@ -266,21 +289,26 @@ public sealed class LocalDashboardBrowserTests
             dashboardSessionBootstrapHttp200 = bootstrapStatuses.GetValueOrDefault("dashboard-session-200"),
             centerAccountBootstrapHttp200 = bootstrapStatuses.GetValueOrDefault("account-session-200"),
         }, token);
+        Phase("browser-assertions-complete");
     }
 
     private sealed record RevokeWire(byte[] Request, byte[] Response);
 
-    private static async Task CheckScopedRunsAsync(IPage page, JsonElement scope)
+    private static async Task CheckScopedRunsAsync(IPage page, JsonElement scope, Action<string> phase)
     {
+        phase("run-scope-disclosure");
         await page.GetByText("Check runs in an authorized Sandbox", new() { Exact = true }).ClickAsync();
         foreach (var (label, field) in new[] { ("Node ID", "nodeId"), ("Sandbox ID", "sandboxId"),
             ("Grant ID", "grantId"), ("Grant revision", "grantRevision") })
         {
+            phase("run-scope-input-" + field);
             var input = page.GetByLabel(label, new() { Exact = true });
             Assert.Equal(string.Empty, await input.InputValueAsync());
             await input.FillAsync(Text(scope, field));
         }
+        phase("run-list-submit");
         await RequirePostAsync(page, RunList, () => Button(page, "Check runs").ClickAsync());
+        phase("run-list-response");
     }
 
     private static async Task<RevokeWire> CaptureRevokeWireAsync(IResponse response)

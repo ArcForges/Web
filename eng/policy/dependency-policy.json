@@ -1,12 +1,12 @@
 {
   "schemaVersion": 1,
   "repository": "Web",
-  "sourceCommit": "cba7bab194e25fe41faeb48f5fd1693eb5938846",
+  "sourceCommit": "e80c58fb6d01d1a1405d7e15f7dc753dc726a996",
   "manifests": [
     "package.json"
   ],
   "inputs": {
-    ".github/workflows/ci.yml": "f8e38e072ab00c8bb114c02307df9bafcbaa9254b5d0cad40e3b7667797ac758",
+    ".github/workflows/ci.yml": "ac01cbe840acfcfb7260920cbdd096502a3f557e4da59927e0f89fa1b9b204a8",
     ".node-version": "5c293036fc0a61ad76e15d85f454c3c7cec157e181e035b69f95058a2c239144",
     ".npmrc": "73814024102037fcc5a961119bcbf39f81e0a73af504735653d3a6086651cef1",
     ".python-version": "673e2ba07f95bfcfe0a543258b8e267954e403d1f466481c546f467f86b31d46",
@@ -16,6 +16,7 @@
     "NuGet.config": "cb93c65e28718aa9075fce221e9f9cea9e72d3fe1b30462383448a591f5b3aa1",
     "eng/actionlint.yaml": "18a5ec3e7f9cc4ccd00bc8e92ddea3a98f16cac44373575602db82678acf9bba",
     "eng/check_toolchain.py": "008575746653045869a892e21cf5eaa765da089f1bbeca8d18af45ddf867daed",
+    "eng/policy/dashboard-profile-budgets.json": "8f8b27208274dc1a77846ec626cc7071ee97057c1a4039e3832405d45027d993",
     "eng/provenance/profiles/browser-resources-r11.json": "e9c496ff9b97757b4845b08abe07eec456bcc103b8454fd2447b7dbacbd53177",
     "eng/provenance/profiles/browser-resources-r12.json": "5dd1d44a13562b616f156648909d7f4d4d2e67d40bc802c70df392da46e0d6ee",
     "eng/provenance/profiles/browser-resources-r13.json": "68b15054ddee11b8349d4ec7c9b83735443c103dc32fa90522a62a956364f96f",
@@ -23,7 +24,7 @@
     "eng/provenance/records/browser-resources-r12.json": "6b470604b64d692d0eaa215be133506af065856dde0fde9ee8e702bba883bb88",
     "eng/provenance/records/browser-resources-r13.json": "594a1d2cd3b4b0f30baa5b3e6664c0c95282a62d12c25b5263aa7bf4ea02d19e",
     "eng/provenance/records/cloud-dependency-policy-r4.json": "5cd722347934408de8fdca753bdf5b4b6d0fe0126c8d07e3fc45403a0566a83b",
-    "eng/verify_steps.py": "908b401fcda523b2b4b3fc8cb2a8679d8186c3f6e55e22341e95196ee5aef56e",
+    "eng/verify_steps.py": "c0eb0b4d342a5e82b72a17dc97ad9f5d1b1e583e3e2e29b89a501173291033c6",
     "global.json": "edd2ddb56f786301c083aaf5708258dd2de2482a1ec8bb8b5bdade55af090e54",
     "package-lock.json": "743ea02707522d845fffcbfa8d9f34803a606a09cd226f91cf729ff10c505f83",
     "package.json": "9bb1448740e04aa12313fdab50a1a65c599895690d08a00d71e0db0622a1c885",
@@ -58,11 +59,11 @@
   },
   "review": {
     "owner": "Web dependency maintainer",
-    "reviewer": "Root coordinator (WEB-01 reviewed source and exact NuGet admission scope)",
+    "reviewer": "Design PR85 and Plan PR262 (reviewed Dashboard budget source scope)",
     "date": "2026-11-21",
-    "rationale": "The formal H-22 text policy found ten generated Web project package locks without the required final newline. Each admitted successor blob appends exactly one LF to the prior reviewed bytes. All package coordinates, resolved dependency values, integrity hashes and signed producer identities are preserved. The original review remains available under its immutable receipt.",
+    "rationale": "Review the separate Dashboard profile budget under Design PR85 and Plan PR262. It retains six historical resource baselines and the 10 percent regression rule, and binds the exact current publish's WebAssembly and total gzip measurements. Hosted and native candidate checks select the same reviewed file.",
     "inputs": {
-      ".github/workflows/ci.yml": "f8e38e072ab00c8bb114c02307df9bafcbaa9254b5d0cad40e3b7667797ac758",
+      ".github/workflows/ci.yml": "ac01cbe840acfcfb7260920cbdd096502a3f557e4da59927e0f89fa1b9b204a8",
       ".node-version": "5c293036fc0a61ad76e15d85f454c3c7cec157e181e035b69f95058a2c239144",
       ".npmrc": "73814024102037fcc5a961119bcbf39f81e0a73af504735653d3a6086651cef1",
       ".python-version": "673e2ba07f95bfcfe0a543258b8e267954e403d1f466481c546f467f86b31d46",
@@ -72,6 +73,7 @@
       "NuGet.config": "cb93c65e28718aa9075fce221e9f9cea9e72d3fe1b30462383448a591f5b3aa1",
       "eng/actionlint.yaml": "18a5ec3e7f9cc4ccd00bc8e92ddea3a98f16cac44373575602db82678acf9bba",
       "eng/check_toolchain.py": "008575746653045869a892e21cf5eaa765da089f1bbeca8d18af45ddf867daed",
+      "eng/policy/dashboard-profile-budgets.json": "8f8b27208274dc1a77846ec626cc7071ee97057c1a4039e3832405d45027d993",
       "eng/provenance/profiles/browser-resources-r11.json": "e9c496ff9b97757b4845b08abe07eec456bcc103b8454fd2447b7dbacbd53177",
       "eng/provenance/profiles/browser-resources-r12.json": "5dd1d44a13562b616f156648909d7f4d4d2e67d40bc802c70df392da46e0d6ee",
       "eng/provenance/profiles/browser-resources-r13.json": "68b15054ddee11b8349d4ec7c9b83735443c103dc32fa90522a62a956364f96f",
@@ -79,7 +81,7 @@
       "eng/provenance/records/browser-resources-r12.json": "6b470604b64d692d0eaa215be133506af065856dde0fde9ee8e702bba883bb88",
       "eng/provenance/records/browser-resources-r13.json": "594a1d2cd3b4b0f30baa5b3e6664c0c95282a62d12c25b5263aa7bf4ea02d19e",
       "eng/provenance/records/cloud-dependency-policy-r4.json": "5cd722347934408de8fdca753bdf5b4b6d0fe0126c8d07e3fc45403a0566a83b",
-      "eng/verify_steps.py": "908b401fcda523b2b4b3fc8cb2a8679d8186c3f6e55e22341e95196ee5aef56e",
+      "eng/verify_steps.py": "c0eb0b4d342a5e82b72a17dc97ad9f5d1b1e583e3e2e29b89a501173291033c6",
       "global.json": "edd2ddb56f786301c083aaf5708258dd2de2482a1ec8bb8b5bdade55af090e54",
       "package-lock.json": "743ea02707522d845fffcbfa8d9f34803a606a09cd226f91cf729ff10c505f83",
       "package.json": "9bb1448740e04aa12313fdab50a1a65c599895690d08a00d71e0db0622a1c885",
@@ -121,9 +123,9 @@
       "sbom",
       "framework-posture"
     ],
-    "runtimeAssessment": "The official signed public client packages share the one reviewed Contracts source commit. The native verification uses restored .NET identities and exact Web candidate attachments. Existing dependency coordinates, npm closure and Web build tool versions are retained.",
+    "runtimeAssessment": "The exact e80c58fb6d01d1a1405d7e15f7dc753dc726a996 H-22 publish measured initialWasmGzip 4254961 and totalGzip 5292979. The existing budget tool accepted the measured publish and refused the 4705762-byte WebAssembly negative control against its 4680457-byte ceiling. Package and release authorities stay unchanged.",
     "maintenance": "Preserve all original dependency receipts and package/source evidence. Review any subsequent package or deployment gate changes with their native and contractual evidence.",
-    "previous": "eng/policy/dependency-reviews/afv2-web-01-r1.json",
+    "previous": "eng/policy/dependency-reviews/afv2-web-01-r2.json",
     "immutableHistory": "Admitted review records are retained in Git history. A dependency change requires a new reviewed source commit and updated input-bound rationale; never amend an already accepted provenance record."
   },
   "closure": {
@@ -857,7 +859,7 @@
     ]
   },
   "buildToolPrereleases": {},
-  "reviewRecord": "eng/policy/dependency-reviews/afv2-web-01-r2.json",
+  "reviewRecord": "eng/policy/dependency-reviews/afv2-web-01-r3.json",
   "dependencyClasses": {
     "build-inputs": "Complete current exact stable npm lock; version major compatibility is implemented in owned CLI integration. No prerelease build-tool qualification is used.",
     "runtime": "Only the independently enforced existing shipped artifact records admit runtime inputs and legal scopes.",

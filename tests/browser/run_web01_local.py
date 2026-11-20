@@ -152,6 +152,25 @@ def ready(path, process, duration):
     raise SystemExit("A local fixture did not become ready before its deadline; inspect the private logs.")
 
 
+def wait_browser(browser, peer):
+    deadline = time.monotonic() + 360
+    while time.monotonic() < deadline:
+        browser_result = browser.poll()
+        if browser_result is not None:
+            return browser_result
+        peer_result = peer.poll()
+        if peer_result is not None and peer_result != 0:
+            # A failed Center/Node peer cannot finish the paired journey.
+            # Allow the test reporter a brief drain without waiting the full
+            # browser deadline while the peer has already gone away.
+            try:
+                return browser.wait(timeout=5)
+            except subprocess.TimeoutExpired:
+                raise SystemExit("The real peer ended before the browser journey; inspect browser-phases.log and center-node.log.") from None
+        time.sleep(0.2)
+    raise SystemExit("The local Chrome journey exceeded its deadline; inspect browser-phases.log.")
+
+
 def native_environment(args, environment, exchange, database, node, node_digest):
     return environment | {
         "ARCFORGES_WEB01_PEER_REQUIRED": "1", "ARCFORGES_WEB01_EXCHANGE": str(exchange),
@@ -269,6 +288,7 @@ def run_browser(args, environment, evidence, node, node_digest):
                     browser_env = environment | {
                         "ARCFORGES_LOCAL_BROWSER": "1", "ARCFORGES_BROWSER_BASE_URL": origin,
                         "ARCFORGES_CHROMIUM_PATH": str(args.chromium), "ARCFORGES_WEB01_EXCHANGE": str(exchange),
+                        "ARCFORGES_WEB01_PHASE_LOG": str(evidence / "browser-phases.log"),
                     }
                     browser = start(
                         ["dotnet", "test", "--project", PROJECT, "-c", "Release", "--no-build",
@@ -277,7 +297,7 @@ def run_browser(args, environment, evidence, node, node_digest):
                         WEB, browser_env, evidence / "browser.log",
                     )
                     try:
-                        if browser.wait(timeout=360) != 0:
+                        if wait_browser(browser, peer) != 0:
                             raise SystemExit("The local Chromium dashboard journey failed; inspect browser.log.")
                     finally:
                         stop(browser)
@@ -296,6 +316,7 @@ def run_browser(args, environment, evidence, node, node_digest):
             stop(static)
     receipt.update({"staticBundleSha256": args.bundle_sha256,
                     "browser": browser_observed, "browserExecutableSha256": digest(args.chromium),
+                    "browserPhasesSha256": digest(evidence / "browser-phases.log"),
                     "browserLogSha256": digest(evidence / "browser.log")})
     return receipt
 
