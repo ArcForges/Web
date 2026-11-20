@@ -237,7 +237,7 @@ public sealed class DashboardScopeTests
         Assert.False(request.HasAuthorizationHeader);
     }
 
-    private sealed class CancelledPasskeyPrompt : IJSRuntime
+    private sealed class CancelledPasskeyPrompt : IJSRuntime, IJSObjectReference
     {
         public bool WasCalled { get; private set; }
 
@@ -246,9 +246,20 @@ public sealed class DashboardScopeTests
 
         public ValueTask<TValue> InvokeAsync<TValue>(string identifier, CancellationToken cancellationToken, object?[]? args)
         {
-            Assert.Equal("navigator.credentials.get", identifier);
+            if (identifier == "import")
+            {
+                Assert.IsType<string>(Assert.Single(args!));
+                return ValueTask.FromResult(Assert.IsAssignableFrom<TValue>(this));
+            }
+            Assert.Equal("getPasskey", identifier);
+            Assert.Collection(args!,
+                argument => Assert.Equal("managed.example.test", argument),
+                argument => Assert.Equal(43, Assert.IsType<string>(argument).Length),
+                argument => Assert.Equal(string.Empty, argument));
             WasCalled = true;
             return ValueTask.FromException<TValue>(new JSException("The fixture dismissed the passkey prompt."));
         }
+
+        public ValueTask DisposeAsync() => ValueTask.CompletedTask;
     }
 }

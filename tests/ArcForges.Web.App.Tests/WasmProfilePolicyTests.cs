@@ -11,7 +11,7 @@ namespace ArcForges.Web.App.Tests;
 public sealed class WasmProfilePolicyTests
 {
     private static readonly string Root = RepositoryRoot.Find();
-    private const string ActivityModulePath = "_framework/arcforges-dashboard-activity.20aaf66b92.js";
+    private const string ActivityModulePath = "_framework/arcforges-dashboard-activity.43e6e05b58.js";
 
     private static string AppSource(string relative) => File.ReadAllText(Path.Combine(Root, "src", "ArcForges.Web.App", relative));
 

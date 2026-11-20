@@ -1,5 +1,4 @@
 // SPDX-License-Identifier: AGPL-3.0-only
-using System.Diagnostics.CodeAnalysis;
 using ArcForges.Contracts.PublicApi.Http.V1.WebBrowser;
 using Microsoft.JSInterop;
 
@@ -8,11 +7,13 @@ namespace ArcForges.Web.App.Dashboard;
 /// <summary>Passkey input from the current browser for a Center-issued step-up challenge.</summary>
 internal sealed class DashboardPasskeys(IJSRuntime browser)
 {
-    [DynamicDependency(DynamicallyAccessedMemberTypes.PublicProperties, typeof(PasskeyInput))]
-    [DynamicDependency(DynamicallyAccessedMemberTypes.PublicProperties, typeof(PublicKeyInput))]
-    [DynamicDependency(DynamicallyAccessedMemberTypes.PublicProperties, typeof(CredentialInput))]
-    [DynamicDependency(DynamicallyAccessedMemberTypes.PublicParameterlessConstructor | DynamicallyAccessedMemberTypes.PublicProperties, typeof(BrowserPasskey))]
-    [DynamicDependency(DynamicallyAccessedMemberTypes.PublicParameterlessConstructor | DynamicallyAccessedMemberTypes.PublicProperties, typeof(BrowserAssertion))]
+    private const int CredentialBytes = 1023;
+    private const int AssertionPartBytes = 16384;
+    private const int SignatureBytes = 256;
+    private const int UserHandleBytes = 64;
+    private const int ProofTextLimit = 4 + (CredentialBytes * 4 + 2) / 3 + 2 * ((AssertionPartBytes * 4 + 2) / 3) +
+        (SignatureBytes * 4 + 2) / 3 + (UserHandleBytes * 4 + 2) / 3;
+
     public async Task<WebBrowserWebAuthnAssertion> ProveAsync(WebBrowserAuthChallenge challenge, Uri origin, CancellationToken cancellationToken)
     {
         var options = challenge.Options;
@@ -26,32 +27,39 @@ internal sealed class DashboardPasskeys(IJSRuntime browser)
         var challengeBytes = Decode(challenge.Challenge, 32);
         if (challengeBytes.Length != 32)
             throw new DashboardApiException(DashboardFailure.Incompatible);
-        var request = new PasskeyInput(new PublicKeyInput(
-            options.RpId,
-            challengeBytes,
-            (options.AllowedCredentials ?? []).Select(id => new CredentialInput("public-key", Decode(id, 1023))).ToArray(),
-            options.UserVerification));
+        var allowed = options.AllowedCredentials ?? [];
+        foreach (var id in allowed)
+            _ = Decode(id, CredentialBytes);
 
-        BrowserPasskey? passkey;
+        string? passkey;
         try
         {
-            passkey = await browser.InvokeAsync<BrowserPasskey?>("navigator.credentials.get", cancellationToken, request);
+            await using var module = await browser.InvokeAsync<IJSObjectReference>("import", cancellationToken, DashboardActivity.ModulePath);
+            // Dots cannot occur in base64url strings. The browser bridge needs only these primitive values.
+            passkey = await module.InvokeAsync<string?>("getPasskey", cancellationToken,
+                options.RpId, challenge.Challenge, string.Join('.', allowed));
         }
         catch (JSException)
         {
             cancellationToken.ThrowIfCancellationRequested();
             throw new DashboardApiException(DashboardFailure.ProofCancelled);
         }
-        if (passkey?.Response is not { } proof || passkey.Type != "public-key")
+        cancellationToken.ThrowIfCancellationRequested();
+        if (passkey is null)
             throw new DashboardApiException(DashboardFailure.ProofCancelled);
+        if (passkey.Length > ProofTextLimit)
+            throw new DashboardApiException(DashboardFailure.Incompatible);
+        var proof = passkey.Split('.', 6);
+        if (proof.Length != 5)
+            throw new DashboardApiException(DashboardFailure.Incompatible);
 
         return new WebBrowserWebAuthnAssertion
         {
-            CredentialId = Validated(passkey.RawId, 1023),
-            ClientDataJson = Validated(proof.ClientDataJSON, 16384),
-            AuthenticatorData = Validated(proof.AuthenticatorData, 16384),
-            Signature = Validated(proof.Signature, 256),
-            UserHandle = string.IsNullOrEmpty(proof.UserHandle) ? null : Validated(proof.UserHandle, 64),
+            CredentialId = Validated(proof[0], CredentialBytes),
+            ClientDataJson = Validated(proof[1], AssertionPartBytes),
+            AuthenticatorData = Validated(proof[2], AssertionPartBytes),
+            Signature = Validated(proof[3], SignatureBytes),
+            UserHandle = proof[4].Length == 0 ? null : Validated(proof[4], UserHandleBytes),
         };
     }
 
@@ -86,22 +94,4 @@ internal sealed class DashboardPasskeys(IJSRuntime browser)
         }
     }
 
-    public sealed record PasskeyInput(PublicKeyInput PublicKey);
-    public sealed record PublicKeyInput(string RpId, byte[] Challenge, CredentialInput[] AllowCredentials, string UserVerification);
-    public sealed record CredentialInput(string Type, byte[] Id);
-
-    public sealed class BrowserPasskey
-    {
-        public string? RawId { get; set; }
-        public string? Type { get; set; }
-        public BrowserAssertion? Response { get; set; }
-    }
-
-    public sealed class BrowserAssertion
-    {
-        public string? ClientDataJSON { get; set; }
-        public string? AuthenticatorData { get; set; }
-        public string? Signature { get; set; }
-        public string? UserHandle { get; set; }
-    }
 }

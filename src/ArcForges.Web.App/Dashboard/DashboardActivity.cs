@@ -12,7 +12,7 @@ public interface IDashboardActivity : IAsyncDisposable
 /// <summary>Browser lifecycle notifications for a dashboard layout. Authentication stays in the typed client.</summary>
 internal sealed class DashboardActivity(IJSRuntime browser) : IDashboardActivity
 {
-    private const string ModulePath = "./_framework/arcforges-dashboard-activity.20aaf66b92.js";
+    internal const string ModulePath = "./_framework/arcforges-dashboard-activity.43e6e05b58.js";
     private readonly SemaphoreSlim _lifecycle = new(1, 1);
     private DotNetObjectReference<DashboardActivity>? _callback;
     private IJSObjectReference? _module;
