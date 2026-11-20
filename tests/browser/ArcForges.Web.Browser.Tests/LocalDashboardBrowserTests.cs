@@ -48,6 +48,8 @@ public sealed class LocalDashboardBrowserTests
         var revokeStages = new ConcurrentQueue<string>();
         var attempts = new ConcurrentQueue<Task<RevokeWire>>();
         var cspViolations = new ConcurrentQueue<bool>();
+        var runtimeErrors = new ConcurrentQueue<string>();
+        var bootstrapStatuses = new ConcurrentDictionary<string, int>(StringComparer.Ordinal);
         await context.RouteAsync("**/*", async route =>
         {
             if (Uri.TryCreate(route.Request.Url, UriKind.Absolute, out var request) &&
@@ -65,13 +67,40 @@ public sealed class LocalDashboardBrowserTests
         page.SetDefaultTimeout(20_000);
         page.Console += (_, message) =>
         {
-            if (message.Type == "error" && message.Text.Contains("Content Security Policy", StringComparison.OrdinalIgnoreCase))
+            if (message.Type != "error")
+                return;
+            if (message.Text.Contains("Content Security Policy", StringComparison.OrdinalIgnoreCase))
                 cspViolations.Enqueue(true);
+            else if (message.Text.Contains("Unhandled exception rendering component", StringComparison.OrdinalIgnoreCase))
+                runtimeErrors.Enqueue("blazor-render");
+            else if (message.Text.Contains("valid digest", StringComparison.OrdinalIgnoreCase))
+                runtimeErrors.Enqueue("resource-integrity");
         };
+        page.PageError += (_, message) => runtimeErrors.Enqueue(BrowserErrorClass(message));
         page.Response += (_, response) =>
         {
-            if (Uri.TryCreate(response.Url, UriKind.Absolute, out var url) && SameAuthority(origin, url) &&
-                response.Ok && response.Request.Method == "POST")
+            if (!Uri.TryCreate(response.Url, UriKind.Absolute, out var url) || !SameAuthority(origin, url))
+                return;
+            if (url.AbsolutePath is "/appsettings.json" or "/api/session/v1/web/bootstrap" &&
+                Uri.TryCreate(response.Request.Frame.Url, UriKind.Absolute, out var caller) && SameAuthority(origin, caller))
+            {
+                var category = url.AbsolutePath switch
+                {
+                    "/appsettings.json" when IsDashboardPage(caller) => "settings",
+                    "/api/session/v1/web/bootstrap" when IsDashboardPage(caller) => "dashboard-session",
+                    "/api/session/v1/web/bootstrap" when caller.AbsolutePath.StartsWith("/api/account/", StringComparison.Ordinal) => "account-session",
+                    _ => "",
+                };
+                if (category.Length != 0)
+                {
+                    bootstrapStatuses[category] = response.Status;
+                    if (response.Status == 200)
+                        bootstrapStatuses.AddOrUpdate(category + "-200", 1, static (_, count) => count + 1);
+                }
+            }
+            if (url.AbsolutePath.StartsWith("/_framework/", StringComparison.Ordinal))
+                bootstrapStatuses.AddOrUpdate("framework", 1, static (_, count) => count + 1);
+            if (response.Ok && response.Request.Method == "POST")
             {
                 var path = url.AbsolutePath;
                 if (path.StartsWith(DeviceApi, StringComparison.Ordinal) || path == RunList)
@@ -102,7 +131,35 @@ public sealed class LocalDashboardBrowserTests
         Assert.Contains("object-src 'none'", policy, StringComparison.Ordinal);
         Assert.Contains("frame-ancestors 'none'", policy, StringComparison.Ordinal);
 
-        await Link(page, "Sign in").ClickAsync();
+        try
+        {
+            await Link(page, "Sign in").ClickAsync();
+        }
+        catch (Exception failure) when (failure is PlaywrightException or TimeoutException)
+        {
+            var path = new Uri(page.Url).AbsolutePath switch
+            {
+                "/overview" => "dashboard",
+                "/api/account/sign-in" => "center-sign-in",
+                _ => "other",
+            };
+            var title = (await page.TitleAsync()).Contains("ArcForges", StringComparison.Ordinal) ? "arcforges" : "other";
+            var landmarks = await page.Locator("#dashboard-content, #blazor-error-ui").CountAsync();
+            var headings = await page.Locator("h1").AllTextContentsAsync();
+            var heading = headings.Select(static text => text.Trim()).FirstOrDefault() switch
+            {
+                "Sign in to ArcForges" => "sign-in",
+                "Overview" => "overview",
+                null => "none",
+                _ => "other",
+            };
+            throw new InvalidOperationException($"Dashboard did not offer sign-in. Route={path}, title={title}, heading={heading}, landmarks={landmarks}, " +
+                $"settings={bootstrapStatuses.GetValueOrDefault("settings")}, dashboard-session={bootstrapStatuses.GetValueOrDefault("dashboard-session")}, " +
+                $"account-session={bootstrapStatuses.GetValueOrDefault("account-session")}, framework={bootstrapStatuses.GetValueOrDefault("framework")}, " +
+                $"CSP errors={cspViolations.Count}, runtime error classes={string.Join(",", runtimeErrors.Distinct(StringComparer.Ordinal))}.");
+        }
+        Assert.True(bootstrapStatuses.GetValueOrDefault("settings-200") >= 1, "The actual Dashboard did not read its same-origin deployment settings.");
+        Assert.True(bootstrapStatuses.GetValueOrDefault("dashboard-session-200") >= 1, "The actual Dashboard did not bootstrap the independently attributed browser session.");
         await Heading(page, "Sign in to ArcForges").WaitForAsync();
         Assert.True(SameAuthority(origin, new Uri(page.Url)));
         await RequirePostAsync(page, "/api/session/v1/web/authentication/complete", () => Button(page, "Sign in with a passkey").ClickAsync());
@@ -202,6 +259,9 @@ public sealed class LocalDashboardBrowserTests
             deviceRevokeAttempts = controlReplies.GetValueOrDefault(DeviceApi + "Revoke"),
             passkeyStepUp = true,
             locallyOptedIn = true,
+            dashboardSettingsHttp200 = bootstrapStatuses.GetValueOrDefault("settings-200"),
+            dashboardSessionBootstrapHttp200 = bootstrapStatuses.GetValueOrDefault("dashboard-session-200"),
+            centerAccountBootstrapHttp200 = bootstrapStatuses.GetValueOrDefault("account-session-200"),
         }, token);
     }
 
@@ -238,11 +298,20 @@ public sealed class LocalDashboardBrowserTests
     private static async Task BootstrapThenSignOutAsync(IPage page, Uri origin, string bootstrap)
     {
         await page.GotoAsync(new Uri(origin, "/api/account/bootstrap").AbsoluteUri);
-        await page.Locator("#token").FillAsync(bootstrap);
+        try
+        {
+            await page.Locator("#token").FillAsync(bootstrap);
+        }
+        catch (Exception failure) when (failure is PlaywrightException or TimeoutException)
+        {
+            throw new InvalidOperationException("The real owner-bootstrap page did not accept its test input.");
+        }
         await page.Locator("#display-name").FillAsync("Local verification owner");
         await RequirePostAsync(page, "/api/session/v1/web/enrollment/complete", () => page.Locator("#create").ClickAsync());
+        await page.WaitForURLAsync(new Uri(origin, "/api/account/passkeys").AbsoluteUri);
         await page.GotoAsync(new Uri(origin, "/api/account/sign-out").AbsoluteUri);
         await RequirePostAsync(page, "/api/session/v1/web/logout", () => page.Locator("#sign-out").ClickAsync());
+        await page.WaitForURLAsync(new Uri(origin, "/api/account/sign-in").AbsoluteUri);
     }
 
     private static async Task RequirePostAsync(IPage page, string path, Func<Task> action)
@@ -258,6 +327,14 @@ public sealed class LocalDashboardBrowserTests
 
     private static bool SameAuthority(Uri first, Uri second) =>
         first.Scheme == second.Scheme && first.IdnHost == second.IdnHost && first.Port == second.Port && second.UserInfo.Length == 0;
+
+    private static bool IsDashboardPage(Uri caller) =>
+        caller.AbsolutePath is "/overview" or "/devices" || caller.AbsolutePath.StartsWith("/devices/", StringComparison.Ordinal);
+
+    private static string BrowserErrorClass(string text) =>
+        text.Contains("TypeError", StringComparison.Ordinal) ? "type-error" :
+        text.Contains("ReferenceError", StringComparison.Ordinal) ? "reference-error" :
+        text.Contains("WebAssembly", StringComparison.OrdinalIgnoreCase) ? "webassembly-error" : "page-error";
 
     private static bool IsOwnConsentCallback(IRequest request, Uri dashboard, Uri candidate) =>
         request.IsNavigationRequest && request.Method == "GET" && candidate.Scheme == Uri.UriSchemeHttp &&

@@ -14,11 +14,8 @@ builder.Services.AddSingleton(origin);
 // Redirects are not followed by the page: a redirect answer is a refusal, not a second request to another place.
 builder.Services.AddSingleton<HttpMessageHandler>(_ => new HttpClientHandler { AllowAutoRedirect = false });
 builder.Services.AddSingleton<SessionProbe>();
-builder.Services.AddSingleton(DashboardCenterConfiguration.FromDeployment(
-    origin.Value,
-    builder.Configuration["Dashboard:CenterOrigin"],
-    builder.Configuration["Dashboard:Mode"],
-    builder.Configuration["Dashboard:Name"]));
+using (var settingsTransport = new HttpClientHandler { AllowAutoRedirect = false })
+    builder.Services.AddSingleton(await DashboardConfigurationLoader.ReadAsync(origin.Value, settingsTransport));
 builder.Services.AddSingleton(TimeProvider.System);
 builder.Services.AddSingleton<DashboardGrpcTransport>();
 builder.Services.AddSingleton<DashboardPasskeys>();

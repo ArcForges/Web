@@ -62,7 +62,7 @@ public sealed class DashboardViewTests
         var firstStarted = center.DelaySessionRead(first.Task);
         var latestStarted = center.DelaySessionRead(latest.Task);
         await view.InvokeAsync(activity.Signal);
-        await firstStarted.WaitAsync(TimeSpan.FromSeconds(5));
+        await firstStarted.WaitAsync(TimeSpan.FromSeconds(5), Xunit.TestContext.Current.CancellationToken);
         view.WaitForAssertion(() => Assert.True(view.Find(".dashboard-main > div").HasAttribute("hidden")));
         Assert.Equal(2, center.SessionReads);
 
@@ -74,7 +74,7 @@ public sealed class DashboardViewTests
         Assert.Equal(2, center.SessionReads);
 
         first.SetResult(center.Session with { DisplayName = "Superseded owner" });
-        await latestStarted.WaitAsync(TimeSpan.FromSeconds(5));
+        await latestStarted.WaitAsync(TimeSpan.FromSeconds(5), Xunit.TestContext.Current.CancellationToken);
         Assert.Equal(3, center.SessionReads);
         Assert.True(view.Find(".dashboard-main > div").HasAttribute("hidden"));
         Assert.DoesNotContain("Superseded owner", view.Markup, StringComparison.Ordinal);
