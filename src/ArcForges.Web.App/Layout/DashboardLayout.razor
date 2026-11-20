@@ -101,6 +101,7 @@
     private ElementReference _menuButton;
     private ElementReference _sessionHeading;
     private bool _busy;
+    private bool _resumePending;
     private bool _revalidating;
     private bool _menuOpen;
     private bool _focusSession;
@@ -165,43 +166,27 @@
         _message = "Checking the Center session.";
         try
         {
-            var session = await Center.ReadSessionAsync(_lifetime.Token);
-            if (_lifetime.IsCancellationRequested)
+            do
             {
-                return;
+                _resumePending = false;
+                try
+                {
+                    var session = await Center.ReadSessionAsync(_lifetime.Token);
+                    if (_lifetime.IsCancellationRequested)
+                    {
+                        return;
+                    }
+                    if (!_resumePending)
+                    {
+                        AcceptSession(session, previous, priorAccess);
+                    }
+                }
+                catch (Exception error) when (_resumePending && error is (DashboardApiException or OperationCanceledException))
+                {
+                    // This read predates the latest resume. Keep protected content hidden until its successor answers.
+                }
             }
-            if (!session.Authenticated)
-            {
-                ClearSession();
-                _focusSession = priorAccess is not null;
-                _screen = previous == Screen.Expired ? Screen.Expired : Screen.SignedOut;
-                _message = priorAccess is null
-                    ? "Sign in on this Center to view your enrolled devices."
-                    : "Your Center session has ended.";
-                return;
-            }
-
-            if (EndsAt(session) is DateTimeOffset expired && expired <= DateTimeOffset.UtcNow)
-            {
-                ClearSession();
-                _focusSession = priorAccess is not null;
-                _screen = Screen.Expired;
-                _message = "Sign in again to view your enrolled devices.";
-                return;
-            }
-
-            if (priorAccess is not null && ReferenceEquals(_access, priorAccess) && SameIdentity(priorAccess.Session, session))
-            {
-                priorAccess.Session = session;
-                ScheduleExpiry(priorAccess);
-            }
-            else
-            {
-                ClearSession();
-                _activeSession = CancellationTokenSource.CreateLinkedTokenSource(_lifetime.Token);
-                _access = new DashboardAccess(session, _activeSession.Token, ExpireAsync);
-                ScheduleExpiry(_access);
-            }
+            while (_resumePending && !_disposed);
         }
         catch (DashboardApiException error)
         {
@@ -237,6 +222,41 @@
         }
     }
 
+    private void AcceptSession(DashboardSession session, Screen previous, DashboardAccess? priorAccess)
+    {
+        if (!session.Authenticated)
+        {
+            ClearSession();
+            _focusSession = priorAccess is not null;
+            _screen = previous == Screen.Expired ? Screen.Expired : Screen.SignedOut;
+            _message = priorAccess is null
+                ? "Sign in on this Center to view your enrolled devices."
+                : "Your Center session has ended.";
+            return;
+        }
+
+        if (EndsAt(session) is DateTimeOffset expired && expired <= DateTimeOffset.UtcNow)
+        {
+            ClearSession();
+            _focusSession = priorAccess is not null;
+            _screen = Screen.Expired;
+            _message = "Sign in again to view your enrolled devices.";
+            return;
+        }
+
+        if (priorAccess is not null && ReferenceEquals(_access, priorAccess) && SameIdentity(priorAccess.Session, session))
+        {
+            priorAccess.Session = session;
+            ScheduleExpiry(priorAccess);
+            return;
+        }
+
+        ClearSession();
+        _activeSession = CancellationTokenSource.CreateLinkedTokenSource(_lifetime.Token);
+        _access = new DashboardAccess(session, _activeSession.Token, ExpireAsync);
+        ScheduleExpiry(_access);
+    }
+
     private async Task SignOutAsync()
     {
         if (_busy || _access is null)
@@ -270,6 +290,10 @@
         finally
         {
             _busy = false;
+        }
+        if (_resumePending && !_disposed)
+        {
+            await CheckSessionAsync();
         }
     }
 
@@ -329,8 +353,13 @@
 
     private void Resume() => _ = InvokeAsync(async () =>
     {
-        if (_disposed || _busy || _screen == Screen.Unconfigured)
+        if (_disposed || _screen == Screen.Unconfigured)
         {
+            return;
+        }
+        if (_busy)
+        {
+            _resumePending = true;
             return;
         }
         var check = CheckSessionAsync();

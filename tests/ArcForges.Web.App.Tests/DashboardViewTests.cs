@@ -48,6 +48,46 @@ public sealed class DashboardViewTests
     }
 
     [Fact]
+    public async Task AnOverlappingResumeKeepsProtectedContentHiddenUntilTheLatestCookieIsVerified()
+    {
+        var center = new DashboardFixture();
+        var activity = new DashboardActivityFixture();
+        using var context = CreateContext(center);
+        context.Services.AddSingleton<IDashboardActivity>(activity);
+        var view = context.Render<DashboardLayout>(parameters => parameters.Add<Devices>(layout => layout.Body, _ => { }));
+        view.WaitForAssertion(() => Assert.Contains("Workstation", view.Markup, StringComparison.Ordinal));
+
+        var first = new TaskCompletionSource<DashboardSession>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var latest = new TaskCompletionSource<DashboardSession>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var firstStarted = center.DelaySessionRead(first.Task);
+        var latestStarted = center.DelaySessionRead(latest.Task);
+        await view.InvokeAsync(activity.Signal);
+        await firstStarted.WaitAsync(TimeSpan.FromSeconds(5));
+        view.WaitForAssertion(() => Assert.True(view.Find(".dashboard-main > div").HasAttribute("hidden")));
+        Assert.Equal(2, center.SessionReads);
+
+        await view.InvokeAsync(() =>
+        {
+            activity.Signal();
+            activity.Signal();
+        });
+        Assert.Equal(2, center.SessionReads);
+
+        first.SetResult(center.Session with { DisplayName = "Superseded owner" });
+        await latestStarted.WaitAsync(TimeSpan.FromSeconds(5));
+        Assert.Equal(3, center.SessionReads);
+        Assert.True(view.Find(".dashboard-main > div").HasAttribute("hidden"));
+        Assert.DoesNotContain("Superseded owner", view.Markup, StringComparison.Ordinal);
+
+        center.Device = center.Device with { Id = Guid.NewGuid(), Name = "New account device" };
+        latest.SetResult(center.Session with { AccountId = Guid.NewGuid(), SessionId = Guid.NewGuid(), RecoveryGeneration = 2 });
+        view.WaitForAssertion(() => Assert.Contains("New account device", view.Markup, StringComparison.Ordinal));
+        Assert.False(view.Find(".dashboard-main > div").HasAttribute("hidden"));
+        Assert.DoesNotContain("Workstation", view.Markup, StringComparison.Ordinal);
+        Assert.Equal(3, center.SessionReads);
+    }
+
+    [Fact]
     public void OnlyTheDashboardRoutesAreReachableInTheNewApp()
     {
         var routes = typeof(Overview).Assembly.GetTypes()
@@ -177,6 +217,7 @@ public sealed class DashboardViewTests
     private sealed class DashboardFixture : IDashboardCenter
     {
         private static readonly Uri Origin = new("https://center.example.org");
+        private readonly Queue<(Task<DashboardSession> Response, TaskCompletionSource Started)> _sessionReads = new();
 
         public DashboardCenterConfiguration Configuration { get; } =
             DashboardCenterConfiguration.FromDeployment(Origin, Origin.AbsoluteUri, "self-hosted");
@@ -185,6 +226,7 @@ public sealed class DashboardViewTests
             DashboardDevicePresence.Online, "Linux", Observed, [], null);
 
         public DashboardSession Session { get; set; } = new(true, "Owner", null, null, Guid.NewGuid(), Guid.NewGuid(), 1);
+        public int SessionReads { get; private set; }
         public DashboardApiException? ListFailure { get; set; }
         public int RegistryReads { get; private set; }
         public Task<DashboardDevicePage>? NextRegistry { get; set; }
@@ -192,9 +234,23 @@ public sealed class DashboardViewTests
         public List<DashboardRunTarget?> RunReads { get; } = new();
         public List<(Guid Device, long Revision, Guid Command)> Revocations { get; } = new();
 
-        public Task<DashboardSession> ReadSessionAsync(CancellationToken cancellationToken) =>
-            Task.FromResult(Session);
+        public Task<DashboardSession> ReadSessionAsync(CancellationToken cancellationToken)
+        {
+            SessionReads++;
+            if (!_sessionReads.TryDequeue(out var delayed))
+            {
+                return Task.FromResult(Session);
+            }
+            delayed.Started.SetResult();
+            return delayed.Response;
+        }
 
+        public Task DelaySessionRead(Task<DashboardSession> response)
+        {
+            var started = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+            _sessionReads.Enqueue((response, started));
+            return started.Task;
+        }
         public Task SignOutAsync(CancellationToken cancellationToken) => Task.CompletedTask;
 
         public Task<DashboardDevicePage> ListDevicesAsync(string? cursor, CancellationToken cancellationToken)
