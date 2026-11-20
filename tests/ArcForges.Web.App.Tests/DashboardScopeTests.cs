@@ -105,7 +105,7 @@ public sealed class DashboardScopeTests
         var body = Encoding.UTF8.GetBytes(DeploymentJson.PadRight(4097));
         using var transport = ScriptedServer.Always(() =>
         {
-            var content = new StreamContent(new ChunkedStream([body]));
+            var content = new StreamContent(new ChunkedStream([body[..4096], body[4096..]]));
             if (declared)
                 content.Headers.ContentLength = body.Length;
             return ConfigurationResponse(content);

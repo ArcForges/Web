@@ -1,14 +1,37 @@
-<Router AppAssembly="typeof(ArcForges.Web.App.App).Assembly">
+@using System.Diagnostics.CodeAnalysis
+@using ArcForges.Web.App.Layout
+@using ArcForges.Web.App.Pages
+
+<Router AppAssembly="DashboardAssembly()">
     <Found Context="routeData">
-        <RouteView RouteData="routeData" DefaultLayout="typeof(ArcForges.Web.App.Layout.DashboardLayout)" />
+        <DashboardLayout>
+            <Body>
+                <RouteView RouteData="routeData" />
+            </Body>
+        </DashboardLayout>
         <FocusOnNavigate RouteData="routeData" Selector="h1" />
     </Found>
     <NotFound>
-        <LayoutView Layout="typeof(ArcForges.Web.App.Layout.DashboardLayout)">
-            <section class="dashboard-intro">
-                <h1>Page not found</h1>
-                <a class="dashboard-link" href="/overview">Go to Overview</a>
-            </section>
-        </LayoutView>
+        <DashboardLayout>
+            <Body>
+                <section class="dashboard-intro">
+                    <h1>Page not found</h1>
+                    <a class="dashboard-link" href="/overview">Go to Overview</a>
+                </section>
+            </Body>
+        </DashboardLayout>
     </NotFound>
 </Router>
+
+@code {
+    private const DynamicallyAccessedMemberTypes RoutedComponentMembers =
+        DynamicallyAccessedMemberTypes.PublicParameterlessConstructor |
+        DynamicallyAccessedMemberTypes.PublicProperties |
+        DynamicallyAccessedMemberTypes.NonPublicProperties;
+
+    // Router discovers the three page types through their route attributes.
+    [DynamicDependency(RoutedComponentMembers, typeof(Overview))]
+    [DynamicDependency(RoutedComponentMembers, typeof(Devices))]
+    [DynamicDependency(RoutedComponentMembers, typeof(DeviceDetails))]
+    private static System.Reflection.Assembly DashboardAssembly() => typeof(App).Assembly;
+}
