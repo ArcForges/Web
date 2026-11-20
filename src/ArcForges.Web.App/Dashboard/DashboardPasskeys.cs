@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 using System.Diagnostics.CodeAnalysis;
-using ArcForges.Contracts.PublicApi.V1;
-using Google.Protobuf;
+using ArcForges.Contracts.PublicApi.Http.V1.WebBrowser;
 using Microsoft.JSInterop;
 
 namespace ArcForges.Web.App.Dashboard;
@@ -14,22 +13,23 @@ internal sealed class DashboardPasskeys(IJSRuntime browser)
     [DynamicDependency(DynamicallyAccessedMemberTypes.PublicProperties, typeof(CredentialInput))]
     [DynamicDependency(DynamicallyAccessedMemberTypes.PublicParameterlessConstructor | DynamicallyAccessedMemberTypes.PublicProperties, typeof(BrowserPasskey))]
     [DynamicDependency(DynamicallyAccessedMemberTypes.PublicParameterlessConstructor | DynamicallyAccessedMemberTypes.PublicProperties, typeof(BrowserAssertion))]
-    public async Task<WebAuthnAssertion> ProveAsync(AuthChallenge challenge, Uri origin, CancellationToken cancellationToken)
+    public async Task<WebBrowserWebAuthnAssertion> ProveAsync(WebBrowserAuthChallenge challenge, Uri origin, CancellationToken cancellationToken)
     {
         var options = challenge.Options;
-        if (challenge.Method != AuthMethod.Passkey || challenge.Purpose != AuthPurpose.StepUp ||
-            challenge.Challenge.Length is < 16 or > 128 ||
+        if (challenge.Method != "passkey" || challenge.Purpose != "stepUp" ||
             options is null || !string.Equals(options.RpId, origin.IdnHost, StringComparison.OrdinalIgnoreCase) ||
-            options.UserVerification != "required" || options.AllowedCredentials.Count is 0 or > 100 ||
-            options.AllowedCredentials.Any(id => id.Length is 0 or > 1024))
+            options.UserVerification != "required" || options.AllowedCredentials is { Length: > 64 })
         {
             throw new DashboardApiException(DashboardFailure.Incompatible);
         }
 
+        var challengeBytes = Decode(challenge.Challenge, 32);
+        if (challengeBytes.Length != 32)
+            throw new DashboardApiException(DashboardFailure.Incompatible);
         var request = new PasskeyInput(new PublicKeyInput(
             options.RpId,
-            challenge.Challenge.ToByteArray(),
-            options.AllowedCredentials.Select(id => new CredentialInput("public-key", id.ToByteArray())).ToArray(),
+            challengeBytes,
+            (options.AllowedCredentials ?? []).Select(id => new CredentialInput("public-key", Decode(id, 1023))).ToArray(),
             options.UserVerification));
 
         BrowserPasskey? passkey;
@@ -45,19 +45,23 @@ internal sealed class DashboardPasskeys(IJSRuntime browser)
         if (passkey?.Response is not { } proof || passkey.Type != "public-key")
             throw new DashboardApiException(DashboardFailure.ProofCancelled);
 
-        var assertion = new WebAuthnAssertion
+        return new WebBrowserWebAuthnAssertion
         {
-            CredentialId = Decode(passkey.RawId, 1024),
-            ClientDataJson = Decode(proof.ClientDataJSON, 4096),
-            AuthenticatorData = Decode(proof.AuthenticatorData, 4096),
-            Signature = Decode(proof.Signature, 1024),
+            CredentialId = Validated(passkey.RawId, 1023),
+            ClientDataJson = Validated(proof.ClientDataJSON, 16384),
+            AuthenticatorData = Validated(proof.AuthenticatorData, 16384),
+            Signature = Validated(proof.Signature, 256),
+            UserHandle = string.IsNullOrEmpty(proof.UserHandle) ? null : Validated(proof.UserHandle, 64),
         };
-        if (!string.IsNullOrEmpty(proof.UserHandle))
-            assertion.UserHandle = Decode(proof.UserHandle, 256);
-        return assertion;
     }
 
-    private static ByteString Decode(string? value, int maximumBytes)
+    private static string Validated(string? value, int maximumBytes)
+    {
+        _ = Decode(value, maximumBytes);
+        return value!;
+    }
+
+    private static byte[] Decode(string? value, int maximumBytes)
     {
         if (string.IsNullOrEmpty(value) || value.Length > (maximumBytes * 4 + 2) / 3 ||
             value.Any(character => character is not (>= 'A' and <= 'Z' or >= 'a' and <= 'z' or >= '0' and <= '9' or '-' or '_')))
@@ -74,7 +78,7 @@ internal sealed class DashboardPasskeys(IJSRuntime browser)
             {
                 throw new DashboardApiException(DashboardFailure.Incompatible);
             }
-            return ByteString.CopyFrom(bytes);
+            return bytes;
         }
         catch (FormatException)
         {

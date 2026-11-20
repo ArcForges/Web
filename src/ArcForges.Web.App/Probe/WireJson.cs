@@ -11,6 +11,10 @@ namespace ArcForges.Web.App.Probe;
 /// </summary>
 public static class WireJson
 {
+    /// <summary>Encodes only a document described by generated Contracts metadata.</summary>
+    public static byte[] Encode<T>(T value, JsonTypeInfo<T> typeInfo) where T : class =>
+        JsonSerializer.SerializeToUtf8Bytes(value, typeInfo);
+
     /// <summary>Decodes one document with the generated type information, or fails as malformed.</summary>
     public static T Decode<T>(ReadOnlySpan<byte> bytes, JsonTypeInfo<T> typeInfo)
         where T : class
@@ -21,7 +25,7 @@ public static class WireJson
             return JsonSerializer.Deserialize(bytes, typeInfo)
                 ?? throw new JsonException("The document is null.");
         }
-        catch (JsonException exception)
+        catch (Exception exception) when (exception is JsonException or InvalidOperationException)
         {
             throw new ProbeFailureException(FailureKind.Malformed, exception);
         }

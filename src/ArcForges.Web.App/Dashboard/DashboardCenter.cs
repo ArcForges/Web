@@ -3,14 +3,13 @@ using System.Globalization;
 using System.Security.Cryptography;
 using System.Text;
 using ArcForges.Contracts.Foundation.V1;
-using ArcForges.Contracts.PublicApi.V1;
+using ArcForges.Contracts.PublicApi.Http.V1.WebBrowser;
 using ArcForges.Contracts.Sandbox.V2;
 using ArcForges.Web.App.Probe;
 using Google.Protobuf;
 using Grpc.Core;
 using DeviceApi = ArcForges.Contracts.Management.V2;
 using DeviceClient = ArcForges.Contracts.Management.V2.DeviceService.DeviceServiceClient;
-using IdentityClient = ArcForges.Contracts.PublicApi.V1.IdentityService.IdentityServiceClient;
 using ManagementDevice = ArcForges.Contracts.Management.V2.Device;
 
 namespace ArcForges.Web.App.Dashboard;
@@ -42,7 +41,7 @@ internal sealed class DashboardCenter(
         SessionState? next;
         try
         {
-            var (snapshot, account, session) = await sessions.ReadBoundSessionAsync(deadline.Token);
+            var (snapshot, account, session) = await sessions.ReadWebBoundSessionAsync(deadline.Token);
             next = snapshot is AuthenticatedSession authenticated ? Bind(authenticated, account, session) : null;
         }
         catch (ProbeFailureException exception)
@@ -78,7 +77,7 @@ internal sealed class DashboardCenter(
         deadline.CancelAfter(CallDeadline);
         try
         {
-            await sessions.EndSessionAsync(session.Csrf, deadline.Token);
+            await sessions.EndWebSessionAsync(session.Csrf, deadline.Token);
         }
         catch (ProbeFailureException exception)
         {
@@ -198,44 +197,52 @@ internal sealed class DashboardCenter(
     private async Task ConfirmRevokeAsync(Guid deviceId, SessionState session, CancellationToken cancellationToken)
     {
         var origin = RequireOrigin();
-        using var channel = transport.Open(origin, session.Csrf, 65536, 65536);
-        var client = new IdentityClient(channel);
         var hash = SHA256.HashData(Encoding.UTF8.GetBytes($"{DeviceRevoke}\n{session.View.AccountId:D}\n{deviceId:D}"));
-        var request = new IdentityServiceBeginStepUpRequest
+        var request = new WebBrowserBeginStepUpRequest
         {
-            Meta = Meta(session),
             OperationClass = DeviceRevoke,
-            Method = AuthMethod.Passkey,
+            Method = "passkey",
             TargetHash = Convert.ToHexStringLower(hash),
         };
-        var start = await CallAsync(client.BeginStepUpAsync(request, Options(cancellationToken)), session, cancellationToken);
-        var challenge = Accept(start.Value, start.Error, start.Meta, session).Challenge;
-        if (challenge is null || ReadId(challenge.FlowId) is null || InstantValue(challenge.ExpiresAt) is not { } expires ||
-            expires <= time.GetUtcNow())
+        try
         {
-            throw InvalidResult(start.Meta);
-        }
+            var challenge = await sessions.BeginStepUpAsync(request, session.Csrf, cancellationToken);
+            EnsureCurrent(session, cancellationToken);
+            if (!Guid.TryParseExact(challenge.FlowId, "D", out var flow) || flow == Guid.Empty || flow.ToString("D") != challenge.FlowId ||
+                !TryUtc(challenge.ExpiresAt, out var expires) || expires <= time.GetUtcNow())
+            {
+                throw InvalidResult();
+            }
 
-        var assertion = await passkeys.ProveAsync(challenge, origin, cancellationToken);
-        EnsureCurrent(session, cancellationToken);
-        if (expires <= time.GetUtcNow())
-            throw new DashboardApiException(DashboardFailure.ProofCancelled);
-        var finish = await CallAsync(client.CompleteStepUpAsync(new IdentityServiceCompleteStepUpRequest
+            var assertion = await passkeys.ProveAsync(challenge, origin, cancellationToken);
+            EnsureCurrent(session, cancellationToken);
+            if (expires <= time.GetUtcNow())
+                throw new DashboardApiException(DashboardFailure.ProofCancelled);
+            var proof = new WebBrowserCompleteStepUpRequest
+            {
+                FlowId = challenge.FlowId,
+                Proof = new WebBrowserAuthProofWebBrowserAuthProofPasskey(new WebBrowserAuthProofPasskey { Passkey = assertion }),
+            };
+            var evidence = await sessions.CompleteStepUpAsync(proof, session.Csrf, cancellationToken);
+            EnsureCurrent(session, cancellationToken);
+            if (evidence.OperationClass != DeviceRevoke || !TryUtc(evidence.ExpiresAt, out var evidenceExpiry) ||
+                evidenceExpiry <= time.GetUtcNow())
+            {
+                throw InvalidResult();
+            }
+        }
+        catch (ProbeFailureException exception)
         {
-            Meta = Meta(session),
-            FlowId = challenge.FlowId,
-            Proof = new AuthProof { Passkey = assertion },
-        }, Options(cancellationToken)), session, cancellationToken);
-        var evidence = Accept(finish.Value, finish.Error, finish.Meta, session).Evidence;
-        if (evidence?.OperationClass != DeviceRevoke || InstantValue(evidence.ExpiresAt) is not { } evidenceExpiry ||
-            evidenceExpiry <= time.GetUtcNow())
-        {
-            throw InvalidResult(finish.Meta);
+            cancellationToken.ThrowIfCancellationRequested();
+            if (exception.Kind == FailureKind.Unauthenticated)
+                Invalidate(session);
+            throw MapProbeFailure(exception.Kind, correlationId: exception.CorrelationId);
         }
     }
 
     private CallOptions Options(CancellationToken cancellationToken, Metadata? headers = null) =>
         new(headers, time.GetUtcNow().Add(CallDeadline).UtcDateTime, cancellationToken);
+
 
     private async Task<T> CallAsync<T>(AsyncUnaryCall<T> call, SessionState session, CancellationToken cancellationToken, bool mutation = false)
     {
@@ -419,7 +426,7 @@ internal sealed class DashboardCenter(
     private static DashboardApiException InvalidResult(ResponseMeta? meta = null) =>
         new(DashboardFailure.Incompatible, ReadId(meta?.CorrelationId));
 
-    private static DashboardApiException MapProbeFailure(FailureKind kind, bool mutation = false) => new(kind switch
+    private static DashboardApiException MapProbeFailure(FailureKind kind, bool mutation = false, Guid? correlationId = null) => new(kind switch
     {
         FailureKind.Unauthenticated => DashboardFailure.Unauthenticated,
         FailureKind.Forbidden => DashboardFailure.Forbidden,
@@ -427,7 +434,7 @@ internal sealed class DashboardCenter(
         _ when mutation => DashboardFailure.Uncertain,
         FailureKind.Malformed => DashboardFailure.Incompatible,
         _ => DashboardFailure.Unavailable,
-    });
+    }, correlationId);
 
     private sealed record SessionState(string Csrf, ulong RecoveryGeneration, DashboardSession View);
 }

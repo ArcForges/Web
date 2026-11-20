@@ -12,8 +12,8 @@ public sealed class LocalDashboardBrowserTests
 {
     private const string DeviceApi = "/api/arcforges.management.v2.DeviceService/";
     private const string RunList = "/api/arcforges.sandbox.v2.RunService/List";
-    private const string BeginStepUp = "/api/arcforges.publicapi.v1.IdentityService/BeginStepUp";
-    private const string CompleteStepUp = "/api/arcforges.publicapi.v1.IdentityService/CompleteStepUp";
+    private const string BeginStepUp = "/api/session/v1/web/step-up/begin";
+    private const string CompleteStepUp = "/api/session/v1/web/step-up/complete";
 
     [Fact]
     public async Task OwnerSignsInReadsRealEmptyAndOfflineStatesAndRevokesTheInstalledNode()
@@ -105,7 +105,10 @@ public sealed class LocalDashboardBrowserTests
                 var path = url.AbsolutePath;
                 if (path.StartsWith(DeviceApi, StringComparison.Ordinal) || path == RunList)
                     controlReplies.AddOrUpdate(path, 1, static (_, count) => count + 1);
-                if (path == DeviceApi + "Revoke" || path is BeginStepUp or CompleteStepUp)
+                var dashboardStepUp = path is BeginStepUp or CompleteStepUp &&
+                    Uri.TryCreate(response.Request.Frame.Url, UriKind.Absolute, out var stepUpPage) &&
+                    SameAuthority(origin, stepUpPage) && stepUpPage.AbsolutePath.StartsWith("/devices/", StringComparison.Ordinal);
+                if (path == DeviceApi + "Revoke" || dashboardStepUp)
                     revokeStages.Enqueue(path);
                 if (path == DeviceApi + "Revoke")
                     attempts.Enqueue(CaptureRevokeWireAsync(response));

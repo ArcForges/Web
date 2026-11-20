@@ -39,8 +39,6 @@ internal sealed class DashboardGrpcTransport(HttpMessageHandler transport)
                 "/arcforges.management.v2.DeviceService/List" or
                 "/arcforges.management.v2.DeviceService/Inspect" or
                 "/arcforges.management.v2.DeviceService/Revoke" or
-                "/arcforges.publicapi.v1.IdentityService/BeginStepUp" or
-                "/arcforges.publicapi.v1.IdentityService/CompleteStepUp" or
                 "/arcforges.sandbox.v2.RunService/List"))
             {
                 throw new DashboardApiException(DashboardFailure.Incompatible);
