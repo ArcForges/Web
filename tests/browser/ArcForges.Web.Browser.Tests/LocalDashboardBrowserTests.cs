@@ -212,7 +212,8 @@ public sealed class LocalDashboardBrowserTests
         await Link(page, "Skip to content").FocusAsync();
         Phase("keyboard-skip-activate");
         await page.Keyboard.PressAsync("Enter");
-        Assert.True(await page.Locator("#dashboard-content").EvaluateAsync<bool>("el => document.activeElement === el"));
+        Phase("keyboard-skip-key-returned");
+        await page.WaitForFunctionAsync("() => document.activeElement === document.getElementById('dashboard-content')");
         Phase("keyboard-skip-confirmed");
 
         await CheckScopedRunsAsync(page, observed, Phase);

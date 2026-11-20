@@ -7,7 +7,7 @@
 @inject IServiceProvider Services
 
 <div class="dashboard-shell">
-    <a class="skip-link" href="#dashboard-content">Skip to content</a>
+    <a class="skip-link" href="#dashboard-content" @onclick="SkipToContentAsync" @onclick:preventDefault>Skip to content</a>
     <aside class="dashboard-rail">
         <div class="dashboard-brand-row">
             <a href="/overview" class="dashboard-brand">ArcForges</a>
@@ -48,7 +48,7 @@
                 }
             </div>
         </header>
-        <main id="dashboard-content" class="dashboard-main" tabindex="-1">
+        <main id="dashboard-content" class="dashboard-main" tabindex="-1" @ref="_main">
             @if (_access is not null)
             {
                 @if (_revalidating)
@@ -98,6 +98,7 @@
     private DashboardAccess? _access;
     private Screen _screen = Screen.Checking;
     private string _message = "Checking the Center session.";
+    private ElementReference _main;
     private ElementReference _menuButton;
     private ElementReference _sessionHeading;
     private bool _busy;
@@ -372,6 +373,8 @@
     });
 
     private void ToggleMenu() => _menuOpen = !_menuOpen;
+
+    private Task SkipToContentAsync() => _main.FocusAsync().AsTask();
 
     private Task HandleMenuKeyAsync(KeyboardEventArgs key) =>
         key.Key == "Escape" ? CloseMenuAsync() : Task.CompletedTask;
