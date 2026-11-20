@@ -467,7 +467,7 @@ jobs:
   deploy:
     name: Deploy Cloudflare
     if: >-
-      !cancelled() && github.event_name == 'push' && github.ref == 'refs/heads/main'
+      false && !cancelled() && github.event_name == 'push' && github.ref == 'refs/heads/main'
       && needs.candidate.result == 'success'
     needs: [candidate]
     runs-on: ubuntu-26.04

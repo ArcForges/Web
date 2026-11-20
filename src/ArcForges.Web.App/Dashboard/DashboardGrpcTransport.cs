@@ -1,0 +1,64 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+using System.Net.Http.Headers;
+using ArcForges.Web.App.Probe;
+using Grpc.Net.Client;
+using Grpc.Net.Client.Web;
+using Microsoft.AspNetCore.Components.WebAssembly.Http;
+
+namespace ArcForges.Web.App.Dashboard;
+
+/// <summary>Generated dashboard RPCs over binary gRPC-Web and same-origin browser credentials.</summary>
+internal sealed class DashboardGrpcTransport(HttpMessageHandler transport)
+{
+    public GrpcChannel Open(Uri origin, string csrfToken, int requestBytes, int responseBytes) =>
+        GrpcChannel.ForAddress(origin, new GrpcChannelOptions
+        {
+            HttpHandler = new GrpcWebHandler(GrpcWebMode.GrpcWeb, new BrowserHandler(transport, origin, csrfToken)),
+            DisposeHttpClient = true,
+            ThrowOperationCanceledOnCancellation = true,
+            MaxSendMessageSize = requestBytes,
+            MaxReceiveMessageSize = responseBytes,
+        });
+
+    private sealed class BrowserHandler(HttpMessageHandler inner, Uri origin, string csrfToken) : HttpMessageHandler
+    {
+        private readonly HttpMessageInvoker _transport = new(inner, disposeHandler: false);
+
+        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+        {
+            var destination = request.RequestUri;
+            if (request.Method != HttpMethod.Post || destination is null ||
+                !string.Equals(destination.GetLeftPart(UriPartial.Authority), origin.GetLeftPart(UriPartial.Authority), StringComparison.Ordinal) ||
+                destination.Query.Length != 0 || destination.Fragment.Length != 0)
+            {
+                throw new DashboardApiException(DashboardFailure.Incompatible);
+            }
+
+            var path = destination.AbsolutePath;
+            if (path is not (
+                "/arcforges.management.v2.DeviceService/List" or
+                "/arcforges.management.v2.DeviceService/Inspect" or
+                "/arcforges.management.v2.DeviceService/Revoke" or
+                "/arcforges.publicapi.v1.IdentityService/BeginStepUp" or
+                "/arcforges.publicapi.v1.IdentityService/CompleteStepUp" or
+                "/arcforges.sandbox.v2.RunService/List"))
+            {
+                throw new DashboardApiException(DashboardFailure.Incompatible);
+            }
+
+            request.RequestUri = new Uri(origin, "/api" + path);
+            request.Headers.Add(SessionProbe.CsrfHeader, csrfToken);
+            request.Headers.CacheControl = new CacheControlHeaderValue { NoStore = true };
+            request.SetBrowserRequestCredentials(BrowserRequestCredentials.SameOrigin);
+            request.SetBrowserRequestCache(BrowserRequestCache.NoStore);
+            return _transport.SendAsync(request, cancellationToken);
+        }
+
+        protected override void Dispose(bool disposing)
+        {
+            if (disposing)
+                _transport.Dispose();
+            base.Dispose(disposing);
+        }
+    }
+}

@@ -378,6 +378,15 @@ test("the seal lists every member and no member is a link or a source map", asyn
   );
 });
 
+test("the sealed public Site keeps the Dashboard dark", async () => {
+  const paths = await listFiles(path.join(baseline, "assets"));
+  assert(!paths.some((file) => /^(?:overview|devices|_dashboard|_framework)(?:\/|\.|$)/u.test(file)));
+  const config = JSON.parse(await readFile(path.join(baseline, "wrangler.json"), "utf8"));
+  assert.equal(config.assets.not_found_handling, "404-page");
+  assert.equal(config.workers_dev, false);
+  assert.equal(config.preview_urls, false);
+});
+
 // The Site release asset. The candidate seals one deterministic archive of the Site beside the deployed assets; the seal
 // records its digest, its name is that digest, and the verifier refuses any other bytes.
 const siteArchiveName = async (directory: string) =>

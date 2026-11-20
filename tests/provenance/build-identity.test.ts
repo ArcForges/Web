@@ -200,6 +200,23 @@ test("rehashed identity and runtime health cannot substitute any source, axis or
       ? `0.1.0-ci.${process.env.GITHUB_RUN_NUMBER}.${process.env.GITHUB_RUN_ATTEMPT}`
       : "0.1.0-local";
   const expected = expectedIdentity(version);
+  const contracts = expected.axes.ContractSet as {
+    values: { subject: string; version: string; source: { path: string } }[];
+  };
+  for (const [subject, schemaVersion, packageName] of [
+    ["arcforges.foundation", "1", "Foundation"],
+    ["arcforges.management", "2", "Management.V2"],
+    ["arcforges.publicapi", "1", "PublicApi"],
+    ["arcforges.sandbox", "2", "Sandbox.V2"],
+  ]) {
+    const values = contracts.values.filter((value) => value.subject === subject);
+    assert.equal(values.length, 1);
+    assert.equal(values[0]?.version, schemaVersion);
+    assert.equal(
+      values[0]?.source.path,
+      `eng/contracts/ArcForges.Contracts.${packageName}/1.0.0-ci.481.1/build-identity.json`,
+    );
+  }
   verifyIdentity(expected, version);
   verifyHealthIdentity({ artifact: expected.artifact, build: expected.build }, expected);
   for (const field of [

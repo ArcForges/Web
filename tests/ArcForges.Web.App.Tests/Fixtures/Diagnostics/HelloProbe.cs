@@ -4,12 +4,13 @@ using System.Net;
 using System.Text;
 using ArcForges.Contracts.Foundation.Serialization;
 using ArcForges.Contracts.Hello.V1;
+using ArcForges.Web.App.Probe;
 using Grpc.Core;
 using Grpc.Net.Client;
 using Grpc.Net.Client.Web;
 using Microsoft.AspNetCore.Components.WebAssembly.Http;
 
-namespace ArcForges.Web.App.Probe;
+namespace ArcForges.Web.App.Tests.Fixtures.Diagnostics;
 
 /// <summary>
 /// One anonymous greeting over binary gRPC-Web to same-origin <c>/api</c> (the TypeScript hello.ts port). The call uses the

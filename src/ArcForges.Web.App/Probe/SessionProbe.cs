@@ -63,7 +63,10 @@ public sealed partial class SessionProbe
 
     /// <summary>GETs the bootstrap route, the cookie riding along, and returns what the page may show.</summary>
     /// <exception cref="ProbeFailureException">Any typed failure of the call.</exception>
-    public async Task<SessionSnapshot> ReadSessionAsync(CancellationToken cancellationToken)
+    public async Task<SessionSnapshot> ReadSessionAsync(CancellationToken cancellationToken) =>
+        (await ReadBoundSessionAsync(cancellationToken).ConfigureAwait(false)).Snapshot;
+
+    internal async Task<(SessionSnapshot Snapshot, string? AccountId, string? SessionId)> ReadBoundSessionAsync(CancellationToken cancellationToken)
     {
         using var request = new HttpRequestMessage(HttpMethod.Get, new Uri(_origin, BootstrapRoute.Path));
         request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
@@ -72,7 +75,7 @@ public sealed partial class SessionProbe
         using var response = await SendAsync(request, cancellationToken).ConfigureAwait(false);
         var bytes = await JsonBodyAsync(response, BootstrapBodyLimit, cancellationToken).ConfigureAwait(false);
         var body = WireJson.Decode(bytes, BrowserBootstrapResponseJsonContext.Default.BrowserBootstrapResponse);
-        return ToSnapshot(body);
+        return (ToSnapshot(body), body.Session?.UserId, body.Session?.SessionId);
     }
 
     /// <summary>

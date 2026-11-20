@@ -8,6 +8,7 @@ using ArcForges.Contracts.Foundation.Serialization;
 using ArcForges.Contracts.Hello.V1;
 using ArcForges.Web.App.Probe;
 using ArcForges.Web.App.Tests.Fixtures;
+using ArcForges.Web.App.Tests.Fixtures.Diagnostics;
 using ArcForges.Web.App.Tests.TestDoubles;
 using Google.Protobuf;
 using Grpc.Core;

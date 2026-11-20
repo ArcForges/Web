@@ -1,12 +1,13 @@
 <Router AppAssembly="typeof(ArcForges.Web.App.App).Assembly">
     <Found Context="routeData">
-        <RouteView RouteData="routeData" DefaultLayout="typeof(ArcForges.Web.App.Layout.ProfileLayout)" />
+        <RouteView RouteData="routeData" DefaultLayout="typeof(ArcForges.Web.App.Layout.DashboardLayout)" />
+        <FocusOnNavigate RouteData="routeData" Selector="h1" />
     </Found>
     <NotFound>
-        <LayoutView Layout="typeof(ArcForges.Web.App.Layout.ProfileLayout)">
-            <section class="example">
-                <h1>Page not found.</h1>
-                <p class="hero-copy">This profile has a single page.</p>
+        <LayoutView Layout="typeof(ArcForges.Web.App.Layout.DashboardLayout)">
+            <section class="dashboard-intro">
+                <h1>Page not found</h1>
+                <a class="dashboard-link" href="/overview">Go to Overview</a>
             </section>
         </LayoutView>
     </NotFound>

@@ -28,7 +28,8 @@ public static class LicencePolicy
 
     private static readonly HashSet<string> ArcForgesOwners = new(StringComparer.Ordinal)
     {
-        "arcforges.contracts.publicapi", "arcforges.contracts.foundation", "arcforges.build.policy",
+        "arcforges.contracts.publicapi", "arcforges.contracts.foundation", "arcforges.contracts.management.v2",
+        "arcforges.contracts.sandbox.v2", "arcforges.build.policy",
     };
 
     private static readonly HashSet<string> GithubOwners = new(StringComparer.Ordinal)

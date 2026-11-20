@@ -2,9 +2,8 @@
 // Port of the chat cases of tests/unit/app-routes.test.tsx: the Chat page rendered with bUnit over the same-origin gRPC-Web
 // probe. The server is a test-only double; every reply is a real gRPC-Web frame sequence from the generated protobuf type.
 using ArcForges.Contracts.Hello.V1;
-using ArcForges.Web.App.Pages;
-using ArcForges.Web.App.Probe;
 using ArcForges.Web.App.Tests.Fixtures;
+using ArcForges.Web.App.Tests.Fixtures.Diagnostics;
 using ArcForges.Web.App.Tests.TestDoubles;
 using AngleSharp.Dom;
 using Bunit;

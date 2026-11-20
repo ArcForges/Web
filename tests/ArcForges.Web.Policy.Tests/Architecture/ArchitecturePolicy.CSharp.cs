@@ -37,13 +37,13 @@ public static partial class ArchitecturePolicy
     private static readonly string[] JsonAdmissions = ["src/ArcForges.Web.App/Probe/WireJson.cs"];
 
     /// <summary>
-    /// The admitted HTTP surfaces: the BrowserSession HTTP exception calls (SessionProbe), the generated gRPC-Web
-    /// handler of the anonymous greeting (HelloProbe) and the cloud-hello server connection check (ServerConnection).
+    /// The admitted HTTP surfaces: the BrowserSession exception, generated dashboard gRPC-Web calls,
+    /// and the cloud-hello server connection check.
     /// </summary>
     private static readonly string[] HttpAdmissions =
     [
+        "src/ArcForges.Web.App/Dashboard/DashboardGrpcTransport.cs",
         "src/ArcForges.Web.App/Probe/SessionProbe.cs",
-        "src/ArcForges.Web.App/Probe/HelloProbe.cs",
         "src/ArcForges.Web.Ui/ServerConnection.cs",
     ];
 
