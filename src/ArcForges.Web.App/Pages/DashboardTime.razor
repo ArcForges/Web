@@ -1,0 +1,15 @@
+@* SPDX-License-Identifier: AGPL-3.0-only *@
+
+@if (Value is DateTimeOffset value)
+{
+    <time datetime="@value.ToString("O")" title="@value.ToUniversalTime().ToString("u")">@value.ToLocalTime().ToString("g")</time>
+}
+else
+{
+    <span class="dashboard-muted">Unavailable</span>
+}
+
+@code {
+    [Parameter]
+    public DateTimeOffset? Value { get; set; }
+}

@@ -2,6 +2,8 @@
 using System.Net.Http.Headers;
 using System.Text.RegularExpressions;
 using ArcForges.Contracts.PublicApi.Http.V1.Browser;
+using ArcForges.Contracts.PublicApi.Http.V1.WebBrowser;
+using ArcForges.Contracts.PublicApi.Http.V1.WebBrowserError;
 using Microsoft.AspNetCore.Components.WebAssembly.Http;
 
 namespace ArcForges.Web.App.Probe;
@@ -46,8 +48,10 @@ public sealed partial class SessionProbe
     [GeneratedRegex("^[A-Za-z0-9_-]{16,128}$", RegexOptions.CultureInvariant)]
     private static partial Regex CsrfToken();
 
-    private static readonly BrowserSessionRoute BootstrapRoute = Route("browser.bootstrap");
-    private static readonly BrowserSessionRoute LogoutRoute = Route("browser.logout");
+    private static readonly WebBrowserSessionRoute WebBootstrap = WebRoute("webBrowser.bootstrap");
+    private static readonly WebBrowserSessionRoute WebLogout = WebRoute("webBrowser.logout");
+    private static readonly WebBrowserSessionRoute WebBeginStepUp = WebRoute("webBrowser.beginStepUp");
+    private static readonly WebBrowserSessionRoute WebCompleteStepUp = WebRoute("webBrowser.completeStepUp");
 
     private readonly HttpMessageInvoker _invoker;
     private readonly Uri _origin;
@@ -65,7 +69,7 @@ public sealed partial class SessionProbe
     /// <exception cref="ProbeFailureException">Any typed failure of the call.</exception>
     public async Task<SessionSnapshot> ReadSessionAsync(CancellationToken cancellationToken)
     {
-        using var request = new HttpRequestMessage(HttpMethod.Get, new Uri(_origin, BootstrapRoute.Path));
+        using var request = new HttpRequestMessage(HttpMethod.Get, new Uri(_origin, Route("browser.bootstrap").Path));
         request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
         request.SetBrowserRequestCredentials(BrowserRequestCredentials.SameOrigin);
         request.SetBrowserRequestCache(BrowserRequestCache.NoStore);
@@ -73,6 +77,23 @@ public sealed partial class SessionProbe
         var bytes = await JsonBodyAsync(response, BootstrapBodyLimit, cancellationToken).ConfigureAwait(false);
         var body = WireJson.Decode(bytes, BrowserBootstrapResponseJsonContext.Default.BrowserBootstrapResponse);
         return ToSnapshot(body);
+    }
+
+    internal async Task<(SessionSnapshot Snapshot, string? AccountId, string? SessionId)> ReadWebBoundSessionAsync(CancellationToken cancellationToken)
+    {
+        using var request = WebRequest(WebBootstrap);
+        using var response = await SendAsync(request, cancellationToken).ConfigureAwait(false);
+        var bytes = await JsonBodyAsync(response, BootstrapBodyLimit, cancellationToken).ConfigureAwait(false);
+        var body = WireJson.Decode(bytes, WebBrowserBootstrapResponseJsonContext.Default.WebBrowserBootstrapResponse);
+        var session = body.Session;
+        var profile = body.Profile;
+        var csrf = ValidateBootstrap(body.CsrfToken, body.Authenticated, session is not null, profile is not null);
+        if (session is null)
+            return (new AnonymousSession(csrf), null, null);
+
+        var snapshot = new AuthenticatedSession(csrf, profile?.DisplayName, profile?.Locale, profile?.Timezone,
+            session.ExpiresAt, session.IdleExpiresAt, session.WorkspaceIds.Length, RecoveryText(session.RecoveryGeneration));
+        return (snapshot, session.UserId, session.SessionId);
     }
 
     /// <summary>
@@ -83,7 +104,7 @@ public sealed partial class SessionProbe
     public async Task EndSessionAsync(string csrfToken, CancellationToken cancellationToken)
     {
         ArgumentException.ThrowIfNullOrEmpty(csrfToken);
-        using var request = new HttpRequestMessage(HttpMethod.Post, new Uri(_origin, LogoutRoute.Path));
+        using var request = new HttpRequestMessage(HttpMethod.Post, new Uri(_origin, Route("browser.logout").Path));
         request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
         request.Headers.TryAddWithoutValidation(CsrfHeader, csrfToken);
         request.SetBrowserRequestCredentials(BrowserRequestCredentials.SameOrigin);
@@ -91,28 +112,85 @@ public sealed partial class SessionProbe
         using var response = await SendAsync(request, cancellationToken).ConfigureAwait(false);
         var bytes = await JsonBodyAsync(response, ReceiptBodyLimit, cancellationToken).ConfigureAwait(false);
         var receipt = WireJson.Decode(bytes, BrowserReceiptJsonContext.Default.BrowserReceipt);
-        if (receipt.Effect == "happened")
-            return;
-        throw new ProbeFailureException(receipt.Effect == "didNotHappen" ? FailureKind.Rejected : FailureKind.Unexpected);
+        ConfirmLogout(receipt.Effect);
+    }
+
+    internal async Task EndWebSessionAsync(string csrfToken, CancellationToken cancellationToken)
+    {
+        var reply = await PostWebSessionAsync(WebLogout, null, 0, ReceiptBodyLimit, csrfToken, cancellationToken).ConfigureAwait(false);
+        var receipt = WireJson.Decode(reply, WebBrowserReceiptJsonContext.Default.WebBrowserReceipt);
+        ConfirmLogout(receipt.Effect);
+    }
+
+    private static void ConfirmLogout(string effect)
+    {
+        if (effect != "happened")
+            throw new ProbeFailureException(effect == "didNotHappen" ? FailureKind.Rejected : FailureKind.Unexpected);
+    }
+
+    internal async Task<WebBrowserAuthChallenge> BeginStepUpAsync(WebBrowserBeginStepUpRequest proof, string csrfToken, CancellationToken cancellationToken)
+    {
+        var body = WireJson.Encode(proof, WebBrowserBeginStepUpRequestJsonContext.Default.WebBrowserBeginStepUpRequest);
+        var reply = await PostWebSessionAsync(WebBeginStepUp, body, 4096, 65536, csrfToken, cancellationToken).ConfigureAwait(false);
+        return WireJson.Decode(reply, WebBrowserAuthChallengeJsonContext.Default.WebBrowserAuthChallenge);
+    }
+
+    internal async Task<WebBrowserStepUpEvidence> CompleteStepUpAsync(WebBrowserCompleteStepUpRequest proof, string csrfToken, CancellationToken cancellationToken)
+    {
+        var body = WireJson.Encode(proof, WebBrowserCompleteStepUpRequestJsonContext.Default.WebBrowserCompleteStepUpRequest);
+        var reply = await PostWebSessionAsync(WebCompleteStepUp, body, 131072, 4096, csrfToken, cancellationToken).ConfigureAwait(false);
+        return WireJson.Decode(reply, WebBrowserStepUpEvidenceJsonContext.Default.WebBrowserStepUpEvidence);
+    }
+
+    private async Task<byte[]> PostWebSessionAsync(WebBrowserSessionRoute route, byte[]? body, int sendLimit, int receiveLimit,
+        string csrfToken, CancellationToken cancellationToken)
+    {
+        if (!CsrfToken().IsMatch(csrfToken) || (body?.Length ?? 0) > sendLimit)
+            throw new ProbeFailureException(FailureKind.Rejected);
+
+        using var deadline = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        deadline.CancelAfter(TimeSpan.FromSeconds(10));
+        using var request = WebRequest(route);
+        if (body is not null)
+        {
+            request.Content = new ByteArrayContent(body);
+            request.Content.Headers.ContentType = new MediaTypeHeaderValue("application/json");
+        }
+        request.Headers.Add(CsrfHeader, csrfToken);
+
+        using var response = await SendAsync(request, deadline.Token).ConfigureAwait(false);
+        if ((int)response.StatusCode is >= 400 and < 500 &&
+            string.Equals(response.Content.Headers.ContentType?.MediaType, "application/json", StringComparison.OrdinalIgnoreCase))
+        {
+            var bytes = await BoundedBody.ReadAsync(response.Content, 4096, deadline.Token).ConfigureAwait(false);
+            var error = WireJson.Decode(bytes, WebBrowserErrorReplyJsonContext.Default.WebBrowserErrorReply).Error;
+            var kind = error.Category == "authentication" ? FailureKind.Unauthenticated : FailureMapping.FromStatus((int)response.StatusCode);
+            var correlation = Guid.TryParseExact(error.CorrelationId, "D", out var id) && id != Guid.Empty ? id : (Guid?)null;
+            throw new ProbeFailureException(kind, correlationId: correlation);
+        }
+
+        return await JsonBodyAsync(response, receiveLimit, deadline.Token).ConfigureAwait(false);
+    }
+
+    private HttpRequestMessage WebRequest(WebBrowserSessionRoute route)
+    {
+        var request = new HttpRequestMessage(new HttpMethod(route.Method), new Uri(_origin, "/api" + route.Path));
+        request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+        request.SetBrowserRequestCredentials(BrowserRequestCredentials.SameOrigin);
+        request.SetBrowserRequestCache(BrowserRequestCache.NoStore);
+        request.SetBrowserRequestOption("redirect", "error");
+        request.SetBrowserResponseStreamingEnabled(true);
+        return request;
     }
 
     /// <summary>The page snapshot of a bootstrap answer. A contradictory answer is malformed, never a session.</summary>
     internal static SessionSnapshot ToSnapshot(BrowserBootstrapResponse body)
     {
         ArgumentNullException.ThrowIfNull(body);
-        var csrf = body.CsrfToken;
-        if (csrf is null || !CsrfToken().IsMatch(csrf))
-            throw new ProbeFailureException(FailureKind.Malformed);
-        if (!body.Authenticated)
-        {
-            // An anonymous answer that still carries a session or profile is contradictory, not anonymous.
-            if (body.Session is not null || body.Profile is not null)
-                throw new ProbeFailureException(FailureKind.Malformed);
+        var session = body.Session;
+        var csrf = ValidateBootstrap(body.CsrfToken, body.Authenticated, session is not null, body.Profile is not null);
+        if (session is null)
             return new AnonymousSession(csrf);
-        }
-        var session = body.Session ?? throw new ProbeFailureException(FailureKind.Malformed);
-        if (!Exact.TryUnsigned(session.RecoveryGeneration, out var generation))
-            throw new ProbeFailureException(FailureKind.Malformed);
         var profile = body.Profile;
         return new AuthenticatedSession(
             csrf,
@@ -122,8 +200,19 @@ public sealed partial class SessionProbe
             session.ExpiresAt,
             session.IdleExpiresAt,
             session.WorkspaceIds.Count(),
-            generation.Text);
+            RecoveryText(session.RecoveryGeneration));
     }
+
+    private static string ValidateBootstrap(string? csrf, bool authenticated, bool hasSession, bool hasProfile)
+    {
+        if (csrf is null || !CsrfToken().IsMatch(csrf) || authenticated != hasSession || (!authenticated && hasProfile))
+            throw new ProbeFailureException(FailureKind.Malformed);
+        return csrf;
+    }
+
+    private static string RecoveryText(string text) => Exact.TryUnsigned(text, out var generation)
+        ? generation.Text
+        : throw new ProbeFailureException(FailureKind.Malformed);
 
     private async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
     {
@@ -153,4 +242,6 @@ public sealed partial class SessionProbe
     private static BrowserSessionRoute Route(string id) =>
         BrowserSessionRoutes.All.FirstOrDefault(candidate => candidate.Id == id)
         ?? throw new InvalidOperationException($"The generated Contracts catalogue has no browser session route {id}.");
+
+    private static WebBrowserSessionRoute WebRoute(string id) => WebBrowserSessionRoutes.All.Single(route => route.Id == id);
 }

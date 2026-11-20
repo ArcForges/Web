@@ -1,0 +1,262 @@
+@* SPDX-License-Identifier: AGPL-3.0-only *@
+@using ArcForges.Web.App.Dashboard
+@using ArcForges.Web.App.Layout
+@implements IDisposable
+@inject IDashboardCenter Center
+
+<PageTitle>@PageName | ArcForges</PageTitle>
+
+<section class="dashboard-intro" aria-labelledby="dashboard-page-title">
+    <div>
+        <h1 id="dashboard-page-title" tabindex="-1">@PageName</h1>
+        <p>@(IsOverview ? "See which enrolled devices are available for remote work." : "Inspect devices and manage their access to this Center.")</p>
+    </div>
+    <button type="button" class="dashboard-button dashboard-button-quiet" aria-disabled="@(_reading ? "true" : "false")"
+            @onclick="RefreshAsync">Refresh</button>
+</section>
+
+@if (IsOverview && _devices is not null)
+{
+    <dl class="dashboard-summary">
+        <div>
+            <dt>Devices listed</dt>
+            <dd>@_devices.Count</dd>
+        </div>
+        <div>
+            <dt>Reported online</dt>
+            <dd>@_devices.Count(item => item.Presence == DashboardDevicePresence.Online)</dd>
+        </div>
+        <div>
+            <dt>Reported offline</dt>
+            <dd>@_devices.Count(item => item.Presence == DashboardDevicePresence.Offline)</dd>
+        </div>
+    </dl>
+}
+
+<section class="dashboard-panel" aria-labelledby="dashboard-registry-title"
+         aria-busy="@(_reading ? "true" : "false")">
+    <div class="dashboard-panel-header">
+        <h2 id="dashboard-registry-title">@(IsOverview ? "Device registry" : "Enrolled devices")</h2>
+        <p class="dashboard-update" role="status">
+            @if (_reading)
+            {
+                @(_devices is null ? "Loading devices…" : "Refreshing device data…")
+            }
+            else if (_checkedAt is not null)
+            {
+                <span>@(_failure is null ? "Checked" : "Last successful read") <DashboardTime Value="_checkedAt" /></span>
+            }
+        </p>
+    </div>
+
+    @if (_failure is not null)
+    {
+        <div class="dashboard-notice" role="status">
+            <strong>@(_devices is null ? "Device registry unavailable" : "Device registry is stale")</strong>
+            <p>@_failure.Message</p>
+            @if (_failure.CorrelationId is Guid correlationId)
+            {
+                <p>Reference <code>@correlationId</code></p>
+            }
+        </div>
+    }
+    @if (_devices is { Count: 0 } && _failure is null)
+    {
+        <div class="dashboard-empty">
+            <h3>No enrolled devices</h3>
+            <p>Connect an installed ArcForges Node to begin.</p>
+        </div>
+    }
+    else if (_devices is { Count: > 0 })
+    {
+        <table class="dashboard-table">
+            <thead>
+                <tr>
+                    <th scope="col">Device</th>
+                    <th scope="col">Connection</th>
+                    <th scope="col" class="dashboard-table-extra">Platform</th>
+                    <th scope="col" class="dashboard-table-extra">Last seen</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var device in _devices)
+                {
+                    <tr @key="device.Id">
+                        <th scope="row"><a class="dashboard-link dashboard-device-link" href="@DevicePath(device.Id)">@DeviceName(device)</a></th>
+                        <td><DevicePresence Presence="device.Presence" /></td>
+                        <td class="dashboard-table-extra">@(string.IsNullOrWhiteSpace(device.Platform) ? "Unavailable" : device.Platform)</td>
+                        <td class="dashboard-table-extra"><DashboardTime Value="device.LastSeenAt" /></td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+        @if (_next is not null)
+        {
+            <div class="dashboard-panel-footer">
+                <button type="button" class="dashboard-button dashboard-button-quiet"
+                        aria-disabled="@(_reading ? "true" : "false")" @onclick="LoadMoreAsync">Load more devices</button>
+            </div>
+        }
+    }
+</section>
+
+@if (IsOverview && _devices is { Count: > 0 } && SelectedDevice is DashboardDevice selected)
+{
+    <section class="dashboard-panel dashboard-run-panel" aria-labelledby="dashboard-overview-runs">
+        <div class="dashboard-panel-header">
+            <h2 id="dashboard-overview-runs">Run activity</h2>
+            <div class="dashboard-select">
+                <label for="dashboard-run-device">Device</label>
+                <select id="dashboard-run-device" value="@selected.Id" @onchange="SelectDevice">
+                    @foreach (var item in _devices)
+                    {
+                        <option @key="item.Id" value="@item.Id">@DeviceName(item)</option>
+                    }
+                </select>
+            </div>
+        </div>
+        @if (Access.Revocations.ContainsKey(selected.Id))
+        {
+            <div class="dashboard-run-status"><p>Run reads are paused until the Center confirms enrollment access.</p></div>
+        }
+        else if (_failure is null)
+        {
+            <RunStatus @key="selected.Id" Device="selected" />
+        }
+        else
+        {
+            <div class="dashboard-run-status"><p>Run availability cannot be verified while the registry is stale.</p></div>
+        }
+    </section>
+}
+
+@if (!IsOverview || _devices is { Count: 0 })
+{
+    <section class="dashboard-panel dashboard-enrollment" aria-labelledby="dashboard-enrollment-title">
+        <h2 id="dashboard-enrollment-title">Connect a device</h2>
+        <p>On the device, set this Center and start the sign-in flow. Compare the Node fingerprint before approving enrollment.</p>
+        @if (Center.Configuration.Origin is Uri origin)
+        {
+            <p><code>arcforges center set @origin.GetLeftPart(UriPartial.Authority)/api</code></p>
+            <p><code>arcforges center connect @origin.GetLeftPart(UriPartial.Authority) --mode @EnrollmentMode</code></p>
+        }
+        <p class="dashboard-muted">Manage remote view and control grants locally on the device.</p>
+    </section>
+}
+
+@code {
+    [CascadingParameter]
+    private DashboardAccess Access { get; set; } = default!;
+
+    [Parameter]
+    public bool IsOverview { get; set; }
+
+    private IReadOnlyList<DashboardDevice>? _devices;
+    private string? _next;
+    private DashboardApiException? _failure;
+    private DateTimeOffset? _checkedAt;
+    private Guid? _selection;
+    private CancellationTokenSource? _read;
+    private bool _reading;
+
+    private string PageName => IsOverview ? "Overview" : "Devices";
+    private string EnrollmentMode => Center.Configuration.Mode == DashboardCenterMode.SelfHosted ? "self_hosted" : "official";
+    private DashboardDevice? SelectedDevice => _devices?.FirstOrDefault(item => item.Id == _selection) ?? _devices?.FirstOrDefault();
+
+    protected override Task OnInitializedAsync()
+    {
+        Access.RevocationsChanged += RevocationsChanged;
+        return RefreshAsync();
+    }
+
+    private Task RefreshAsync() => ReadAsync(append: false);
+    private Task LoadMoreAsync() => _next is null ? Task.CompletedTask : ReadAsync(append: true);
+
+    private async Task ReadAsync(bool append)
+    {
+        if (_reading)
+        {
+            return;
+        }
+        var cursor = append ? _next : null;
+        using var request = CancellationTokenSource.CreateLinkedTokenSource(Access.Cancellation);
+        _read = request;
+        _reading = true;
+        try
+        {
+            var page = await Center.ListDevicesAsync(cursor, request.Token);
+            if (request.IsCancellationRequested)
+            {
+                return;
+            }
+            if (cursor is not null && string.Equals(cursor, page.NextCursor, StringComparison.Ordinal))
+            {
+                throw new DashboardApiException(DashboardFailure.Incompatible);
+            }
+            _devices = append && _devices is not null
+                ? _devices.Concat(page.Devices).DistinctBy(item => item.Id).ToArray()
+                : page.Devices;
+            _next = page.NextCursor;
+            _checkedAt = DateTimeOffset.UtcNow;
+            _failure = null;
+        }
+        catch (DashboardApiException error) when (!request.IsCancellationRequested)
+        {
+            if (error.Failure == DashboardFailure.Unauthenticated)
+            {
+                await Access.ExpireAsync();
+                return;
+            }
+            if (error.Failure is DashboardFailure.Forbidden or DashboardFailure.NotFound)
+            {
+                _devices = null;
+                _next = null;
+                _checkedAt = null;
+            }
+            _failure = error;
+        }
+        catch (DashboardApiException)
+        {
+        }
+        catch (OperationCanceledException) when (request.IsCancellationRequested)
+        {
+        }
+        finally
+        {
+            if (ReferenceEquals(_read, request))
+            {
+                _read = null;
+                _reading = false;
+            }
+        }
+    }
+
+    private void SelectDevice(ChangeEventArgs change)
+    {
+        if (Guid.TryParse(change.Value as string, out var selected) && _devices?.Any(item => item.Id == selected) == true)
+        {
+            _selection = selected;
+        }
+    }
+
+    private static string DevicePath(Guid id) => $"/devices/{id:D}";
+
+    private static string DeviceName(DashboardDevice device) => string.IsNullOrWhiteSpace(device.Name) ? $"Device {device.Id:D}" : device.Name;
+
+    private void RevocationsChanged(DashboardDevice? confirmed) => _ = InvokeAsync(() =>
+    {
+        if (confirmed is not null && _devices is not null)
+        {
+            _devices = _devices.Select(item => item.Id == confirmed.Id && item.Revision <= confirmed.Revision ? confirmed : item).ToArray();
+        }
+        StateHasChanged();
+    });
+
+    public void Dispose()
+    {
+        Access.RevocationsChanged -= RevocationsChanged;
+        var active = _read;
+        _read = null;
+        active?.Cancel();
+    }
+}

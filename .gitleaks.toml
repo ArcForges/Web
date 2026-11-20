@@ -31,3 +31,14 @@ paths = ['''^eng/contracts/ArcForges\.Contracts\.PublicApi/1\.0\.0-ci\.287\.1/so
 regexes = [
   '''^\s*"public/http/v1/native-auth\.schema\.json": "e7807ae0ab6b4530d817941a922d7df90e4feb525c68d81a245a4c089ad3d296",?$''',
 ]
+
+[[allowlists]]
+description = "Verified public schema SHA-256 values from the signed PublicApi 1.0.0-ci.481.1 NuGet package"
+condition = "AND"
+targetRules = ["generic-api-key"]
+regexTarget = "line"
+paths = ['''^eng/contracts/ArcForges\.Contracts\.PublicApi/1\.0\.0-ci\.481\.1/source\.json$''']
+regexes = [
+  '''^\s*"public/http/v1/native-auth\.schema\.json": "e7807ae0ab6b4530d817941a922d7df90e4feb525c68d81a245a4c089ad3d296",$''',
+  '''^\s*"public/proto/arcforges/publicapi/v1/support_access\.proto": "b188129f2d2e9a8583aee609521187b5f871e67cbb368630d693c64ff853581f",$''',
+]

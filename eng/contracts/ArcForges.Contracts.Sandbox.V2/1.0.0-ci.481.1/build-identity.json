@@ -1,0 +1,110 @@
+{
+  "schema": "arcforges.build-identity.v1",
+  "owner": "Contracts",
+  "artifact": {
+    "id": "ArcForges.Contracts.Sandbox.V2",
+    "version": "1.0.0-ci.481.1"
+  },
+  "build": {
+    "sourceCommit": "c22be9a7da5a747b4a14b1b81d78f0ea460f810f",
+    "dirty": false,
+    "kind": "ci",
+    "buildId": "43811258953.1",
+    "runId": "43811258953",
+    "runAttempt": 1,
+    "pipelineRun": "https://github.com/ArcForges/Contracts/actions/runs/43811258953",
+    "sourceDateEpoch": 1794807342
+  },
+  "axes": {
+    "AppVersion": {
+      "status": "not-applicable",
+      "reason": "Contracts distributes libraries, not an installed product."
+    },
+    "ContractSet": {
+      "status": "present",
+      "values": [
+        {
+          "subject": "arcforges.foundation",
+          "version": "1",
+          "source": {
+            "path": "public/proto/arcforges/foundation/v1/foundation.proto",
+            "sha256": "e7e634103664dcca4c63383dd0eda5d90b408edb4786bfdf4a148856fed92736"
+          },
+          "descriptorSha256": "57a8b7d054ca486209d0969e66eccc2e9b7df553960ccd7d27cfb5cce158fdc9"
+        },
+        {
+          "subject": "arcforges.sandbox",
+          "version": "2",
+          "descriptorSha256": "57a8b7d054ca486209d0969e66eccc2e9b7df553960ccd7d27cfb5cce158fdc9",
+          "sources": [
+            {
+              "path": "public/proto/arcforges/sandbox/v2/center_control.proto",
+              "sha256": "de355b1635edeecd7472f44f74227dbdc5070a12692c51fcb424f14fab768d73"
+            },
+            {
+              "path": "public/proto/arcforges/sandbox/v2/platform.proto",
+              "sha256": "bac404101034451f5c965d157c4bb66265e8bfc943026b7a35b60855eab83030"
+            }
+          ]
+        }
+      ]
+    },
+    "CapabilityVersion": {
+      "status": "not-produced",
+      "reason": "The selected contract records do not declare implemented product capabilities.",
+      "producer": "WP09 and product capability owners"
+    },
+    "NativeFormatVersion": {
+      "status": "not-produced",
+      "reason": "No portable product format exists here.",
+      "producer": "WP18/28, WP34 and WP38"
+    },
+    "StorageSchemaVersion": {
+      "status": "not-produced",
+      "reason": "Contracts owns no implemented migration set.",
+      "producer": "WP07/21 and product storage owners"
+    },
+    "NativeAbiVersion": {
+      "status": "not-applicable",
+      "reason": "These packages contain no first-party native C boundary."
+    },
+    "PolicySchemaVersion": {
+      "status": "not-produced",
+      "reason": "The selected schemas contain no implemented product policy declaration.",
+      "producer": "WP03 and WP44"
+    },
+    "ExtensionProtocolVersion": {
+      "status": "not-applicable",
+      "reason": "This package closure contains no extension protocol."
+    },
+    "PackageVersion": {
+      "status": "present",
+      "values": [
+        {
+          "subject": "pkg:nuget/ArcForges.Contracts.Foundation",
+          "version": "1.0.0-ci.481.1",
+          "source": {
+            "path": "sbom.cdx.json#components",
+            "sha256": "926819504293554cf3af9928d1e81befcc55bb438ed63957537305d56d0007ec"
+          }
+        },
+        {
+          "subject": "pkg:nuget/Google.Protobuf",
+          "version": "3.36.2",
+          "source": {
+            "path": "sbom.cdx.json#components",
+            "sha256": "926819504293554cf3af9928d1e81befcc55bb438ed63957537305d56d0007ec"
+          }
+        },
+        {
+          "subject": "pkg:nuget/Grpc.Core.Api",
+          "version": "2.85.0",
+          "source": {
+            "path": "sbom.cdx.json#components",
+            "sha256": "926819504293554cf3af9928d1e81befcc55bb438ed63957537305d56d0007ec"
+          }
+        }
+      ]
+    }
+  }
+}

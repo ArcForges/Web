@@ -1,0 +1,210 @@
+{
+  "schemaVersion": 1,
+  "id": "contracts-publication-r2",
+  "kind": "source",
+  "sourceRepository": "https://github.com/ArcForges/Contracts",
+  "sourceCommit": "c22be9a7da5a747b4a14b1b81d78f0ea460f810f",
+  "sourcePaths": [
+    "build-identity.json",
+    "source.json",
+    "LICENSE",
+    "NOTICE"
+  ],
+  "licence": {
+    "spdx": "Apache-2.0",
+    "category": "permissive",
+    "evidence": [
+      {
+        "path": "eng/contracts/ArcForges.Contracts.Foundation/1.0.0-ci.481.1/build-identity.json",
+        "sha256": "58fe3693b041cdf420d7d347670adf4efd05e09b905547cd3a2291d9dfe43354",
+        "finding": "Exact build-identity.json copied byte for byte from the verified ArcForges.Contracts.Foundation 1.0.0-ci.481.1 archive."
+      },
+      {
+        "path": "eng/contracts/ArcForges.Contracts.Foundation/1.0.0-ci.481.1/source.json",
+        "sha256": "9979ed2ba3e7076c5a1da893521f75d176745e42d65b0bd1b11723dbef7fad23",
+        "finding": "Exact source.json copied byte for byte from the verified ArcForges.Contracts.Foundation 1.0.0-ci.481.1 archive."
+      },
+      {
+        "path": "ArcForges.Contracts.Foundation/NOTICE",
+        "sha256": "451895c25929e26e21cb5bfb488d0acdee2c523d09c6843e51fedfadac053f5c",
+        "finding": "Original ArcForges.Contracts.Foundation 1.0.0-ci.481.1 NOTICE retained inside the exact verified publisher archive."
+      },
+      {
+        "path": "eng/contracts/ArcForges.Contracts.Management.V2/1.0.0-ci.481.1/build-identity.json",
+        "sha256": "9dd92be0ba5630810d7a773e4bc962cfee43d9ecc724e96f50c7b1b10a01e75a",
+        "finding": "Exact build-identity.json copied byte for byte from the verified ArcForges.Contracts.Management.V2 1.0.0-ci.481.1 archive."
+      },
+      {
+        "path": "eng/contracts/ArcForges.Contracts.Management.V2/1.0.0-ci.481.1/source.json",
+        "sha256": "7b9afaa866885602d97df000debfda744e62bc425759032db79edb1dfdbcd4b4",
+        "finding": "Exact source.json copied byte for byte from the verified ArcForges.Contracts.Management.V2 1.0.0-ci.481.1 archive."
+      },
+      {
+        "path": "ArcForges.Contracts.Management.V2/NOTICE",
+        "sha256": "bdfe96d5ac0138e7d3fdfa866161aa04ade5641b3d50aca2c28b769c1702679d",
+        "finding": "Original ArcForges.Contracts.Management.V2 1.0.0-ci.481.1 NOTICE retained inside the exact verified publisher archive."
+      },
+      {
+        "path": "eng/contracts/ArcForges.Contracts.PublicApi/1.0.0-ci.481.1/build-identity.json",
+        "sha256": "21b5e69a4c2bbcbd6dd9f428c903a4795712d424253e76332d5bea0400d20254",
+        "finding": "Exact build-identity.json copied byte for byte from the verified ArcForges.Contracts.PublicApi 1.0.0-ci.481.1 archive."
+      },
+      {
+        "path": "eng/contracts/ArcForges.Contracts.PublicApi/1.0.0-ci.481.1/source.json",
+        "sha256": "6e6d22f617fb8afc23a3b65fdb7c1d3a81caae90d44e5ec53183c5e95a8d8150",
+        "finding": "Exact source.json copied byte for byte from the verified ArcForges.Contracts.PublicApi 1.0.0-ci.481.1 archive."
+      },
+      {
+        "path": "eng/contracts/ArcForges.Contracts.PublicApi/1.0.0-ci.481.1/LICENSE",
+        "sha256": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30",
+        "finding": "Exact LICENSE copied byte for byte from the verified ArcForges.Contracts.PublicApi 1.0.0-ci.481.1 archive."
+      },
+      {
+        "path": "ArcForges.Contracts.PublicApi/NOTICE",
+        "sha256": "7267960427934320f8c0268f3ff3f3539260b1c0c33eb172f2090bc046c5958c",
+        "finding": "Original ArcForges.Contracts.PublicApi 1.0.0-ci.481.1 NOTICE retained inside the exact verified publisher archive."
+      },
+      {
+        "path": "eng/contracts/ArcForges.Contracts.Sandbox.V2/1.0.0-ci.481.1/build-identity.json",
+        "sha256": "f88014d9569fd0e004d890f46691912d38f71371df7b96ef8bc6b1b2d3c6be00",
+        "finding": "Exact build-identity.json copied byte for byte from the verified ArcForges.Contracts.Sandbox.V2 1.0.0-ci.481.1 archive."
+      },
+      {
+        "path": "eng/contracts/ArcForges.Contracts.Sandbox.V2/1.0.0-ci.481.1/source.json",
+        "sha256": "45499990fdb6c546c53597c9da99ab5759a2b273ec948287f6bbbee2b08b5f7e",
+        "finding": "Exact source.json copied byte for byte from the verified ArcForges.Contracts.Sandbox.V2 1.0.0-ci.481.1 archive."
+      },
+      {
+        "path": "ArcForges.Contracts.Sandbox.V2/NOTICE",
+        "sha256": "b871c5980a70f5b19faf51299f09ebe5eccc3976f5afe437ab6b4ff33dc02628",
+        "finding": "Original ArcForges.Contracts.Sandbox.V2 1.0.0-ci.481.1 NOTICE retained inside the exact verified publisher archive."
+      }
+    ],
+    "scope": "Exact published package metadata and original Apache-2.0 licence from the four locked WEB-01 client NuGet packages. The original publisher NOTICE for each package remains in its verified retained archive. Prior Contracts naming authority and earlier published package copies remain active in their own record.",
+    "copyingPermission": null
+  },
+  "attribution": [
+    "ArcForges Contracts, Copyright ArcForges contributors, Apache-2.0"
+  ],
+  "targets": [
+    {
+      "path": "eng/contracts/ArcForges.Contracts.Foundation/1.0.0-ci.481.1/build-identity.json",
+      "sha256": "58fe3693b041cdf420d7d347670adf4efd05e09b905547cd3a2291d9dfe43354",
+      "normalization": "raw"
+    },
+    {
+      "path": "eng/contracts/ArcForges.Contracts.Foundation/1.0.0-ci.481.1/source.json",
+      "sha256": "9979ed2ba3e7076c5a1da893521f75d176745e42d65b0bd1b11723dbef7fad23",
+      "normalization": "raw"
+    },
+    {
+      "path": "eng/contracts/ArcForges.Contracts.Management.V2/1.0.0-ci.481.1/build-identity.json",
+      "sha256": "9dd92be0ba5630810d7a773e4bc962cfee43d9ecc724e96f50c7b1b10a01e75a",
+      "normalization": "raw"
+    },
+    {
+      "path": "eng/contracts/ArcForges.Contracts.Management.V2/1.0.0-ci.481.1/source.json",
+      "sha256": "7b9afaa866885602d97df000debfda744e62bc425759032db79edb1dfdbcd4b4",
+      "normalization": "raw"
+    },
+    {
+      "path": "eng/contracts/ArcForges.Contracts.PublicApi/1.0.0-ci.481.1/build-identity.json",
+      "sha256": "21b5e69a4c2bbcbd6dd9f428c903a4795712d424253e76332d5bea0400d20254",
+      "normalization": "raw"
+    },
+    {
+      "path": "eng/contracts/ArcForges.Contracts.PublicApi/1.0.0-ci.481.1/source.json",
+      "sha256": "6e6d22f617fb8afc23a3b65fdb7c1d3a81caae90d44e5ec53183c5e95a8d8150",
+      "normalization": "raw"
+    },
+    {
+      "path": "eng/contracts/ArcForges.Contracts.PublicApi/1.0.0-ci.481.1/LICENSE",
+      "sha256": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30",
+      "normalization": "raw"
+    },
+    {
+      "path": "eng/contracts/ArcForges.Contracts.Sandbox.V2/1.0.0-ci.481.1/build-identity.json",
+      "sha256": "f88014d9569fd0e004d890f46691912d38f71371df7b96ef8bc6b1b2d3c6be00",
+      "normalization": "raw"
+    },
+    {
+      "path": "eng/contracts/ArcForges.Contracts.Sandbox.V2/1.0.0-ci.481.1/source.json",
+      "sha256": "45499990fdb6c546c53597c9da99ab5759a2b273ec948287f6bbbee2b08b5f7e",
+      "normalization": "raw"
+    }
+  ],
+  "artifactTargets": [],
+  "disposition": "Copy",
+  "verification": {
+    "kind": "exact-signed-nuget-archive-and-byte-review",
+    "command": "Verify the four exact 1.0.0-ci.481.1 archives with dotnet nuget verify --all; compare restored nuspec and locked NuGet content identities, and compare committed package metadata to exact ZIP members.",
+    "expected": "Each publisher commit, archive signature and retained byte hash agrees with the public package. The current Web ContractSet reports the exact producer-owned subjects.",
+    "artifacts": [
+      {
+        "url": "https://api.nuget.org/v3-flatcontainer/arcforges.contracts.foundation/1.0.0-ci.481.1/arcforges.contracts.foundation.1.0.0-ci.481.1.nupkg",
+        "sha256": "a75b265509f12e1e787de0abcfea8d311482d49455a7f1a2ec45286c1203b267",
+        "members": [
+          "build-identity.json",
+          "source.json",
+          "LICENSE",
+          "NOTICE"
+        ]
+      },
+      {
+        "url": "https://api.nuget.org/v3-flatcontainer/arcforges.contracts.management.v2/1.0.0-ci.481.1/arcforges.contracts.management.v2.1.0.0-ci.481.1.nupkg",
+        "sha256": "3d3f4a5de53682201c70f686d5b8bed6f3f0c6098c0a000c48445decd02a2f14",
+        "members": [
+          "build-identity.json",
+          "source.json",
+          "LICENSE",
+          "NOTICE"
+        ]
+      },
+      {
+        "url": "https://api.nuget.org/v3-flatcontainer/arcforges.contracts.publicapi/1.0.0-ci.481.1/arcforges.contracts.publicapi.1.0.0-ci.481.1.nupkg",
+        "sha256": "ba7c26a804a8c3863065ea37855d1c1fdf21deee947f5a49e5727794a45becdc",
+        "members": [
+          "build-identity.json",
+          "source.json",
+          "LICENSE",
+          "NOTICE"
+        ]
+      },
+      {
+        "url": "https://api.nuget.org/v3-flatcontainer/arcforges.contracts.sandbox.v2/1.0.0-ci.481.1/arcforges.contracts.sandbox.v2.1.0.0-ci.481.1.nupkg",
+        "sha256": "9fc64e152b8b0f9e3a8f7a6df0c359f965e5a13b57f8576d66f15ad6306cd486",
+        "members": [
+          "build-identity.json",
+          "source.json",
+          "LICENSE",
+          "NOTICE"
+        ]
+      }
+    ]
+  },
+  "notice": {
+    "required": true,
+    "text": "ArcForges Contracts 1.0.0-ci.481.1 publication metadata, Copyright ArcForges contributors, Apache-2.0. The four exact NuGet packages retain their original notices.",
+    "files": [
+      "eng/contracts/ArcForges.Contracts.PublicApi/1.0.0-ci.481.1/LICENSE"
+    ],
+    "distribution": "source-and-applicable-artifacts",
+    "reason": "Exact registry metadata and producer licence are carried with their original terms, and the original notices remain hash-bound to the official archive evidence."
+  },
+  "lifetime": {
+    "status": "permanent",
+    "owner": "Web Licensing and Provenance Owner",
+    "removalTrigger": null
+  },
+  "generation": null,
+  "review": {
+    "owner": "Licensing and Provenance Owner",
+    "reviewer": "Root coordinator (WEB-01 reviewed NuGet package and publisher identity)",
+    "reviewedOn": "2026-11-21",
+    "decision": "approved",
+    "rationale": "The exact four public registry NuGet archives passed signature verification and declare the same Contracts source commit. Preserve earlier immutable Contracts copies and the independent naming authority record.",
+    "baselineCommit": "69be85d95ea412cc027597ffd0d990bf0e28e50f",
+    "reconciliation": false
+  },
+  "supersedes": null
+}

@@ -45,7 +45,11 @@ function digest(value: string) {
   return createHash("sha256").update(value).digest("hex");
 }
 
-export function resolveAxes(catalog: unknown, read: (source: string) => string) {
+export function resolveAxes(
+  catalog: unknown,
+  read: (source: string) => string,
+  canonicalFoundationSource?: string,
+) {
   const document = object(catalog);
   assert.equal(document.schemaVersion, 1);
   assert.equal(document.owner, "Web");
@@ -110,10 +114,17 @@ export function resolveAxes(catalog: unknown, read: (source: string) => string) 
           assert(entries.length > 0, "Missing published ContractSet values");
           for (const entry of entries) {
             const value = object(entry);
+            const subject = string(value.subject);
+            if (
+              canonicalFoundationSource &&
+              subject === "arcforges.foundation" &&
+              sourcePath !== canonicalFoundationSource
+            )
+              continue;
             const descriptor = value.descriptorSha256;
             if (descriptor !== undefined) assert.match(string(descriptor), /^[a-f0-9]{64}$/u);
             add(
-              string(value.subject),
+              subject,
               string(value.version),
               descriptor === undefined ? undefined : string(descriptor),
             );
@@ -235,16 +246,82 @@ export function verifyContractSources(
 }
 
 export const contractsPackage = "ArcForges.Contracts.PublicApi";
-export const contractsRecord = "eng/contracts/ArcForges.Contracts.PublicApi/1.0.0-ci.287.1";
-/** The one central NuGet pin of the Contracts publication (Directory.Packages.props). */
-export function contractsPackageVersion(props: string) {
+const foundationPackage = "ArcForges.Contracts.Foundation";
+const directContractPackages = [
+  "ArcForges.Contracts.Management.V2",
+  contractsPackage,
+  "ArcForges.Contracts.Sandbox.V2",
+];
+
+/** Read the exact central NuGet pin for a directly consumed Contracts package. */
+export function contractsPackageVersion(props: string, packageId = contractsPackage) {
   const pins = [
     ...props.matchAll(
-      /<PackageVersion\s+Include="ArcForges\.Contracts\.PublicApi"\s+Version="([^"]+)"\s*\/>/gu,
+      /<PackageVersion\s+Include="([^"]+)"\s+Version="([^"]+)"\s*\/>/gu,
     ),
-  ];
-  assert.equal(pins.length, 1, "Exactly one central pin of the Contracts publication");
-  return pins[0]?.[1] ?? "";
+  ].filter((pin) => pin[1] === packageId);
+  assert.equal(pins.length, 1, `Exactly one central pin for ${packageId}`);
+  return pins[0]?.[2] ?? "";
+}
+
+function verifyConsumedContracts(catalog: unknown, read: (source: string) => string) {
+  const props = read("Directory.Packages.props");
+  const version = contractsPackageVersion(props);
+  assert.match(version, /^[0-9]+\.[0-9]+\.[0-9]+(?:-[a-zA-Z0-9.-]+)?$/u);
+  for (const packageId of directContractPackages)
+    assert.equal(contractsPackageVersion(props, packageId), version);
+  const packages = [foundationPackage, ...directContractPackages].map((id) => ({
+    id,
+    directory: `eng/contracts/${id}/${version}`,
+  }));
+  const identitySources = packages.map(({ directory }) => `${directory}/build-identity.json`);
+  const [foundationIdentity] = identitySources;
+  assert(foundationIdentity);
+  const axes = object(object(catalog).axes);
+  assert.deepEqual(object(axes.ContractSet).sources, identitySources);
+
+  const appLock = object(JSON.parse(read("src/ArcForges.Web.App/packages.lock.json")));
+  const locked = object(object(appLock.dependencies)["net11.0"]);
+  const producerCommits = new Set<string>();
+  const foundationSources = [];
+  for (const { id, directory } of packages) {
+    const dependency = object(locked[id]);
+    assert.equal(dependency.resolved, version);
+    if (id !== foundationPackage)
+      assert.equal(object(dependency.dependencies)[foundationPackage], version);
+
+    const source = object(JSON.parse(read(`${directory}/source.json`)));
+    const identity = object(JSON.parse(read(`${directory}/build-identity.json`)));
+    assert.equal(source.version, version);
+    assert.equal(source.dirty, false);
+    assert.equal(source.repository, "https://github.com/ArcForges/Contracts");
+    assert.equal(source.contractAccess, "public");
+    assert.equal(identity.schema, "arcforges.build-identity.v1");
+    assert.equal(identity.owner, "Contracts");
+    assert.equal(object(identity.artifact).id, id);
+    assert.equal(object(identity.artifact).version, version);
+    const build = object(identity.build);
+    assert.equal(build.dirty, false);
+    assert.equal(build.sourceCommit, source.commit);
+    const commit = string(source.commit);
+    assert.match(commit, /^[a-f0-9]{40}$/u);
+    producerCommits.add(commit);
+
+    const contractSet = object(object(identity.axes).ContractSet);
+    assert.equal(contractSet.status, "present");
+    verifyContractSources(contractSet, source);
+    const values = array(contractSet.values).map(object);
+    const [foundation, ...duplicates] = values.filter(
+      (value) => value.subject === "arcforges.foundation",
+    );
+    assert(foundation && duplicates.length === 0, `Expected one Foundation declaration for ${id}`);
+    if (id === foundationPackage) assert.equal(values.length, 1);
+    foundationSources.push({ version: string(foundation.version), source: object(foundation.source) });
+  }
+  assert.equal(producerCommits.size, 1, "Contracts packages must share one producer commit");
+  for (const source of foundationSources.slice(1))
+    assert.deepEqual(source, foundationSources[0], "Contracts packages disagree on the Foundation schema");
+  return foundationIdentity;
 }
 
 export function expectedIdentity(version: string) {
@@ -269,22 +346,14 @@ export function expectedIdentity(version: string) {
       return JSON.stringify({ versions: [{ subject: "Web", version }] });
     return readFileSync(path.join(root, name), "utf8");
   };
-  // The consumed Contracts publication is the NuGet package the Web profiles reference. Its committed record is the
-  // CON.07 publication copy, and it must match the exact package version pinned in Directory.Packages.props.
-  const contracts = object(JSON.parse(read(`${contractsRecord}/source.json`)));
-  const pinned = contractsPackageVersion(read("Directory.Packages.props"));
-  assert.equal(contracts.version, pinned);
-  const identity = object(JSON.parse(read(`${contractsRecord}/build-identity.json`)));
-  assert.equal(object(identity.artifact).id, contractsPackage);
-  assert.equal(object(identity.artifact).version, pinned);
-  assert.equal(object(identity.build).sourceCommit, contracts.commit);
-  verifyContractSources(object(identity.axes).ContractSet, contracts);
+  const catalog: unknown = JSON.parse(read("eng/version-sources.json"));
+  const foundationSource = verifyConsumedContracts(catalog, read);
   return {
     schema: "arcforges.build-identity.v1",
     owner: "Web",
     artifact: { id: "Web", version },
     build,
-    axes: resolveAxes(JSON.parse(read("eng/version-sources.json")), read),
+    axes: resolveAxes(catalog, read, foundationSource),
   };
 }
 

@@ -6,6 +6,8 @@
     <DisableTransitiveFrameworkReferences>true</DisableTransitiveFrameworkReferences>
   </PropertyGroup>
   <ItemGroup>
+    <PackageReference Include="ArcForges.Contracts.Management.V2" />
+    <PackageReference Include="ArcForges.Contracts.Sandbox.V2" />
     <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly" />
     <PackageReference Include="Grpc.Net.Client" />
     <PackageReference Include="Grpc.Net.Client.Web" />

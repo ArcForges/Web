@@ -10,20 +10,22 @@ GitHub's `cloudflare` environment contains the account variable and API token, w
 
 ## One-time owner setup
 
-When ready to enable delivery:
+Use these steps for an authorized production activation under AFV2-PROD-01:
 
 1. In Cloudflare, select **Workers & Pages > arcforges-web > Domains**. The current account already has the apex Custom Domain and the `www.arcforges.com/*` Route; retain both and the existing proxied www DNS record. A fresh account needs the Worker and an active zone first; use **Add Domain** for `arcforges.com`, and ensure its www entry also reaches this Worker. This established production pipeline refuses to disable the default address before the apex custom-domain mapping exists. Do not delete or recreate the working bindings to deploy the redirect.
 2. Create or reuse a Cloudflare API token restricted to that account with **Account / Workers Scripts / Edit**. Deploying this Worker and static assets needs no Workers AI, DNS or Zone permissions because the bindings remain managed separately. Save the token privately.
 3. Open [Web environment settings](https://github.com/ArcForges/Web/settings/environments), enter **cloudflare**, and add **Environment secret** `CLOUDFLARE_API_TOKEN`. Do not put it in variables, code, chat or a `VITE_` value.
 4. Check **Environment variable** `CLOUDFLARE_ACCOUNT_ID` contains the account's 32-character ID. Both this and the deployment secret are configured. Environments are repository-specific; the AI repository's environment is not automatically inherited.
-5. Keep deployments restricted to `main`. No enable switch or human approval is required by this workflow. Merge the tested PR when ready, or rerun the failed deployment after configuring the secret if the source is still current main.
+5. Keep deployments restricted to `main`. Activate the guarded deployment job through AFV2-PROD-01 before using the main-push delivery procedure.
 
 The token stays in CI. The browser never receives Cloudflare management credentials. CI uses this API token independently of any developer's `wrangler login` browser session. Credential rotation consists of replacing the environment secret; do not commit an example credential.
 
-## Automatic sequence
+## Candidate and authorized deployment sequence
+
+Main pushes build and verify the sealed candidate. The deployment and public prerelease steps are held pending AFV2-PROD-01. Steps 3–5 describe the provider handoff after activation.
 
 1. Linux and Windows restore the exact lock; Linux validates source and Windows evaluates IDE declarations. Dependency auditing, history secret scanning and CodeQL run; dependency review additionally runs for PRs.
-2. The candidate job publishes the Blazor WebAssembly application, emits the Worker and the build identity from the reviewed sources (`tooling/candidate.ts`), then builds the sealed candidate with the C# tool (`candidate build`) twice, compares the bytes, and verifies it (`candidate verify`). The Account and Chat profile bundle (`profiles bundle`) is built and verified beside it.
+2. The candidate job publishes the Blazor WebAssembly application, emits the Worker and the build identity from the reviewed sources (`tooling/candidate.ts`), then builds the sealed candidate with the C# tool (`candidate build`) twice, compares the bytes, and verifies it (`candidate verify`). The Dashboard profile bundle (`profiles bundle`) is built and verified beside it using the existing archive layout.
 3. `Verify` requires applicable checks. Main deployment consumes the workflow candidate by artifact ID. Before any upload, its entry point verifies the seal again (`candidate verify`: the exact member set, the wrangler configuration, the pinned Worker, the regenerated Site compared byte for byte, the static page graph, and the licence, notice, SBOM and policy receipt against the repository), then re-derives the build identity. It does not rebuild.
 4. Deployment confirms the current main commit and intended domain mapping, then runs Wrangler. No DNS mapping is recreated.
 5. Successful provider completion records `status: deployed` in `artifacts/deployment.json` and creates a prerelease with the original candidate archive, the Site archive, the profile bundle and the deployment record. It does not claim live HTTP or browser acceptance.
@@ -34,11 +36,13 @@ There are no browser installations, local/live E2E, public-file hash downloads, 
 
 `node tooling/cloudflare.ts dry-run` runs the same sealed-candidate verification as the deployment, then `wrangler deploy --dry-run` against the candidate configuration. It needs no credential, performs no upload and changes no remote setting. Build the candidate first with the commands in the candidate job of `.github/workflows/ci.yml`.
 
-The Blazor profile bundle (`web-profiles-<sha256>.tar`) keeps its name pattern, its manifest-first layout, its root `_headers` and its `account/` and `chat/` pages. Its files come from the publish of ArcForges.Web.App; its browser-graph check is the publish's static web assets manifest (every file's integrity). The archive is consumed by the Cloud proof deployment and is not deployed by this Web workflow.
+The Blazor profile bundle (`web-profiles-<sha256>.tar`) keeps its name pattern, its manifest-first layout, its root `_headers` and its historical `account/` and `chat/` member names. Its files come from the publish of ArcForges.Web.App; its browser-graph check is the publish's static web assets manifest (every file's integrity). The archive is an input to the Cloud profile verifier and the optional self-host static origin. The Web workflow retains it as a separate candidate artifact.
 
 The sealed candidate also holds one deterministic Site archive at its root, `web-site-<sha256>.tar` (`candidate build`). It is written by the same ustar writer as the profile bundle, holds the C# Site files in ordinal path order with fixed metadata, and is named by the digest of its own bytes. The seal records that digest. `candidate verify` regenerates the Site and refuses any other bytes, a second archive, or a name that is not the digest. Only the main-push prerelease publishes it, beside `web-profiles-<sha256>.tar`. Wrangler deploys `artifacts/candidate/assets` only, so the Site archive is not a deployed asset and changes nothing that Cloudflare serves.
 
-PR, schedule and manually dispatched workflows validate but do not deploy. Main pushes deploy automatically once the credential is present. No second Cloudflare Git integration is required; enabling one would create an independent deployment path that bypasses this candidate process.
+The GitHub Actions deployment and public prerelease job is disabled pending AFV2-PROD-01, including on main pushes. The existing Cloudflare GitHub Actions path remains the delivery route for authorized activation.
+
+For isolated Dashboard use, compose the verified static Dashboard and the Center's `/api/*` routes on one origin. Supply public `Dashboard:CenterOrigin` and `Dashboard:Mode` values to the App's `appsettings.json` at that origin. The origin is the page authority and the mode is `self-hosted` or `official-hosted`. `Dashboard:Name` is an optional display name.
 
 ## Serving and security
 
@@ -48,7 +52,7 @@ HTML revalidates, hashed `/assets/*` files are immutable, and `__build.json` is 
 
 The source link identifies the candidate's source revision. Public content contains no secret; open-source code does not grant deployment authority. Adding a backend/AI proxy in future requires its own authentication, authorization, quota and abuse controls. This static preview has no paid model invocation path.
 
-Use `https://arcforges.com`. The former Workers subdomain was another public entry to the same deployment, not a staging environment. Do not re-enable it merely to run CI. Disabling it in the dashboard alone is insufficient if a later Wrangler configuration enables it; the source configuration is authoritative. The [Cloud Hello boundary](cloud-hello.md) prepares an anonymous same-origin API call. Authenticated sessions and production profile separation remain future integration work. Live Web delivery checks only Web-owned paths; it must not require its HTML 404 at `/api/*` once Cloud owns that route.
+Use `https://arcforges.com`. The former Workers subdomain was another public entry to the same deployment, not a staging environment. Do not re-enable it merely to run CI. Disabling it in the dashboard alone is insufficient if a later Wrangler configuration enables it; the source configuration is authoritative. The [Cloud Hello boundary](cloud-hello.md) prepares an anonymous same-origin API call. Dashboard browser sessions are verified using isolated Center integration. Public routing and activation follow AFV2-DIST-01 and AFV2-PROD-01. Live Web delivery checks only Web-owned paths; it must not require its HTML 404 at `/api/*` once Cloud owns that route.
 
 The www failure occurred because the page used its own origin for `/api`, while Cloud owned only the apex API route. DNS and the Web catchall could serve the page without routing its RPC to Cloud. Canonical navigation fixes that mismatch before the page starts: `https://www.arcforges.com/cloud-hello/?example=1` redirects to `https://arcforges.com/cloud-hello/?example=1`. A www page opened before this deployment must be reloaded. Its existing RPC client deliberately uses `redirect: "error"`; the redirect does not make that old page automatically follow API redirects or gain cross-origin access.
 

@@ -1,0 +1,369 @@
+@* SPDX-License-Identifier: AGPL-3.0-only *@
+@page "/devices/{DeviceId:guid}"
+@using ArcForges.Web.App.Dashboard
+@using ArcForges.Web.App.Layout
+@implements IDisposable
+@inject IDashboardCenter Center
+
+<PageTitle>@PageName | ArcForges</PageTitle>
+
+<a class="dashboard-back dashboard-link" href="/devices">All devices</a>
+<section class="dashboard-intro dashboard-detail-intro" aria-labelledby="dashboard-device-title">
+    <div>
+        <div class="dashboard-detail-heading">
+            <h1 id="dashboard-device-title" tabindex="-1">@PageName</h1>
+            @if (_device is not null)
+            {
+                <DevicePresence Presence="_device.Presence" />
+            }
+        </div>
+        @if (_device is { Presence: DashboardDevicePresence.Offline })
+        {
+            <p>Reconnect the device before requesting a live read.</p>
+        }
+    </div>
+    <button type="button" class="dashboard-button dashboard-button-quiet" aria-disabled="@(CanRefresh ? "false" : "true")" @onclick="RefreshAsync">
+        @(Pending is { Sending: false } ? "Check device status" : "Refresh")
+    </button>
+</section>
+
+<div class="dashboard-detail-state" role="status">
+    @if (_reading)
+    {
+        <span>@(_device is null ? "Loading device details…" : "Refreshing device details…")</span>
+    }
+    else if (_observedAt is not null)
+    {
+        <span>@(_readFailure is null ? "Checked" : "Last successful read") <DashboardTime Value="_observedAt" /></span>
+    }
+</div>
+
+@if (_device is null && Pending is { } waiting)
+{
+    <div class="dashboard-notice" role="status">
+        <strong>@(waiting.Sending ? "Waiting for revocation confirmation" : "Revocation result unknown")</strong>
+        <p>Command <code>@waiting.CommandId</code></p>
+    </div>
+}
+
+@if (_readFailure is not null)
+{
+    <div class="dashboard-notice" role="status">
+        <strong>@(_device is null ? "Device details unavailable" : "Device details are stale")</strong>
+        <p>@_readFailure.Message</p>
+        @if (_readFailure.CorrelationId is Guid readReference)
+        {
+            <p>Reference <code>@readReference</code></p>
+        }
+    </div>
+}
+
+@if (_device is DashboardDevice device)
+{
+    <div class="dashboard-detail-grid">
+        <section class="dashboard-panel" aria-labelledby="dashboard-enrollment">
+            <div class="dashboard-panel-header"><h2 id="dashboard-enrollment">Enrollment</h2></div>
+            <dl class="dashboard-detail-facts">
+                <div><dt>Platform</dt><dd>@(string.IsNullOrWhiteSpace(device.Platform) ? "Unavailable" : device.Platform)</dd></div>
+                <div><dt>Last seen</dt><dd><DashboardTime Value="device.LastSeenAt" /></dd></div>
+                <div><dt>Device ID</dt><dd><code>@device.Id</code></dd></div>
+                <div><dt>Enrollment ID</dt><dd><code>@device.EnrollmentId</code></dd></div>
+                <div><dt>Revision</dt><dd class="dashboard-number">@device.Revision</dd></div>
+                <div><dt>Node epoch</dt><dd><code>@(device.NodeEpoch ?? "Unavailable")</code></dd></div>
+            </dl>
+        </section>
+        <div class="dashboard-detail-side">
+            <section class="dashboard-panel" aria-labelledby="dashboard-detail-runs">
+                <div class="dashboard-panel-header"><h2 id="dashboard-detail-runs">Run activity</h2></div>
+                @if (Pending is not null)
+                {
+                    <div class="dashboard-run-status"><p>Run reads are paused until the Center confirms enrollment access.</p></div>
+                }
+                else if (_readFailure is null)
+                {
+                    <RunStatus Device="device" />
+                }
+                else
+                {
+                    <div class="dashboard-run-status"><p>Live Run data is unavailable while device details are stale.</p></div>
+                }
+            </section>
+            <section class="dashboard-panel" aria-labelledby="dashboard-device-capabilities">
+                <div class="dashboard-panel-header"><h2 id="dashboard-device-capabilities">Reported capabilities</h2></div>
+                @if (device.Capabilities.Count == 0)
+                {
+                    <p class="dashboard-panel-copy dashboard-muted">Capability information is unavailable.</p>
+                }
+                else
+                {
+                    <ul class="dashboard-capabilities">
+                        @foreach (var capability in device.Capabilities)
+                        {
+                            <li>@capability</li>
+                        }
+                    </ul>
+                }
+            </section>
+        </div>
+    </div>
+
+    <section class="dashboard-panel dashboard-access-panel" aria-labelledby="dashboard-device-access">
+        <div class="dashboard-access-copy">
+            <h2 id="dashboard-device-access">Remote access</h2>
+            <p>Revocation ends access through this enrollment. Local work continues on the device.</p>
+            <div class="dashboard-device-result" role="status">
+                @if (Pending is { } pending)
+                {
+                    @if (pending.Sending)
+                    {
+                        <p>Waiting for the Center to confirm revocation…</p>
+                    }
+                    else
+                    {
+                        <p><strong>Revocation result unknown.</strong> Check device status before continuing.</p>
+                    }
+                    <p>Command <code>@pending.CommandId</code></p>
+                    @if (pending.CorrelationId is Guid pendingReference)
+                    {
+                        <p>Reference <code>@pendingReference</code></p>
+                    }
+                }
+                else if (_mutationFailure is not null)
+                {
+                    <p>@_mutationFailure.Message</p>
+                    @if (_mutationFailure.CorrelationId is Guid mutationReference)
+                    {
+                        <p>Reference <code>@mutationReference</code></p>
+                    }
+                }
+                else if (_mutationMessage is not null)
+                {
+                    <p>@_mutationMessage</p>
+                }
+            </div>
+        </div>
+        <button type="button" class="dashboard-button dashboard-button-danger"
+                aria-disabled="@(CanRevoke ? "false" : "true")"
+                command="@(CanRevoke ? "show-modal" : null)" commandfor="dashboard-revoke-confirm">
+            @(device.Presence == DashboardDevicePresence.Revoked ? "Access revoked" : "Revoke access")
+        </button>
+    </section>
+
+    <dialog id="dashboard-revoke-confirm" class="dashboard-dialog" aria-labelledby="dashboard-revoke-title"
+            aria-describedby="dashboard-revoke-description" closedby="closerequest">
+        <h2 id="dashboard-revoke-title">Revoke device access?</h2>
+        <p id="dashboard-revoke-description">Revoke this enrollment for <strong>@PageName</strong>. Local work continues.</p>
+        <dl class="dashboard-dialog-facts">
+            <dt>Device ID</dt><dd><code>@device.Id</code></dd>
+            <dt>Revision</dt><dd class="dashboard-number">@device.Revision</dd>
+        </dl>
+        <form method="dialog" class="dashboard-actions">
+            <button type="submit" value="cancel" class="dashboard-button dashboard-button-quiet" autofocus>Cancel</button>
+            <button type="submit" value="revoke" class="dashboard-button dashboard-button-danger-solid" @onclick="RevokeAsync">Revoke access</button>
+        </form>
+    </dialog>
+}
+
+@code {
+    [CascadingParameter]
+    private DashboardAccess Access { get; set; } = default!;
+
+    [Parameter]
+    public Guid DeviceId { get; set; }
+
+    private Guid? _selection;
+    private DashboardDevice? _device;
+    private DateTimeOffset? _observedAt;
+    private DashboardApiException? _readFailure;
+    private DashboardApiException? _mutationFailure;
+    private string? _mutationMessage;
+    private CancellationTokenSource? _read;
+    private bool _reading;
+    private bool _disposed;
+
+    private string PageName => _device is null ? "Device details" : string.IsNullOrWhiteSpace(_device.Name) ? $"Device {_device.Id:D}" : _device.Name;
+    private PendingDeviceRevocation? Pending => Access.Revocations.GetValueOrDefault(DeviceId);
+    private bool CanRefresh => !_reading && Pending is not { Sending: true };
+    private bool CanRevoke => !_reading && _readFailure is null && Pending is null &&
+        _device is { Presence: not DashboardDevicePresence.Revoked } &&
+        _mutationFailure?.Failure != DashboardFailure.Conflict;
+
+    protected override void OnInitialized() => Access.RevocationsChanged += RevocationsChanged;
+
+    protected override Task OnParametersSetAsync()
+    {
+        if (_selection == DeviceId)
+        {
+            return Task.CompletedTask;
+        }
+        _selection = DeviceId;
+        CancelRead();
+        _device = null;
+        _observedAt = null;
+        _readFailure = null;
+        _mutationFailure = null;
+        _mutationMessage = null;
+        return ReadAsync();
+    }
+
+    private async Task ReadAsync()
+    {
+        if (_reading)
+        {
+            return;
+        }
+        var id = DeviceId;
+        using var request = CancellationTokenSource.CreateLinkedTokenSource(Access.Cancellation);
+        _read = request;
+        _reading = true;
+        try
+        {
+            var device = await Center.InspectDeviceAsync(id, request.Token);
+            if (request.IsCancellationRequested)
+            {
+                return;
+            }
+            if (device.Id != id)
+            {
+                throw new DashboardApiException(DashboardFailure.Incompatible);
+            }
+            if (_device is { } last && last.Revision > device.Revision)
+            {
+                return;
+            }
+            AcceptDevice(device);
+            _readFailure = null;
+            _mutationFailure = null;
+            if (Pending is { Sending: false } pending &&
+                device.Presence == DashboardDevicePresence.Revoked &&
+                device.EnrollmentId == pending.EnrollmentId)
+            {
+                Access.Revocations.Remove(id);
+                _mutationMessage = "The current enrollment is revoked.";
+                Access.NotifyRevocationsChanged();
+            }
+        }
+        catch (DashboardApiException error) when (!request.IsCancellationRequested)
+        {
+            if (error.Failure == DashboardFailure.Unauthenticated)
+            {
+                await Access.ExpireAsync();
+                return;
+            }
+            if (error.Failure is DashboardFailure.Forbidden or DashboardFailure.NotFound)
+            {
+                _device = null;
+                _observedAt = null;
+            }
+            _readFailure = error;
+        }
+        catch (DashboardApiException)
+        {
+        }
+        catch (OperationCanceledException) when (request.IsCancellationRequested)
+        {
+        }
+        finally
+        {
+            if (ReferenceEquals(_read, request))
+            {
+                _read = null;
+                _reading = false;
+            }
+        }
+    }
+
+    private async Task RevokeAsync()
+    {
+        if (!CanRevoke || _device is not DashboardDevice device)
+        {
+            return;
+        }
+        var access = Access;
+        var operation = new PendingDeviceRevocation(device.Id, device.EnrollmentId, device.Revision, Guid.NewGuid());
+        if (!access.Revocations.TryAdd(device.Id, operation))
+        {
+            return;
+        }
+        _mutationMessage = null;
+        _mutationFailure = null;
+        access.NotifyRevocationsChanged();
+        DashboardDevice? confirmed = null;
+        try
+        {
+            var result = await Center.RevokeDeviceAsync(operation.DeviceId, operation.Revision, operation.CommandId, access.Cancellation);
+            if (result.Id != operation.DeviceId || result.EnrollmentId != operation.EnrollmentId ||
+                result.Revision <= operation.Revision || result.Presence != DashboardDevicePresence.Revoked)
+            {
+                throw new DashboardApiException(DashboardFailure.Uncertain);
+            }
+            access.Revocations.Remove(operation.DeviceId);
+            confirmed = result;
+        }
+        catch (DashboardApiException error)
+        {
+            if (error.Failure != DashboardFailure.Uncertain)
+            {
+                access.Revocations.Remove(operation.DeviceId);
+            }
+            operation.CorrelationId = error.CorrelationId;
+            if (error.Failure == DashboardFailure.Unauthenticated)
+            {
+                await access.ExpireAsync();
+                return;
+            }
+            if (IsCurrent(operation))
+            {
+                _mutationFailure = error;
+            }
+        }
+        catch (OperationCanceledException) when (access.Cancellation.IsCancellationRequested)
+        {
+        }
+        finally
+        {
+            operation.Sending = false;
+            access.NotifyRevocationsChanged(confirmed);
+        }
+    }
+
+    private Task RefreshAsync() => CanRefresh ? ReadAsync() : Task.CompletedTask;
+
+    private void RevocationsChanged(DashboardDevice? confirmed) => _ = InvokeAsync(() =>
+    {
+        if (_disposed)
+        {
+            return;
+        }
+        if (confirmed is not null && _selection == confirmed.Id &&
+            (_device is null || _device.Revision <= confirmed.Revision))
+        {
+            AcceptDevice(confirmed);
+            _mutationMessage = "Device access revoked.";
+        }
+        StateHasChanged();
+    });
+
+    private bool IsCurrent(PendingDeviceRevocation operation) => !_disposed && _selection == operation.DeviceId;
+
+    private void AcceptDevice(DashboardDevice device)
+    {
+        _device = device;
+        _observedAt = DateTimeOffset.UtcNow;
+    }
+
+    private void CancelRead()
+    {
+        var active = _read;
+        _read = null;
+        _reading = false;
+        active?.Cancel();
+    }
+
+    public void Dispose()
+    {
+        _disposed = true;
+        Access.RevocationsChanged -= RevocationsChanged;
+        CancelRead();
+    }
+}

@@ -395,7 +395,7 @@ jobs:
       - name: Enforce the Blazor profile budgets
         run: |
           set -euo pipefail
-          dotnet tools/ArcForges.Web.Tooling/bin/Release/net11.0/ArcForges.Web.Tooling.dll profiles budget --publish artifacts/publish/app --budgets eng/policy/profile-budgets.json
+          dotnet tools/ArcForges.Web.Tooling/bin/Release/net11.0/ArcForges.Web.Tooling.dll profiles budget --publish artifacts/publish/app --budgets eng/policy/dashboard-profile-budgets.json
       - name: Emit the Worker and the build identity from the reviewed sources
         run: |
           set -euo pipefail
@@ -467,7 +467,7 @@ jobs:
   deploy:
     name: Deploy Cloudflare
     if: >-
-      !cancelled() && github.event_name == 'push' && github.ref == 'refs/heads/main'
+      false && !cancelled() && github.event_name == 'push' && github.ref == 'refs/heads/main'
       && needs.candidate.result == 'success'
     needs: [candidate]
     runs-on: ubuntu-26.04

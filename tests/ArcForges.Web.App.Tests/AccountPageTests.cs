@@ -5,10 +5,10 @@ using System.Net;
 using System.Text;
 using AngleSharp.Dom;
 using Bunit;
-using ArcForges.Web.App.Pages;
 using Microsoft.Extensions.DependencyInjection;
 using ArcForges.Web.App.Probe;
 using ArcForges.Web.App.Tests.Fixtures;
+using ArcForges.Web.App.Tests.Fixtures.Diagnostics;
 using ArcForges.Web.App.Tests.TestDoubles;
 using Xunit;
 

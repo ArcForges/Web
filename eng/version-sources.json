@@ -8,7 +8,12 @@
     },
     "ContractSet": {
       "kind": "contracts",
-      "sources": ["eng/contracts/ArcForges.Contracts.PublicApi/1.0.0-ci.287.1/build-identity.json"]
+      "sources": [
+        "eng/contracts/ArcForges.Contracts.Foundation/1.0.0-ci.481.1/build-identity.json",
+        "eng/contracts/ArcForges.Contracts.Management.V2/1.0.0-ci.481.1/build-identity.json",
+        "eng/contracts/ArcForges.Contracts.PublicApi/1.0.0-ci.481.1/build-identity.json",
+        "eng/contracts/ArcForges.Contracts.Sandbox.V2/1.0.0-ci.481.1/build-identity.json"
+      ]
     },
     "CapabilityVersion": {
       "kind": "declarations",

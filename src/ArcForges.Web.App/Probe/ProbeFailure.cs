@@ -49,14 +49,18 @@ public static class FailureText
 public sealed class ProbeFailureException : Exception
 {
     /// <summary>Creates the failure of one kind.</summary>
-    public ProbeFailureException(FailureKind kind, Exception? cause = null)
+    public ProbeFailureException(FailureKind kind, Exception? cause = null, Guid? correlationId = null)
         : base(FailureText.For(kind), cause)
     {
         Kind = kind;
+        CorrelationId = correlationId;
     }
 
     /// <summary>The closed failure kind.</summary>
     public FailureKind Kind { get; }
+
+    /// <summary>The correlation ID issued in a typed Center refusal, when available.</summary>
+    public Guid? CorrelationId { get; }
 }
 
 /// <summary>The status-to-kind mappings of the same-origin session routes and of the gRPC-Web hello call.</summary>

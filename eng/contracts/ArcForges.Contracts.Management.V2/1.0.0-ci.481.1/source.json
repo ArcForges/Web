@@ -1,0 +1,34 @@
+{
+  "repository": "https://github.com/ArcForges/Contracts",
+  "commit": "c22be9a7da5a747b4a14b1b81d78f0ea460f810f",
+  "dirty": false,
+  "version": "1.0.0-ci.481.1",
+  "contractAccess": "public",
+  "schemaSources": {
+    "public/proto/arcforges/foundation/v1/foundation.proto": "e7e634103664dcca4c63383dd0eda5d90b408edb4786bfdf4a148856fed92736",
+    "public/proto/arcforges/management/v2/devices.proto": "43a9d8f7dd24e43f4ad8fa3d2e7b1510ce060145c5d7ae46d88ac6894d08b046"
+  },
+  "descriptorSha256": "74ce5bc2ad4c98eaa69a0b05dc544a8c3686f565859df42df67d9b5510fda888",
+  "dependencyLocks": {
+    "package-lock.json": "330a07a5774a8c3512068ad2362105480387276b1c5270b4428acf737aa5251b",
+    "src/public/dotnet/ArcForges.Contracts.Foundation/packages.lock.json": "0e02b1415e80e185b8c4d29d704bd2d78726eac35d1415f4d2596921e13a619d",
+    "src/public/dotnet/ArcForges.Contracts.PublicApi/packages.lock.json": "44cc2e1f21f5abdcf99b6d57b64ab2f629ad0512de7b2a12056228c6b7187b13",
+    "src/public/dotnet/ArcForges.Contracts.Events/packages.lock.json": "adca49fe81c6857466b08373404d41abf966716622343014d729a067a7c7563d",
+    "src/public/dotnet/ArcForges.Sdk.Contracts/packages.lock.json": "29a3e9bc735638518c2cf820141dc8d2f54a33efda5836cb95a116fad08e79c0",
+    "src/public/dotnet/ArcForges.Contracts.Validation/packages.lock.json": "b9cc8fbd962520f8875f194c5010da4c5c6099e06f4dc6ea0f170a335c5d2421",
+    "src/public/dotnet/ArcForges.Sdk.Client/packages.lock.json": "f2b58369970466f11fd61563216c87422eed95655299ec5a8431b5552b1083fc",
+    "src/public/dotnet/ArcForges.Cli/packages.lock.json": "277da9f5c4137f59a293dd3a549648aa665de4146b6e5543ec6ac7b5b13fc9f5",
+    "src/internal/dotnet/ArcForges.Contracts.LocalRpc.Platform/packages.lock.json": "32c7aef5f9c211523971b38866c2297943602cc8cbfcc144dac4f79d20e418e7",
+    "src/internal/dotnet/ArcForges.Contracts.LocalRpc.Sandbox/packages.lock.json": "44cc2e1f21f5abdcf99b6d57b64ab2f629ad0512de7b2a12056228c6b7187b13",
+    "src/internal/dotnet/ArcForges.Contracts.LocalRpc.Chat/packages.lock.json": "24c720f9d1a5fd4cb9341a4e32855b02e9d59172272fc0f91b61feaa84abe9df",
+    "src/internal/dotnet/ArcForges.Contracts.LocalRpc.Scope/packages.lock.json": "24c720f9d1a5fd4cb9341a4e32855b02e9d59172272fc0f91b61feaa84abe9df",
+    "src/internal/dotnet/ArcForges.Contracts.CloudInternal/packages.lock.json": "77acd965cea9b46e7ef47de8d16be4a25bb0d938f5c63c9c5b6096f551b50092",
+    "src/internal/dotnet/ArcForges.Contracts.LocalRpc.Dispatch/packages.lock.json": "027d439516459b5ce75f78eb719284a62d481209a82d5061be4cb5267500db6a",
+    "src/public/dotnet/ArcForges.Contracts.Node/packages.lock.json": "44cc2e1f21f5abdcf99b6d57b64ab2f629ad0512de7b2a12056228c6b7187b13",
+    "src/public/dotnet/ArcForges.Contracts.Fleet/packages.lock.json": "cc4a7cdb9eb39ca8f4177364d57eaaefd5174f647ccd222d8b25cdbe1939aa01",
+    "src/internal/dotnet/ArcForges.Contracts.Peer/packages.lock.json": "cc4a7cdb9eb39ca8f4177364d57eaaefd5174f647ccd222d8b25cdbe1939aa01",
+    "src/internal/dotnet/ArcForges.Contracts.Relay/packages.lock.json": "cbffaba1468aa752687b2a3a0710081276513b258a7de7ef3b2b756123384acb",
+    "src/public/dotnet/ArcForges.Contracts.Sandbox.V2/packages.lock.json": "44cc2e1f21f5abdcf99b6d57b64ab2f629ad0512de7b2a12056228c6b7187b13",
+    "src/public/dotnet/ArcForges.Contracts.Management.V2/packages.lock.json": "44cc2e1f21f5abdcf99b6d57b64ab2f629ad0512de7b2a12056228c6b7187b13"
+  }
+}

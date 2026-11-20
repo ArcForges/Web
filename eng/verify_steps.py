@@ -176,7 +176,7 @@ CANDIDATE = (
     f"tool={TOOL}; version={VERSION}; "
     "rm -rf artifacts/publish artifacts/profiles artifacts/inputs artifacts/candidate artifacts/candidate-repeat; "
     "dotnet publish src/ArcForges.Web.App/ArcForges.Web.App.csproj --no-restore -c Release -o artifacts/publish/app; "
-    "dotnet \"$tool\" profiles budget --publish artifacts/publish/app --budgets eng/policy/profile-budgets.json; "
+    "dotnet \"$tool\" profiles budget --publish artifacts/publish/app --budgets eng/policy/dashboard-profile-budgets.json; "
     "mkdir -p artifacts/inputs; "
     "node tooling/candidate.ts worker artifacts/inputs/index.js; "
     "node tooling/candidate.ts identity \"$version\" artifacts/inputs/build-info.json; "

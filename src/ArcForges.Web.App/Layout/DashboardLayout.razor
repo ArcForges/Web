@@ -1,0 +1,427 @@
+@* SPDX-License-Identifier: AGPL-3.0-only *@
+@using ArcForges.Web.App.Dashboard
+@inherits LayoutComponentBase
+@implements IAsyncDisposable
+@inject IDashboardCenter Center
+@inject NavigationManager Navigation
+@inject IServiceProvider Services
+
+<div class="dashboard-shell">
+    <a class="skip-link" href="#dashboard-content" @onclick="SkipToContentAsync" @onclick:preventDefault>Skip to content</a>
+    <aside class="dashboard-rail">
+        <div class="dashboard-brand-row">
+            <a href="/overview" class="dashboard-brand">ArcForges</a>
+            <button type="button" class="dashboard-menu" aria-expanded="@(_menuOpen ? "true" : "false")"
+                    aria-controls="dashboard-navigation" @onclick="ToggleMenu" @ref="_menuButton">
+                @(_menuOpen ? "Close menu" : "Menu")
+            </button>
+        </div>
+        <nav id="dashboard-navigation" class="@(_menuOpen ? "dashboard-navigation is-open" : "dashboard-navigation")"
+             aria-label="Dashboard" @onkeydown="HandleMenuKeyAsync">
+            <NavLink href="/overview" Match="NavLinkMatch.All" @onclick="CloseMenuAsync">Overview</NavLink>
+            <NavLink href="/devices" Match="NavLinkMatch.Prefix" @onclick="CloseMenuAsync">Devices</NavLink>
+        </nav>
+    </aside>
+    <div class="dashboard-workspace">
+        <header class="dashboard-context">
+            <div class="dashboard-center">
+                <strong>@CenterName</strong>
+                <span class="dashboard-origin">@OriginLabel</span>
+                @if (CenterName != CenterLabel)
+                {
+                    <span class="dashboard-origin">@CenterLabel</span>
+                }
+            </div>
+            <div class="dashboard-account">
+                <div class="dashboard-account-text">
+                    <strong>@SessionLabel</strong>
+                    @if (!_revalidating && _access is not null && EndsAt(_access.Session) is DateTimeOffset expires)
+                    {
+                        <time datetime="@expires.ToString("O")" title="@expires.ToUniversalTime().ToString("u")">
+                            Expires @expires.ToLocalTime().ToString("g")
+                        </time>
+                    }
+                </div>
+                @if (_access is not null && !_revalidating)
+                {
+                    <button type="button" class="dashboard-button dashboard-button-quiet" @onclick="SignOutAsync">Sign out</button>
+                }
+            </div>
+        </header>
+        <main id="dashboard-content" class="dashboard-main" tabindex="-1" @ref="_main">
+            @if (_access is not null)
+            {
+                @if (_revalidating)
+                {
+                    <p role="status">Checking the Center session…</p>
+                }
+                <div hidden="@_revalidating">
+                    <CascadingValue Value="_access" @key="_access">
+                        @Body
+                    </CascadingValue>
+                </div>
+            }
+            else
+            {
+                <section class="dashboard-session" aria-labelledby="dashboard-session-title">
+                    <h1 id="dashboard-session-title" tabindex="-1" @ref="_sessionHeading">@ScreenTitle</h1>
+                    <p role="status">@_message</p>
+                    <div class="dashboard-actions">
+                        @if (CanSignIn && Center.Configuration.SignInUri is Uri signIn)
+                        {
+                            <a class="dashboard-button dashboard-button-primary" href="@signIn.AbsoluteUri"
+                               @onclick="FollowSignIn" @onclick:preventDefault>Sign in</a>
+                        }
+                        <button type="button" class="dashboard-button dashboard-button-quiet" aria-disabled="@(_busy ? "true" : "false")"
+                                @onclick="CheckSessionAsync">@(_busy ? "Checking…" : "Check session")</button>
+                    </div>
+                </section>
+            }
+        </main>
+    </div>
+</div>
+
+@code {
+    private enum Screen
+    {
+        Checking,
+        SignedOut,
+        Expired,
+        Unavailable,
+        Unconfigured,
+    }
+
+    private readonly CancellationTokenSource _lifetime = new();
+    private IDashboardActivity? _activity;
+    private CancellationTokenSource? _activeSession;
+    private CancellationTokenSource? _expiryWatch;
+    private DashboardAccess? _access;
+    private Screen _screen = Screen.Checking;
+    private string _message = "Checking the Center session.";
+    private ElementReference _main;
+    private ElementReference _menuButton;
+    private ElementReference _sessionHeading;
+    private bool _busy;
+    private bool _resumePending;
+    private bool _revalidating;
+    private bool _menuOpen;
+    private bool _focusSession;
+    private bool _disposed;
+
+    private string CenterLabel => Center.Configuration.Mode switch
+    {
+        DashboardCenterMode.SelfHosted => "Self-hosted Center",
+        DashboardCenterMode.OfficialHosted => "ArcForges Center",
+        _ => "Center",
+    };
+
+    private string OriginLabel => Center.Configuration.Origin?.GetLeftPart(UriPartial.Authority) ?? "Configuration unavailable";
+    private string CenterName => Center.Configuration.Name ?? CenterLabel;
+    private string SessionLabel => _revalidating ? "Checking session" :
+        _access?.Session.DisplayName ?? (_access is null ? "Session" : "Signed in");
+    private bool CanSignIn => _screen is Screen.SignedOut or Screen.Expired;
+
+    private string ScreenTitle => _screen switch
+    {
+        Screen.Checking => "Checking session",
+        Screen.Expired => "Session expired",
+        Screen.Unavailable => "Center unavailable",
+        Screen.Unconfigured => "Set up your Center",
+        _ => "Sign in to ArcForges",
+    };
+
+    protected override Task OnInitializedAsync() => CheckSessionAsync();
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender && Services.GetService(typeof(IDashboardActivity)) is IDashboardActivity activity)
+        {
+            _activity = activity;
+            activity.Resumed += Resume;
+            try
+            {
+                await activity.StartAsync(_lifetime.Token);
+            }
+            catch (OperationCanceledException) when (_lifetime.IsCancellationRequested)
+            {
+            }
+        }
+        if (_focusSession && _access is null)
+        {
+            _focusSession = false;
+            await _sessionHeading.FocusAsync();
+        }
+    }
+
+    private async Task CheckSessionAsync()
+    {
+        if (_busy || _disposed)
+        {
+            return;
+        }
+        _busy = true;
+        var priorAccess = _access;
+        _revalidating = priorAccess is not null;
+        var previous = _screen;
+        _screen = Screen.Checking;
+        _message = "Checking the Center session.";
+        try
+        {
+            do
+            {
+                _resumePending = false;
+                try
+                {
+                    var session = await Center.ReadSessionAsync(_lifetime.Token);
+                    if (_lifetime.IsCancellationRequested)
+                    {
+                        return;
+                    }
+                    if (!_resumePending)
+                    {
+                        AcceptSession(session, previous, priorAccess);
+                    }
+                }
+                catch (Exception error) when (_resumePending && error is (DashboardApiException or OperationCanceledException))
+                {
+                    // This read predates the latest resume. Keep protected content hidden until its successor answers.
+                }
+            }
+            while (_resumePending && !_disposed);
+        }
+        catch (DashboardApiException error)
+        {
+            ClearSession();
+            _focusSession = priorAccess is not null;
+            _screen = error.Failure switch
+            {
+                DashboardFailure.NotConfigured => Screen.Unconfigured,
+                DashboardFailure.Unauthenticated => Screen.SignedOut,
+                _ => Screen.Unavailable,
+            };
+            _message = _screen switch
+            {
+                Screen.Unconfigured => "The operator must configure the Dashboard and API on the same HTTPS origin.",
+                Screen.SignedOut => "Sign in on this Center to view your enrolled devices.",
+                _ => "The Dashboard could not verify your session. Check the Center connection and try again.",
+            };
+        }
+        catch (OperationCanceledException) when (_lifetime.IsCancellationRequested)
+        {
+        }
+        catch (OperationCanceledException)
+        {
+            ClearSession();
+            _focusSession = priorAccess is not null;
+            _screen = Screen.Expired;
+            _message = "Your Center session changed. Check it again before continuing.";
+        }
+        finally
+        {
+            _busy = false;
+            _revalidating = false;
+        }
+    }
+
+    private void AcceptSession(DashboardSession session, Screen previous, DashboardAccess? priorAccess)
+    {
+        if (!session.Authenticated)
+        {
+            ClearSession();
+            _focusSession = priorAccess is not null;
+            _screen = previous == Screen.Expired ? Screen.Expired : Screen.SignedOut;
+            _message = priorAccess is null
+                ? "Sign in on this Center to view your enrolled devices."
+                : "Your Center session has ended.";
+            return;
+        }
+
+        if (EndsAt(session) is DateTimeOffset expired && expired <= DateTimeOffset.UtcNow)
+        {
+            ClearSession();
+            _focusSession = priorAccess is not null;
+            _screen = Screen.Expired;
+            _message = "Sign in again to view your enrolled devices.";
+            return;
+        }
+
+        if (priorAccess is not null && ReferenceEquals(_access, priorAccess) && SameIdentity(priorAccess.Session, session))
+        {
+            priorAccess.Session = session;
+            ScheduleExpiry(priorAccess);
+            return;
+        }
+
+        ClearSession();
+        _activeSession = CancellationTokenSource.CreateLinkedTokenSource(_lifetime.Token);
+        _access = new DashboardAccess(session, _activeSession.Token, ExpireAsync);
+        ScheduleExpiry(_access);
+    }
+
+    private async Task SignOutAsync()
+    {
+        if (_busy || _access is null)
+        {
+            return;
+        }
+        _busy = true;
+        ClearSession();
+        _screen = Screen.Checking;
+        _message = "Signing out of this Center.";
+        _focusSession = true;
+        try
+        {
+            await Center.SignOutAsync(_lifetime.Token);
+            _screen = Screen.SignedOut;
+            _message = "You signed out of this Center.";
+        }
+        catch (DashboardApiException error) when (error.Failure == DashboardFailure.Unauthenticated)
+        {
+            _screen = Screen.SignedOut;
+            _message = "Your Center session has ended.";
+        }
+        catch (DashboardApiException)
+        {
+            _screen = Screen.Unavailable;
+            _message = "The sign-out result is unknown. Check your session before continuing.";
+        }
+        catch (OperationCanceledException) when (_lifetime.IsCancellationRequested)
+        {
+        }
+        finally
+        {
+            _busy = false;
+        }
+        if (_resumePending && !_disposed)
+        {
+            await CheckSessionAsync();
+        }
+    }
+
+    private void ScheduleExpiry(DashboardAccess access)
+    {
+        StopExpiryWatch();
+        if (EndsAt(access.Session) is DateTimeOffset expiry)
+        {
+            _expiryWatch = CancellationTokenSource.CreateLinkedTokenSource(access.Cancellation);
+            _ = WatchExpiryAsync(access, expiry, _expiryWatch.Token);
+        }
+    }
+
+    private async Task WatchExpiryAsync(DashboardAccess access, DateTimeOffset expiry, CancellationToken cancellation)
+    {
+        try
+        {
+            var remaining = expiry - DateTimeOffset.UtcNow;
+            while (remaining > TimeSpan.Zero)
+            {
+                var delay = remaining < TimeSpan.FromHours(12) ? remaining : TimeSpan.FromHours(12);
+                await Task.Delay(delay, cancellation);
+                remaining = expiry - DateTimeOffset.UtcNow;
+            }
+            if (!cancellation.IsCancellationRequested)
+            {
+                await ExpireAsync(access);
+            }
+        }
+        catch (OperationCanceledException) when (cancellation.IsCancellationRequested)
+        {
+        }
+    }
+
+    private Task ExpireAsync(DashboardAccess access) => InvokeAsync(() =>
+    {
+        if (!ReferenceEquals(_access, access))
+        {
+            return;
+        }
+        ClearSession();
+        _screen = Screen.Expired;
+        _message = "Sign in again to view your enrolled devices.";
+        _focusSession = true;
+        StateHasChanged();
+    });
+
+    private static DateTimeOffset? EndsAt(DashboardSession session) =>
+        session.IdleExpiresAt is DateTimeOffset idle && (session.ExpiresAt is null || idle < session.ExpiresAt)
+            ? idle
+            : session.ExpiresAt;
+
+    private static bool SameIdentity(DashboardSession previous, DashboardSession current) =>
+        previous.AccountId is not null && previous.AccountId == current.AccountId &&
+        previous.SessionId is not null && previous.SessionId == current.SessionId &&
+        previous.RecoveryGeneration is not null && previous.RecoveryGeneration == current.RecoveryGeneration;
+
+    private void Resume() => _ = InvokeAsync(async () =>
+    {
+        if (_disposed || _screen == Screen.Unconfigured)
+        {
+            return;
+        }
+        if (_busy)
+        {
+            _resumePending = true;
+            return;
+        }
+        var check = CheckSessionAsync();
+        StateHasChanged();
+        await check;
+        if (!_disposed)
+        {
+            StateHasChanged();
+        }
+    });
+
+    private void ToggleMenu() => _menuOpen = !_menuOpen;
+
+    private Task SkipToContentAsync() => _main.FocusAsync().AsTask();
+
+    private Task HandleMenuKeyAsync(KeyboardEventArgs key) =>
+        key.Key == "Escape" ? CloseMenuAsync() : Task.CompletedTask;
+
+    private async Task CloseMenuAsync()
+    {
+        if (_menuOpen)
+        {
+            _menuOpen = false;
+            await _menuButton.FocusAsync();
+        }
+    }
+
+    private void FollowSignIn()
+    {
+        if (CanSignIn && Center.Configuration.SignInUri is Uri signIn)
+        {
+            Navigation.NavigateTo(signIn.AbsoluteUri, forceLoad: true);
+        }
+    }
+
+    private void ClearSession()
+    {
+        _access = null;
+        StopExpiryWatch();
+        _activeSession?.Cancel();
+        _activeSession?.Dispose();
+        _activeSession = null;
+    }
+
+    private void StopExpiryWatch()
+    {
+        _expiryWatch?.Cancel();
+        _expiryWatch?.Dispose();
+        _expiryWatch = null;
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        _disposed = true;
+        ClearSession();
+        _lifetime.Cancel();
+        if (_activity is not null)
+        {
+            _activity.Resumed -= Resume;
+            await _activity.DisposeAsync();
+        }
+        _lifetime.Dispose();
+    }
+}

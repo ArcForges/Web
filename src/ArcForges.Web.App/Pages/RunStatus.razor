@@ -1,0 +1,183 @@
+@* SPDX-License-Identifier: AGPL-3.0-only *@
+@using ArcForges.Web.App.Dashboard
+@using ArcForges.Web.App.Layout
+@implements IDisposable
+@inject IDashboardCenter Center
+
+<div class="dashboard-run-status" role="status">
+    @if (_reading)
+    {
+        <p class="dashboard-muted">Checking Run availability…</p>
+    }
+    else if (_summary is { State: DashboardRunState.Offline })
+    {
+        <p><strong>Device offline</strong></p>
+        <p class="dashboard-muted">Run activity is unavailable until the device reconnects.</p>
+    }
+    else if (HasScopedResult && _summary is { State: DashboardRunState.Empty, VisibleRunCount: 0, ObservedAt: not null })
+    {
+        <p><strong>No runs in this Sandbox</strong></p>
+        <p>Sandbox <code>@_summary.SandboxId</code></p>
+        <p class="dashboard-muted">Checked <DashboardTime Value="_summary.ObservedAt" />.</p>
+    }
+    else if (HasScopedResult && _summary is { State: DashboardRunState.Ready or DashboardRunState.Partial, VisibleRunCount: > 0 })
+    {
+        <p><strong>@(_summary.State == DashboardRunState.Partial ? "At least " : "")@_summary.VisibleRunCount visible runs</strong></p>
+        <p>Sandbox <code>@_summary.SandboxId</code></p>
+        <p class="dashboard-muted">Checked <DashboardTime Value="_summary.ObservedAt" />.</p>
+    }
+    else
+    {
+        <p><strong>Run data unavailable</strong></p>
+        <p class="dashboard-muted">@UnavailableReason</p>
+    }
+</div>
+
+@if (Device.Presence == DashboardDevicePresence.Online)
+{
+    <details class="dashboard-run-scope">
+        <summary>Check runs in an authorized Sandbox</summary>
+        <p class="dashboard-muted" id="dashboard-run-scope-hint">
+            Use the Node ID from <code>arcforges node status --json</code> and the Sandbox ID, grant ID, and current revision
+            from <code>arcforges grant list --json</code> on that device.
+        </p>
+        <form class="dashboard-run-fields" aria-describedby="dashboard-run-scope-hint"
+              autocomplete="off" @onsubmit="CheckScopeAsync" @onsubmit:preventDefault>
+            <label>Node ID
+                <input type="text" required maxlength="36" @bind="_nodeId" @bind:event="oninput" />
+            </label>
+            <label>Sandbox ID
+                <input type="text" required maxlength="36" @bind="_sandboxId" @bind:event="oninput" />
+            </label>
+            <label>Grant ID
+                <input type="text" required maxlength="36" @bind="_grantId" @bind:event="oninput" />
+            </label>
+            <label>Grant revision
+                <input type="text" required inputmode="numeric" maxlength="19" @bind="_grantRevision" @bind:event="oninput" />
+            </label>
+            <div class="dashboard-run-commands">
+                <button type="submit" class="dashboard-button dashboard-button-primary" aria-disabled="@(_reading ? "true" : "false")">
+                    Check runs
+                </button>
+                @if (_inputError)
+                {
+                    <p role="alert">Enter the full IDs and the positive grant revision printed by your Node.</p>
+                }
+            </div>
+        </form>
+    </details>
+}
+
+@code {
+    [CascadingParameter]
+    private DashboardAccess Access { get; set; } = default!;
+
+    [Parameter, EditorRequired]
+    public DashboardDevice Device { get; set; } = default!;
+
+    private DashboardDevice? _requested;
+    private CancellationTokenSource? _read;
+    private DashboardRunSummary? _summary;
+    private DashboardApiException? _failure;
+    private DashboardRunTarget? _scope;
+    private string _nodeId = "";
+    private string _sandboxId = "";
+    private string _grantId = "";
+    private string _grantRevision = "";
+    private bool _reading;
+    private bool _inputError;
+
+    private bool HasScopedResult => _scope is not null && _summary?.SandboxId == _scope.SandboxId;
+    private string UnavailableReason => _failure?.Message ?? (Device.Presence switch
+    {
+        DashboardDevicePresence.Stale => "Refresh device details before checking runs.",
+        DashboardDevicePresence.Revoked => "This enrollment is revoked.",
+        DashboardDevicePresence.Unknown => "The Center has no current connection observation for this device.",
+        _ => "Live Run data needs an authorized Sandbox on this device.",
+    });
+
+    protected override Task OnParametersSetAsync()
+    {
+        if (ReferenceEquals(_requested, Device))
+        {
+            return Task.CompletedTask;
+        }
+        if (_requested is { } previous && (previous.Id != Device.Id || previous.EnrollmentId != Device.EnrollmentId ||
+            previous.NodeEpoch != Device.NodeEpoch || previous.Revision != Device.Revision || previous.Presence != Device.Presence))
+        {
+            _nodeId = "";
+            _sandboxId = "";
+            _grantId = "";
+            _grantRevision = "";
+            _inputError = false;
+        }
+        _scope = null;
+        _requested = Device;
+        return ReadAsync(Device, null);
+    }
+
+    private Task CheckScopeAsync()
+    {
+        if (_reading || Device.Presence != DashboardDevicePresence.Online)
+        {
+            return Task.CompletedTask;
+        }
+        _inputError = !DashboardRunTarget.TryCreate(_nodeId, _grantId, _grantRevision, _sandboxId, Device.EnrollmentId, out var scope);
+        if (_inputError)
+        {
+            return Task.CompletedTask;
+        }
+        _scope = scope;
+        return ReadAsync(Device, _scope);
+    }
+
+    private async Task ReadAsync(DashboardDevice device, DashboardRunTarget? scope)
+    {
+        CancelRead();
+        using var request = CancellationTokenSource.CreateLinkedTokenSource(Access.Cancellation);
+        _read = request;
+        _reading = true;
+        _summary = null;
+        _failure = null;
+        try
+        {
+            var summary = await Center.ReadRunSummaryAsync(device, request.Token, scope);
+            if (!request.IsCancellationRequested)
+            {
+                _summary = summary;
+            }
+        }
+        catch (DashboardApiException error) when (!request.IsCancellationRequested)
+        {
+            if (error.Failure == DashboardFailure.Unauthenticated)
+            {
+                await Access.ExpireAsync();
+                return;
+            }
+            _failure = error;
+        }
+        catch (DashboardApiException)
+        {
+        }
+        catch (OperationCanceledException) when (request.IsCancellationRequested)
+        {
+        }
+        finally
+        {
+            if (ReferenceEquals(_read, request))
+            {
+                _read = null;
+                _reading = false;
+            }
+        }
+    }
+
+    private void CancelRead()
+    {
+        var active = _read;
+        _read = null;
+        active?.Cancel();
+    }
+
+    public void Dispose() => CancelRead();
+}

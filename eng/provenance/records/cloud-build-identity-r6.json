@@ -1,0 +1,93 @@
+{
+  "schemaVersion": 1,
+  "id": "cloud-build-identity-r6",
+  "kind": "source",
+  "sourceRepository": "https://github.com/ArcForges/Cloud",
+  "sourceCommit": "c5a5f2ed71870961237fadd2f20061abe48e34a0",
+  "sourcePaths": [
+    "tooling/build-identity.ts",
+    "tests/provenance/build-identity.test.ts",
+    "eng/version-sources.json"
+  ],
+  "licence": {
+    "spdx": "AGPL-3.0-only",
+    "category": "agpl-compatible",
+    "evidence": [
+      {
+        "path": "tooling/build-identity.ts",
+        "sha256": "6fb789e7756648ed090b35f48027c869983fddc86c5d116e0845b95c3ea556e3",
+        "finding": "Exact merged authored file inspected under its explicit SPDX header and complete owner AGPL terms."
+      },
+      {
+        "path": "tests/provenance/build-identity.test.ts",
+        "sha256": "bbda8c8ef09c922ac3232b2327ef6d3bc66b89f7d3365d6065a16bde6f9ecb26",
+        "finding": "Exact merged authored file inspected under its explicit SPDX header and complete owner AGPL terms."
+      },
+      {
+        "path": "eng/version-sources.json",
+        "sha256": "43d81ed1a3a85df761a4659bbba9bff5cba16ab8ae308a1ec64ca4409d7e2d51",
+        "finding": "Exact merged authored file inspected under its explicit SPDX header and complete owner AGPL terms."
+      },
+      {
+        "path": "LICENSE",
+        "sha256": "8486a10c4393cee1c25392769ddd3b2d6c242d6ec7928e1414efff7dfb2f07ef",
+        "finding": "Complete upstream AGPL terms equal receiving owner terms."
+      }
+    ],
+    "scope": "Web retains the reviewed AGPL-3.0-only Cloud resolver, catalog and tests lineage and verifies exact published Web client Contracts. All consumed package identities originate from one reviewed producer. The shared Foundation subject has an independently verified canonical source. Web's sealed candidate remains reproducible from its own checkout.",
+    "copyingPermission": null
+  },
+  "attribution": [
+    "Build identity tooling adapted from ArcForges Cloud, Copyright ArcForges contributors, AGPL-3.0-only."
+  ],
+  "targets": [
+    {
+      "path": "tooling/build-identity.ts",
+      "sha256": "e04a123d4924473c58f869f6497ad04e68b988f32b1348b3b49d15c4e25c6950",
+      "normalization": "lf"
+    },
+    {
+      "path": "tests/provenance/build-identity.test.ts",
+      "sha256": "6c46fc768ad05f4cdd06de360c286a1ff15b72a61e74bc23bc84fcf114006c7a",
+      "normalization": "lf"
+    },
+    {
+      "path": "eng/version-sources.json",
+      "sha256": "ef291d6870b2f545642c74ed0281d56211afb5716effb3e54a1d298093242183",
+      "normalization": "lf"
+    }
+  ],
+  "artifactTargets": [],
+  "disposition": "Improve",
+  "verification": {
+    "kind": "immutable-source-and-byte-review",
+    "command": "Run node --test tests/provenance/build-identity.test.ts and the unchanged Web provenance and sealed-candidate checks.",
+    "expected": "The candidate resolves exact locked public Foundation, Management V2, PublicApi and Sandbox V2 receipts from the approved producer. The canonical Foundation schema has one subject and the generic duplicate, schema, missing-source, wrong-owner, dirty and mismatched candidate identity refusals still pass.",
+    "artifacts": []
+  },
+  "notice": {
+    "required": true,
+    "text": "Build identity tooling adapted from ArcForges Cloud, Copyright ArcForges contributors, AGPL-3.0-only.",
+    "files": [
+      "eng/provenance/NOTICE.txt"
+    ],
+    "distribution": "source-and-applicable-artifacts",
+    "reason": "Reviewed AGPL-to-AGPL adaptation of the merged Cloud resolver/catalog/independence tests. Owner and imports are local, the published npm producer pin replaces the .NET pin, and npm workspace links/owned workspace releases are excluded from external dependency inventory. Image-specific argument mapping is omitted. The sealed static report is independently verified against source, locked packages and actual CI run/attempt. No sibling source becomes a build input."
+  },
+  "lifetime": {
+    "status": "permanent",
+    "owner": "Web Licensing and Provenance Owner",
+    "removalTrigger": null
+  },
+  "generation": null,
+  "review": {
+    "owner": "Licensing and Provenance Owner",
+    "reviewer": "Root coordinator (WEB-01 reviewed source and publication scope)",
+    "reviewedOn": "2026-11-21",
+    "decision": "approved",
+    "rationale": "Advance the source-bound identity catalog, resolver and independence tests together for the reviewed WEB-01 NuGet producer. Retain all previous Cloud-to-Web reuse and its original licence facts.",
+    "baselineCommit": "69be85d95ea412cc027597ffd0d990bf0e28e50f",
+    "reconciliation": false
+  },
+  "supersedes": "cloud-build-identity-r5"
+}

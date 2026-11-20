@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
-// The App profile's policy rules (WEB.40 validation; P2-021 item 2): the exact script-src and style-src token sets, no inline
-// style, no Virtualize, no JavaScript interop, and RunAOTCompilation off. The host page is read from the built source.
+// The App profile's policy rules: exact script-src and style-src, bounded browser interop, no inline style or Virtualize,
+// and RunAOTCompilation off. The host page is read directly from source.
+using System.Security.Cryptography;
 using System.Text.RegularExpressions;
 using ArcForges.Web.Ui;
 using Xunit;
@@ -10,6 +11,7 @@ namespace ArcForges.Web.App.Tests;
 public sealed class WasmProfilePolicyTests
 {
     private static readonly string Root = RepositoryRoot.Find();
+    private const string ActivityModulePath = "_framework/arcforges-dashboard-activity.43e6e05b58.js";
 
     private static string AppSource(string relative) => File.ReadAllText(Path.Combine(Root, "src", "ArcForges.Web.App", relative));
 
@@ -19,7 +21,6 @@ public sealed class WasmProfilePolicyTests
         var policy = WasmContentSecurityPolicy.FromHostPages([AppSource("wwwroot/index.html")]);
         var directives = WasmContentSecurityPolicy.ParseDirectives(policy);
 
-        // The host page has no inline script, so the only script tokens are self and the WebAssembly compile token.
         Assert.Equal(new[] { "'self'", "'wasm-unsafe-eval'" }, directives["script-src"]);
         Assert.Equal(new[] { "'self'" }, directives["style-src"]);
         Assert.Equal(new[] { "'self'" }, directives["default-src"]);
@@ -78,13 +79,27 @@ public sealed class WasmProfilePolicyTests
     }
 
     [Fact]
-    public void TheHostPageHasNoInlineScriptNoStyleAttributeAndNoInlineStyleElement()
+    public void TheHostPageHasOnlyTheFrameworkLoaderAndNoInlineStyle()
     {
         var html = AppSource("wwwroot/index.html");
         Assert.DoesNotMatch(new Regex("<style", RegexOptions.IgnoreCase), html);
         Assert.DoesNotMatch(new Regex("\\sstyle\\s*=", RegexOptions.IgnoreCase), html);
-        foreach (Match script in Regex.Matches(html, "<script(?<attributes>[^>]*)>(?<body>.*?)</script>", RegexOptions.Singleline | RegexOptions.IgnoreCase))
-            Assert.True(string.IsNullOrWhiteSpace(script.Groups["body"].Value), "The host page has an inline script body.");
+        var scripts = Regex.Matches(html, "<script(?<attributes>[^>]*)>(?<body>.*?)</script>", RegexOptions.Singleline | RegexOptions.IgnoreCase);
+        var loader = Assert.Single(scripts);
+        Assert.Equal("src=\"_framework/blazor.webassembly.js\"", loader.Groups["attributes"].Value.Trim());
+        Assert.Empty(loader.Groups["body"].Value);
+    }
+
+    [Fact]
+    public void TheActivityModuleIsImportedByItsExactContentAddressInTheFrameworkNamespace()
+    {
+        var root = Path.Combine(Root, "src", "ArcForges.Web.App", "wwwroot");
+        var path = Assert.Single(Directory.EnumerateFiles(root, "arcforges-dashboard-activity*.js", SearchOption.AllDirectories));
+        var hash = Convert.ToHexStringLower(SHA256.HashData(File.ReadAllBytes(path)));
+        var relative = Path.GetRelativePath(root, path).Replace('\\', '/');
+        Assert.Equal("_framework/arcforges-dashboard-activity." + hash[..10] + ".js", relative);
+        Assert.Equal(ActivityModulePath, relative);
+        Assert.Contains("\"./" + relative + "\"", AppSource("Dashboard/DashboardActivity.cs"), StringComparison.Ordinal);
     }
 
     [Fact]
@@ -101,16 +116,20 @@ public sealed class WasmProfilePolicyTests
     }
 
     [Fact]
-    public void TheAppUsesNoJavaScriptInteropBecauseNoAuditedPointIsNeeded()
+    public void TheAppUsesJavaScriptInteropOnlyForLifecycleAndPasskeys()
     {
-        var sources = Directory.EnumerateFiles(Path.Combine(Root, "src", "ArcForges.Web.App"), "*.cs", SearchOption.AllDirectories)
-            .Concat(Directory.EnumerateFiles(Path.Combine(Root, "src", "ArcForges.Web.App"), "*.razor", SearchOption.AllDirectories));
+        var app = Path.Combine(Root, "src", "ArcForges.Web.App");
+        var sources = Directory.EnumerateFiles(app, "*.cs", SearchOption.AllDirectories)
+            .Concat(Directory.EnumerateFiles(app, "*.razor", SearchOption.AllDirectories));
+        var interop = new List<string>();
         foreach (var file in sources)
         {
             var source = File.ReadAllText(file);
-            Assert.DoesNotContain("IJSRuntime", source, StringComparison.Ordinal);
             Assert.DoesNotContain("IJSInProcessRuntime", source, StringComparison.Ordinal);
+            if (source.Contains("IJSRuntime", StringComparison.Ordinal))
+                interop.Add(Path.GetRelativePath(app, file).Replace('\\', '/'));
         }
+        Assert.Equal(new[] { "Dashboard/DashboardActivity.cs", "Dashboard/DashboardPasskeys.cs" }, interop.Order(StringComparer.Ordinal));
     }
 
     [Fact]
