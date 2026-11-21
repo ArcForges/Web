@@ -129,24 +129,24 @@ public sealed class SandboxTransferTests
             transferParameters.Add(component => component.Target, WorkFixture.Target)
                 .Add(component => component.SandboxRevision, WorkFixture.Revision)
                 .Add(component => component.LeaseChanged, value => leases.Add(value))));
-        view.WaitForAssertion(() => Assert.NotEmpty(view.FindAll("section[aria-labelledby='sandbox-transfers'] form")));
+        const string forms = "section[aria-labelledby='sandbox-transfers'] form";
+        view.WaitForAssertion(() => Assert.NotEmpty(view.FindAll(forms)));
 
-        await view.InvokeAsync(() =>
+        await view.InvokeAsync(async () =>
         {
-            var form = view.FindAll("section[aria-labelledby='sandbox-transfers'] form")[1];
-            var input = form.QuerySelector("input");
+            var input = view.FindAll(forms)[1].QuerySelector("input");
             Assert.NotNull(input);
-            input.Input(transfer.RelativePath);
-            form.Submit();
+            await input.InputAsync(transfer.RelativePath);
+            await view.FindAll(forms)[1].SubmitAsync(EventArgs.Empty);
         });
-        view.WaitForAssertion(() => Assert.NotNull(Button(view, "Check original command")));
-        Assert.Empty(view.FindAll("section[aria-labelledby='sandbox-transfers'] form"));
+        Assert.Empty(view.FindAll(forms));
         Assert.Equal([true], leases);
 
-        await Button(view, "Check original command").ClickAsync(new MouseEventArgs());
+        await ClickEnabledButtonAsync(view, "Check original command");
+        Assert.Single(server.Requests, request => request.Url.AbsolutePath == "/api" + GetOperation);
         view.WaitForAssertion(() => Assert.Contains("Retained for download", view.Markup, StringComparison.Ordinal));
         Assert.Contains(digest, view.Markup, StringComparison.Ordinal);
-        await Button(view, "Download verified file").ClickAsync(new MouseEventArgs());
+        await ClickEnabledButtonAsync(view, "Download verified file");
         view.WaitForAssertion(() => Assert.Contains("Verified file sent to your browser", view.Markup, StringComparison.Ordinal));
         Assert.Single(download.Invocations["saveVerifiedFile"]);
         Assert.Equal(2, inspections);
@@ -155,7 +155,7 @@ public sealed class SandboxTransferTests
         Assert.Equal([true], leases);
         Assert.Contains("Retained for download", view.Markup, StringComparison.Ordinal);
 
-        await Button(view, "Release snapshot").ClickAsync(new MouseEventArgs());
+        await ClickEnabledButtonAsync(view, "Release snapshot");
         view.WaitForAssertion(() => Assert.Contains("Released by the Node", view.Markup, StringComparison.Ordinal));
         Assert.Contains("Materialized and verified", view.Markup, StringComparison.Ordinal);
         Assert.Equal(1, closes);
@@ -163,6 +163,12 @@ public sealed class SandboxTransferTests
     }
 
     private static Instant Instant(DateTimeOffset value) => new() { UnixSeconds = value.ToUnixTimeSeconds() };
+
+    private static async Task ClickEnabledButtonAsync(IRenderedComponent<DashboardLayout> view, string label)
+    {
+        view.WaitForAssertion(() => Assert.False(Button(view, label).HasAttribute("disabled")));
+        await view.InvokeAsync(() => Button(view, label).ClickAsync(new MouseEventArgs()));
+    }
 
     private static AngleSharp.Dom.IElement Button(IRenderedComponent<DashboardLayout> view, string label) =>
         Assert.Single(view.FindAll("button"), button => button.TextContent.Trim().Equals(label, StringComparison.Ordinal));

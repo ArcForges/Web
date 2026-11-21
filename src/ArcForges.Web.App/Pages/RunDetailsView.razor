@@ -77,6 +77,7 @@
                 <p class="dashboard-muted">The Node requests graceful termination and may escalate under its stop policy.</p>
             </div>
             <button type="button" class="dashboard-button dashboard-button-danger" aria-disabled="@(!CanStop ? "true" : "false")"
+                    aria-haspopup="dialog" aria-controls="dashboard-stop-run-confirm"
                     command="@(CanStop ? "show-modal" : null)" commandfor="dashboard-stop-run-confirm">
                 @(Sending ? "Sending stop…" : "Stop Run")
             </button>
@@ -103,9 +104,10 @@
 
 @if (_run is { } selected)
 {
-    <dialog id="dashboard-stop-run-confirm" class="dashboard-dialog" aria-labelledby="dashboard-stop-confirm-title" closedby="closerequest">
+    <dialog id="dashboard-stop-run-confirm" class="dashboard-dialog" aria-labelledby="dashboard-stop-confirm-title"
+            aria-describedby="dashboard-stop-confirm-description" closedby="closerequest">
         <h2 id="dashboard-stop-confirm-title">Stop this Run?</h2>
-        <p>@RunPresentation.Caption(selected)</p>
+        <p id="dashboard-stop-confirm-description">The Node will request a graceful stop for <strong>@RunPresentation.Caption(selected)</strong> and may escalate under its stop policy.</p>
         <dl class="dashboard-dialog-facts">
             <dt>Run ID</dt><dd><code>@RunId</code></dd>
             <dt>Run revision</dt><dd>@selected.Revision?.Value</dd>

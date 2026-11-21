@@ -31,35 +31,37 @@
         }
         else
         {
-            <table class="dashboard-table" aria-label="Enrolled devices">
-                <thead>
-                    <tr><th scope="col">Device</th><th scope="col">Presence</th><th scope="col" class="dashboard-table-extra">Last seen</th><th scope="col">Local access</th></tr>
-                </thead>
-                <tbody>
-                    @foreach (var device in page.Devices)
-                    {
-                        <tr @key="device.Id">
-                            <td>
-                                <a class="dashboard-link dashboard-device-link" href="@($"/devices/{device.Id:D}")">@DeviceName(device)</a>
-                                <small class="dashboard-muted">@device.Platform</small>
-                            </td>
-                            <td><DevicePresence Presence="device.Presence" /></td>
-                            <td class="dashboard-table-extra"><DashboardTime Value="device.LastSeenAt" /></td>
-                            <td>
-                                @if (device.Presence == DashboardDevicePresence.Online)
-                                {
-                                    <a class="dashboard-link" href="@($"/security?device={device.Id:D}")"
-                                       aria-current="@(SelectedDeviceId == device.Id ? "true" : null)">View grant</a>
-                                }
-                                else
-                                {
-                                    <span class="dashboard-muted">Unavailable</span>
-                                }
-                            </td>
-                        </tr>
-                    }
-                </tbody>
-            </table>
+            <div class="dashboard-table-wrap" role="region" aria-label="Enrolled devices" tabindex="0">
+                <table class="dashboard-table" aria-label="Enrolled devices">
+                    <thead>
+                        <tr><th scope="col">Device</th><th scope="col">Presence</th><th scope="col" class="dashboard-table-extra">Last seen</th><th scope="col">Local access</th></tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var device in page.Devices)
+                        {
+                            <tr @key="device.Id">
+                                <td>
+                                    <a class="dashboard-link dashboard-device-link" href="@($"/devices/{device.Id:D}")">@DeviceName(device)</a>
+                                    <small class="dashboard-muted">@device.Platform</small>
+                                </td>
+                                <td><DevicePresence Presence="device.Presence" /></td>
+                                <td class="dashboard-table-extra"><DashboardTime Value="device.LastSeenAt" /></td>
+                                <td>
+                                    @if (device.Presence == DashboardDevicePresence.Online)
+                                    {
+                                        <a class="dashboard-link" href="@($"/security?device={device.Id:D}")"
+                                           aria-current="@(SelectedDeviceId == device.Id ? "true" : null)">View grant</a>
+                                    }
+                                    else
+                                    {
+                                        <span class="dashboard-muted">Unavailable</span>
+                                    }
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
         }
         <p class="dashboard-panel-copy dashboard-muted">Open a device to review or revoke its enrollment. For a new enrollment, verify the Node key fingerprint against the value shown by <code>arcforges center flow</code> on that device.</p>
         @if (_cursor is not null || page.NextCursor is not null)

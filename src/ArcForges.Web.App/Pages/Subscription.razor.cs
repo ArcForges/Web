@@ -4,6 +4,7 @@ using ArcForges.Contracts.PublicApi.V1;
 using ArcForges.Web.App.Dashboard;
 using ArcForges.Web.App.Layout;
 using Microsoft.AspNetCore.Components;
+using Microsoft.AspNetCore.Components.Web;
 
 namespace ArcForges.Web.App.Pages;
 
@@ -27,6 +28,16 @@ public partial class Subscription : IDisposable
     private DashboardApiException? _startFailure;
     private DashboardApiException? _renewalFailure;
     private Confirmation? _confirmation;
+    private readonly Dictionary<Guid, ElementReference> _offerReviews = new();
+    private ElementReference _renewalHeading;
+    private ElementReference _checkoutHeading;
+    private ElementReference _confirmationHeading;
+    private ElementReference _renewalReview;
+    private ElementReference _renewalRetryReview;
+    private ElementReference _checkoutReview;
+    private ElementReference _purchaseRetryReview;
+    private ElementReference _confirmationTrigger;
+    private ElementReference? _restoreFocus;
     private string _region = "";
     private string? _catalogueRegion;
     private string _previousPurchase = "";
@@ -37,15 +48,19 @@ public partial class Subscription : IDisposable
     private bool _subscriptionMissing;
     private bool _loadingCatalogue;
     private bool _checkingPurchase;
+    private bool _purchaseCheckPending;
+    private bool _purchaseReadFailed;
     private bool _loadingHistory;
     private bool _regionInvalid;
     private bool _purchaseIdInvalid;
+    private bool _focusConfirmation;
 
     private SubscriptionJourney Journey => Access.Subscription;
     private bool Official => Center.Configuration.Mode == DashboardCenterMode.OfficialHosted;
     private bool Configured => Center.Configuration.Mode != DashboardCenterMode.Unconfigured;
     private bool CatalogueCurrent => _catalogue is not null && _catalogueRegion == RegionCode(_region);
-    private bool CanStartPurchase => Official && !_refreshing && !_loadingCatalogue && !_checkingPurchase && CatalogueCurrent &&
+    private bool PurchaseChecking => _checkingPurchase || _purchaseCheckPending;
+    private bool CanStartPurchase => Official && !_refreshing && !_loadingCatalogue && !PurchaseChecking && CatalogueCurrent &&
         Journey.Purchase is null && _subscriptionFailure is null && (_subscriptionMissing || _subscription?.State == SubscriptionState.Ended);
     private bool CanChangeRenewal => Official && !_refreshing && _subscriptionFailure is null && Journey.Renewal is not { Receipt: null } &&
         _subscription is { State: SubscriptionState.Active or SubscriptionState.CancelScheduled, HasCancelAtPeriodEnd: true, Revision.Value: > 0 and < long.MaxValue } value &&
@@ -56,8 +71,27 @@ public partial class Subscription : IDisposable
     {
         _lifetime = CancellationTokenSource.CreateLinkedTokenSource(Access.Cancellation);
         Journey.Changed += JourneyChanged;
+        Access.ViewResumed += ViewResumed;
         ScheduleCheckoutExpiry();
-        return Task.WhenAll(RefreshAsync(), Official ? ReadLatestBillingAsync() : Task.CompletedTask);
+        return Official
+            ? Task.WhenAll(RefreshAsync(), ReadLatestBillingAsync(), ReadActivePurchaseAsync())
+            : RefreshAsync();
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (_disposed || _lifetime.IsCancellationRequested)
+            return;
+        if (_focusConfirmation && _confirmation is not null)
+        {
+            _focusConfirmation = false;
+            await _confirmationHeading.FocusAsync();
+        }
+        else if (_restoreFocus is { } target)
+        {
+            _restoreFocus = null;
+            await target.FocusAsync();
+        }
     }
 
     private async Task RefreshAsync()
@@ -149,6 +183,8 @@ public partial class Subscription : IDisposable
 
         _loadingCatalogue = true;
         _confirmation = null;
+        _focusConfirmation = false;
+        _offerReviews.Clear();
         _catalogue = null;
         _catalogueRegion = region;
         _catalogueFailure = null;
@@ -182,25 +218,27 @@ public partial class Subscription : IDisposable
         }
     }
 
-    private void ReviewPurchase(Offer offer)
+    private void ReviewPurchase(Offer offer, Guid offerId)
     {
         if (CanStartPurchase && _catalogue!.Items.Contains(offer))
-            _confirmation = new(BillingAction.StartPurchase, Offer: offer);
+            OpenConfirmation(new(BillingAction.StartPurchase, Offer: offer), _offerReviews.GetValueOrDefault(offerId));
     }
 
-    private bool CanResumePurchase(SubscriptionPurchase purchase) => !_checkingPurchase && !purchase.Sending && purchase.VerifiedMissing &&
+    private bool CanResumePurchase(SubscriptionPurchase purchase) => !PurchaseChecking && !purchase.Sending && purchase.VerifiedMissing &&
         purchase.Current is null && purchase.OriginalOffer is not null && purchase.CommandId is not null;
 
     private void ReviewOriginalPurchase()
     {
         if (Journey.Purchase is { } purchase && CanResumePurchase(purchase))
-            _confirmation = new(BillingAction.ResumePurchase, Offer: purchase.OriginalOffer, Purchase: purchase);
+            OpenConfirmation(new(BillingAction.ResumePurchase, Offer: purchase.OriginalOffer, Purchase: purchase), _purchaseRetryReview);
     }
 
-    private bool CanPrepareCheckout(SubscriptionPurchase purchase) => !_checkingPurchase && !purchase.Sending && purchase.OriginalOffer is not null &&
+    private bool CanPrepareCheckout(SubscriptionPurchase purchase) => !PurchaseChecking && !purchase.Sending &&
+        purchase.Failure is null && purchase.OriginalOffer is not null &&
         purchase.Current?.State == "pending" && purchase.Checkout is null;
 
-    private bool CanResumeCheckout(SubscriptionPurchase purchase) => !_checkingPurchase && !purchase.Sending && purchase.Current?.State == "pending" &&
+    private bool CanResumeCheckout(SubscriptionPurchase purchase) => !PurchaseChecking && !purchase.Sending &&
+        purchase.Failure is null && purchase.Current?.State == "pending" &&
         purchase.Checkout is { VerifiedPending: true } && CheckoutLink(purchase) is null;
 
     private void ReviewCheckout()
@@ -208,9 +246,9 @@ public partial class Subscription : IDisposable
         if (Journey.Purchase is not { } purchase)
             return;
         if (CanPrepareCheckout(purchase))
-            _confirmation = new(BillingAction.PrepareCheckout, Offer: purchase.OriginalOffer, Purchase: purchase);
+            OpenConfirmation(new(BillingAction.PrepareCheckout, Offer: purchase.OriginalOffer, Purchase: purchase), _checkoutReview);
         else if (CanResumeCheckout(purchase))
-            _confirmation = new(BillingAction.ResumeCheckout, Offer: purchase.OriginalOffer, Purchase: purchase);
+            OpenConfirmation(new(BillingAction.ResumeCheckout, Offer: purchase.OriginalOffer, Purchase: purchase), _checkoutReview);
     }
 
     private void ReviewRenewal()
@@ -218,43 +256,81 @@ public partial class Subscription : IDisposable
         if (CanChangeRenewal && _subscription is { } value && RunPresentation.ReadId(value.SubscriptionId) is Guid id &&
             RunPresentation.ReadTime(value.CurrentPeriod?.Until) is DateTimeOffset end)
         {
-            _confirmation = new(value.CancelAtPeriodEnd ? BillingAction.Reactivate : BillingAction.CancelRenewal,
-                Renewal: new(Guid.NewGuid(), id, value.Revision.Value, value.CancelAtPeriodEnd, end));
+            OpenConfirmation(new(value.CancelAtPeriodEnd ? BillingAction.Reactivate : BillingAction.CancelRenewal,
+                Renewal: new(Guid.NewGuid(), id, value.Revision.Value, value.CancelAtPeriodEnd, end)), _renewalReview);
         }
     }
 
     private void ReviewOriginalRenewal()
     {
         if (Journey.Renewal is { } original && CanResumeRenewal(original))
-            _confirmation = new(BillingAction.ResumeRenewal, Renewal: original);
+            OpenConfirmation(new(BillingAction.ResumeRenewal, Renewal: original), _renewalRetryReview);
     }
 
     private bool CanResumeRenewal(SubscriptionRenewal renewal) => !_refreshing && _subscriptionFailure is null &&
         renewal is { Checked: true, Sending: false, Receipt: null } && _subscription is { } current &&
         RunPresentation.ReadId(current.SubscriptionId) == renewal.SubscriptionId && current.Revision?.Value >= renewal.ExpectedRevision;
 
-    private void CloseConfirmation() => _confirmation = null;
+    private void OpenConfirmation(Confirmation confirmation, ElementReference trigger)
+    {
+        _confirmation = confirmation;
+        _confirmationTrigger = trigger;
+        _restoreFocus = null;
+        _focusConfirmation = true;
+    }
+
+    private void ConfirmationKeyDown(KeyboardEventArgs key)
+    {
+        if (key.Key == "Escape")
+            CloseConfirmation();
+    }
+
+    private void CloseConfirmation() => DismissConfirmation(restoreTrigger: true);
+
+    private void DismissConfirmation(bool restoreTrigger)
+    {
+        if (_confirmation is not { } confirmation)
+            return;
+        var section = confirmation.Renewal is null ? _checkoutHeading : _renewalHeading;
+        _restoreFocus = restoreTrigger && CanConfirm(confirmation) && !string.IsNullOrEmpty(_confirmationTrigger.Id)
+            ? _confirmationTrigger
+            : section;
+        _confirmation = null;
+        _focusConfirmation = false;
+    }
+
+    private bool CanConfirm(Confirmation request) => !_disposed && Official && (request switch
+    {
+        { Action: BillingAction.StartPurchase, Offer: { } offer } => CanStartPurchase && _catalogue!.Items.Contains(offer),
+        { Action: BillingAction.ResumePurchase, Purchase: { } purchase } => Journey.Purchase == purchase && CanResumePurchase(purchase),
+        { Action: BillingAction.PrepareCheckout, Purchase: { } purchase } => Journey.Purchase == purchase && CanPrepareCheckout(purchase),
+        { Action: BillingAction.ResumeCheckout, Purchase: { Checkout: not null } purchase } =>
+            Journey.Purchase == purchase && CanResumeCheckout(purchase),
+        { Action: BillingAction.CancelRenewal or BillingAction.Reactivate, Renewal: { } renewal } =>
+            CanChangeRenewal && MatchesRenewalBase(renewal),
+        { Action: BillingAction.ResumeRenewal, Renewal: { } renewal } => Journey.Renewal == renewal && CanResumeRenewal(renewal),
+        _ => false,
+    });
 
     private Task ConfirmAsync()
     {
-        var confirmation = _confirmation;
-        _confirmation = null;
-        if (_disposed || !Official || confirmation is null)
+        if (_confirmation is not { } confirmation || !CanConfirm(confirmation))
             return Task.CompletedTask;
 
+        DismissConfirmation(restoreTrigger: false);
         switch (confirmation)
         {
-            case { Action: BillingAction.StartPurchase, Offer: { } offer } when CanStartPurchase && _catalogue!.Items.Contains(offer):
+            case { Action: BillingAction.StartPurchase, Offer: { } offer }:
                 return ReservePurchaseAsync(new(Guid.NewGuid(), offer.Clone(), Guid.NewGuid()), retry: false);
-            case { Action: BillingAction.ResumePurchase, Purchase: { } purchase } when Journey.Purchase == purchase && CanResumePurchase(purchase):
+            case { Action: BillingAction.ResumePurchase, Purchase: { } purchase }:
                 return ReservePurchaseAsync(purchase, retry: true);
-            case { Action: BillingAction.PrepareCheckout, Purchase: { } purchase } when Journey.Purchase == purchase && CanPrepareCheckout(purchase):
+            case { Action: BillingAction.PrepareCheckout, Purchase: { } purchase }:
                 return PrepareCheckoutAsync(purchase, new(Guid.NewGuid(), Guid.NewGuid()), retry: false);
-            case { Action: BillingAction.ResumeCheckout, Purchase: { Checkout: { } checkout } purchase } when Journey.Purchase == purchase && CanResumeCheckout(purchase):
+            case { Action: BillingAction.ResumeCheckout, Purchase: { Checkout: { } checkout } purchase }:
                 return PrepareCheckoutAsync(purchase, checkout, retry: true);
-            case { Action: BillingAction.CancelRenewal or BillingAction.Reactivate, Renewal: { } renewal } when CanChangeRenewal && MatchesRenewalBase(renewal):
+            case { Action: BillingAction.CancelRenewal or BillingAction.Reactivate, Renewal: { } renewal }:
                 return SubmitRenewalAsync(renewal, retry: false);
-            case { Action: BillingAction.ResumeRenewal, Renewal: { } renewal } when Journey.Renewal == renewal && CanResumeRenewal(renewal):
+            case { Action: BillingAction.ResumeRenewal, Renewal: { } renewal }:
                 return SubmitRenewalAsync(renewal, retry: true);
             default:
                 return Task.CompletedTask;
@@ -270,6 +346,7 @@ public partial class Subscription : IDisposable
         var access = Access;
         journey.Purchase = purchase;
         purchase.Sending = true;
+        _purchaseReadFailed = false;
         purchase.VerifiedMissing = false;
         purchase.Failure = null;
         _startFailure = null;
@@ -350,11 +427,12 @@ public partial class Subscription : IDisposable
     private Task FindPurchaseAsync()
     {
         _purchaseIdInvalid = !Guid.TryParseExact(_previousPurchase, "D", out var id) || id == Guid.Empty;
-        if (_disposed || !Official || _checkingPurchase || _purchaseIdInvalid || Journey.Purchase is not null)
+        if (_disposed || !Official || PurchaseChecking || _purchaseIdInvalid || Journey.Purchase is not null)
             return Task.CompletedTask;
 
         Journey.Purchase = new SubscriptionPurchase(id);
         _confirmation = null;
+        _focusConfirmation = false;
         _previousPurchase = "";
         return ReadActivePurchaseAsync();
     }
@@ -366,35 +444,16 @@ public partial class Subscription : IDisposable
 
         var journey = Journey;
         _checkingPurchase = true;
-        _confirmation = null;
-        purchase.Failure = null;
-        purchase.VerifiedMissing = false;
-        if (purchase.Checkout is { } checkout)
-            checkout.VerifiedPending = false;
         var ct = _lifetime.Token;
         try
         {
-            var result = await Billing.ReadPurchaseAsync(purchase.Id, ct);
-            if (ct.IsCancellationRequested)
-                return;
-            AcceptPurchase(purchase, result, mutation: false);
-            if (purchase.Checkout is { } checkedCheckout)
-                checkedCheckout.VerifiedPending = result.State == "pending";
-            if (result.State == "completed")
-                await RefreshAsync();
-        }
-        catch (DashboardApiException error) when (!ct.IsCancellationRequested)
-        {
-            purchase.Failure = error;
-            purchase.VerifiedMissing = error.Failure == DashboardFailure.NotFound && error.Code == "not_found";
-            ClearLink(purchase.Checkout);
-            await ExpireIfNeededAsync(error);
-        }
-        catch (DashboardApiException) when (ct.IsCancellationRequested)
-        {
-        }
-        catch (OperationCanceledException) when (ct.IsCancellationRequested)
-        {
+            do
+            {
+                _purchaseCheckPending = false;
+                await ReadPurchaseSnapshotAsync(purchase, ct);
+            }
+            while (_purchaseCheckPending && !ct.IsCancellationRequested &&
+                ReferenceEquals(Journey.Purchase, purchase) && !purchase.Sending);
         }
         finally
         {
@@ -402,6 +461,43 @@ public partial class Subscription : IDisposable
             journey.NotifyChanged();
         }
     }
+
+    private async Task ReadPurchaseSnapshotAsync(SubscriptionPurchase purchase, CancellationToken ct)
+    {
+        _purchaseReadFailed = false;
+        purchase.Failure = null;
+        purchase.VerifiedMissing = false;
+        if (purchase.Checkout is { } checkout)
+            checkout.VerifiedPending = false;
+        try
+        {
+            var result = await Billing.ReadPurchaseAsync(purchase.Id, ct);
+            if (!IsCurrentPurchaseRead(purchase, ct))
+                return;
+            AcceptPurchase(purchase, result, mutation: false);
+            if (purchase.Checkout is { } checkedCheckout)
+                checkedCheckout.VerifiedPending = result.State == "pending";
+            if (result.State == "completed")
+                await RefreshAsync();
+        }
+        catch (DashboardApiException error) when (IsCurrentPurchaseRead(purchase, ct))
+        {
+            purchase.Failure = error;
+            _purchaseReadFailed = true;
+            purchase.VerifiedMissing = error.Failure == DashboardFailure.NotFound && error.Code == "not_found";
+            ClearLink(purchase.Checkout);
+            await ExpireIfNeededAsync(error);
+        }
+        catch (DashboardApiException)
+        {
+        }
+        catch (OperationCanceledException) when (ct.IsCancellationRequested)
+        {
+        }
+    }
+
+    private bool IsCurrentPurchaseRead(SubscriptionPurchase purchase, CancellationToken ct) =>
+        !ct.IsCancellationRequested && !_purchaseCheckPending && ReferenceEquals(Journey.Purchase, purchase);
 
     private static void AcceptPurchase(SubscriptionPurchase purchase, PurchaseView result, bool mutation)
     {
@@ -422,7 +518,7 @@ public partial class Subscription : IDisposable
         RunPresentation.ReadId(value.SubscriptionId) == renewal.SubscriptionId && value.Revision?.Value == renewal.ExpectedRevision &&
         value.CancelAtPeriodEnd == renewal.AutoRenew && RunPresentation.ReadTime(value.CurrentPeriod?.Until) == renewal.PeriodEndsAt;
 
-    private bool CurrentMatches(SubscriptionRenewal renewal) => _subscriptionFailure is null && _subscription is { } value &&
+    private bool CurrentMatches(SubscriptionRenewal renewal) => !_refreshing && _subscriptionFailure is null && _subscription is { } value &&
         RunPresentation.ReadId(value.SubscriptionId) == renewal.SubscriptionId && value.Revision?.Value > renewal.ExpectedRevision &&
         value.HasCancelAtPeriodEnd && value.CancelAtPeriodEnd != renewal.AutoRenew &&
         value.State == (renewal.AutoRenew ? SubscriptionState.Active : SubscriptionState.CancelScheduled);
@@ -539,7 +635,7 @@ public partial class Subscription : IDisposable
 
     private void ClosePurchase()
     {
-        if (!_checkingPurchase && Journey.Purchase is { Sending: false } purchase &&
+        if (!PurchaseChecking && Journey.Purchase is { Sending: false } purchase &&
             (IsPurchaseTerminal(purchase) || (purchase.CommandId is null && purchase.VerifiedMissing)))
         {
             Journey.Purchase = null;
@@ -548,7 +644,8 @@ public partial class Subscription : IDisposable
         }
     }
 
-    private Uri? CheckoutLink(SubscriptionPurchase purchase) => purchase.Current?.State == "pending" &&
+    private Uri? CheckoutLink(SubscriptionPurchase purchase) => !PurchaseChecking && !purchase.Sending &&
+        !_purchaseReadFailed && purchase.Current?.State == "pending" &&
         purchase.Checkout is { Link: { } uri, ExpiresAt: { } expires } && expires > Clock.GetUtcNow() ? uri : null;
 
     private static void ClearLink(SubscriptionCheckout? checkout)
@@ -615,18 +712,31 @@ public partial class Subscription : IDisposable
         }
     }
 
+    private void ViewResumed() => _ = InvokeAsync(() =>
+    {
+        if (_disposed || !Official || Journey.Purchase is null)
+            return Task.CompletedTask;
+
+        _purchaseCheckPending = true;
+        StateHasChanged();
+        return ReadActivePurchaseAsync();
+    });
+
     private void JourneyChanged() => _ = InvokeAsync(() =>
     {
-        if (!_disposed)
-        {
-            ScheduleCheckoutExpiry();
-            StateHasChanged();
-        }
+        if (_disposed)
+            return Task.CompletedTask;
+        if (Journey.Purchase is null)
+            _purchaseCheckPending = false;
+        ScheduleCheckoutExpiry();
+        StateHasChanged();
+        return _purchaseCheckPending && !_checkingPurchase ? ReadActivePurchaseAsync() : Task.CompletedTask;
     });
 
     public void Dispose()
     {
         _disposed = true;
+        Access.ViewResumed -= ViewResumed;
         Journey.Changed -= JourneyChanged;
         _lifetime.Cancel();
         _lifetime.Dispose();
@@ -634,16 +744,24 @@ public partial class Subscription : IDisposable
 
     private static bool IsPurchaseTerminal(SubscriptionPurchase purchase) => purchase.Current?.State is "completed" or "expired";
 
-    private static string PurchaseStatus(SubscriptionPurchase purchase) => purchase.Sending ? "Checking the purchase request…" : purchase.Current?.State switch
+    private string PurchaseStatus(SubscriptionPurchase purchase)
     {
-        "completed" => "The Center verified the purchase.",
-        "expired" => "The purchase expired.",
-        "unknown" => "Purchase outcome unconfirmed. Check the original purchase for updates.",
-        "pending" when purchase.Checkout is { Link: null, VerifiedPending: false } => "Checkout result unconfirmed. Check the original purchase for updates.",
-        "pending" when purchase.Checkout is not null => "Payment confirmation pending.",
-        "pending" => "Purchase prepared. Review checkout to continue.",
-        _ => "Purchase state unavailable. Check the original purchase.",
-    };
+        if (purchase.Sending || PurchaseChecking)
+            return "Checking the purchase request…";
+        if (_purchaseReadFailed)
+            return "The latest purchase status is unavailable. Check the original purchase for updates.";
+
+        return purchase.Current?.State switch
+        {
+            "completed" => "The Center verified the purchase.",
+            "expired" => "The purchase expired.",
+            "unknown" => "Purchase outcome unconfirmed. Check the original purchase for updates.",
+            "pending" when purchase.Checkout is { Link: null, VerifiedPending: false } => "Checkout result unconfirmed. Check the original purchase for updates.",
+            "pending" when purchase.Checkout is not null => "Payment confirmation pending.",
+            "pending" => "Purchase prepared. Review checkout to continue.",
+            _ => "Purchase state unavailable. Check the original purchase.",
+        };
+    }
 
     private static string SubscriptionStatus(SubscriptionState state) => state switch
     {

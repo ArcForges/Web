@@ -27,6 +27,7 @@ internal sealed partial class DashboardCenter(
     private readonly object _sessionGate = new();
     private SessionState? _session;
     private long _sessionRead;
+    private bool _sessionUnverified;
 
     public DashboardCenterConfiguration Configuration { get; } = configuration;
 
@@ -67,6 +68,7 @@ internal sealed partial class DashboardCenter(
             if (attempt != _sessionRead)
                 throw new OperationCanceledException("The session read was superseded.");
             _session = next is not null && IsCurrent(next.View) ? next : null;
+            _sessionUnverified = false;
             return _session?.View ?? new DashboardSession(false, null, null, null);
         }
     }
@@ -191,6 +193,7 @@ internal sealed partial class DashboardCenter(
 
     private async Task ConfirmOperationAsync(string operationClass, Guid target, SessionState session, CancellationToken cancellationToken)
     {
+        EnsureCurrent(session, cancellationToken);
         var origin = RequireOrigin();
         var hash = SHA256.HashData(Encoding.UTF8.GetBytes($"{operationClass}\n{session.View.AccountId:D}\n{target:D}"));
         var request = new WebBrowserBeginStepUpRequest
@@ -248,7 +251,7 @@ internal sealed partial class DashboardCenter(
             try
             {
                 var response = await call.ResponseAsync;
-                EnsureCurrent(session, cancellationToken);
+                EnsureCurrent(session, cancellationToken, mutation);
                 return response;
             }
             catch (RpcException error)
@@ -265,6 +268,9 @@ internal sealed partial class DashboardCenter(
 
     private DashboardApiException RpcFailure(RpcException error, SessionState session, bool mutation = false)
     {
+        if (error.StatusCode != StatusCode.Unauthenticated && !HasCurrentBinding(session))
+            return UnverifiedReply(mutation);
+
         var failure = error.StatusCode switch
         {
             StatusCode.Unauthenticated => DashboardFailure.Unauthenticated,
@@ -365,18 +371,30 @@ internal sealed partial class DashboardCenter(
         RequireOrigin();
         lock (_sessionGate)
         {
+            if (_sessionUnverified)
+                throw new DashboardApiException(DashboardFailure.Unavailable);
             if (_session is null || !IsCurrent(_session.View))
                 throw new DashboardApiException(DashboardFailure.Unauthenticated);
             return _session;
         }
     }
 
-    private void EnsureCurrent(SessionState expected, CancellationToken cancellationToken)
+    private void EnsureCurrent(SessionState expected, CancellationToken cancellationToken, bool mutation = false)
     {
         cancellationToken.ThrowIfCancellationRequested();
-        if (!SameSession(RequireSession(), expected))
-            throw new OperationCanceledException("The dashboard session changed.");
+        if (!HasCurrentBinding(expected))
+            throw UnverifiedReply(mutation);
     }
+
+    private bool HasCurrentBinding(SessionState expected)
+    {
+        lock (_sessionGate)
+            return !_sessionUnverified && _session is { } current && IsCurrent(current.View) && SameSession(current, expected);
+    }
+
+    private static DashboardApiException UnverifiedReply(bool mutation) =>
+        // A late reply cannot be shown under an unverified binding. A write may already have reached the Center.
+        new(mutation ? DashboardFailure.Uncertain : DashboardFailure.Unavailable);
 
     private void Invalidate(SessionState expected)
     {
@@ -385,6 +403,7 @@ internal sealed partial class DashboardCenter(
             if (_session is not null && SameSession(_session, expected))
             {
                 _session = null;
+                _sessionUnverified = false;
                 ++_sessionRead;
             }
         }
@@ -395,7 +414,7 @@ internal sealed partial class DashboardCenter(
         lock (_sessionGate)
         {
             if (attempt == _sessionRead)
-                _session = null;
+                _sessionUnverified = true;
         }
     }
 

@@ -10,7 +10,7 @@
 <section class="dashboard-panel" aria-labelledby="dashboard-security-sessions">
     <header class="dashboard-panel-header">
         <div>
-            <h2 id="dashboard-security-sessions">Sessions</h2>
+            <h2 id="dashboard-security-sessions" tabindex="-1" @ref="_sessionsHeading">Sessions</h2>
             @if (_observed is { } observed)
             {
                 <p class="dashboard-muted">Observed <DashboardTime Value="observed" />. @(_failure is null ? null : "The list may be stale.")</p>
@@ -46,52 +46,57 @@
         }
         else
         {
-            <table class="dashboard-table" aria-label="Active sessions">
-                <thead>
-                    <tr><th scope="col">Session</th><th scope="col" class="dashboard-table-extra">Last used</th><th scope="col">Expires</th><th scope="col">Access</th></tr>
-                </thead>
-                <tbody>
-                    @foreach (var session in VisibleSessions(page))
-                    {
-                        @if (RunPresentation.ReadId(session.SessionId) is Guid id)
+            <div class="dashboard-table-wrap" role="region" aria-label="Active sessions" tabindex="0">
+                <table class="dashboard-table" aria-label="Active sessions">
+                    <thead>
+                        <tr><th scope="col">Session</th><th scope="col" class="dashboard-table-extra">Last used</th><th scope="col">Expires</th><th scope="col">Access</th></tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var session in VisibleSessions(page))
                         {
-                            <tr @key="id">
-                                <td>
-                                    <strong>@SessionLabel(session)</strong>
-                                    @if (IsCurrent(session, id))
-                                    {
-                                        <small class="dashboard-muted">This session</small>
-                                    }
-                                </td>
-                                <td class="dashboard-table-extra"><DashboardTime Value="@RunPresentation.ReadTime(session.LastUsedAt)" /></td>
-                                <td><DashboardTime Value="@RunPresentation.ReadTime(session.ExpiresAt)" /></td>
-                                <td>
-                                    @if (IsCurrent(session, id))
-                                    {
-                                        <span class="dashboard-muted">Use Sign out</span>
-                                    }
-                                    else
-                                    {
-                                        <button type="button" class="dashboard-button dashboard-button-danger"
-                                                aria-disabled="@(!CanRevoke(session, id) ? "true" : "false")"
-                                                command="@(CanRevoke(session, id) ? "show-modal" : null)" commandfor="@($"security-revoke-session-{id:N}")">
-                                            @(Access.SecuritySessionRevocations.ContainsKey(id) ? "Revocation pending" : "Revoke session")
-                                        </button>
-                                    }
-                                </td>
-                            </tr>
+                            @if (RunPresentation.ReadId(session.SessionId) is Guid id)
+                            {
+                                <tr @key="id">
+                                    <td>
+                                        <strong>@SessionLabel(session)</strong>
+                                        @if (IsCurrent(session, id))
+                                        {
+                                            <small class="dashboard-muted">This session</small>
+                                        }
+                                    </td>
+                                    <td class="dashboard-table-extra"><DashboardTime Value="@RunPresentation.ReadTime(session.LastUsedAt)" /></td>
+                                    <td><DashboardTime Value="@RunPresentation.ReadTime(session.ExpiresAt)" /></td>
+                                    <td>
+                                        @if (IsCurrent(session, id))
+                                        {
+                                            <span class="dashboard-muted">Use Sign out</span>
+                                        }
+                                        else
+                                        {
+                                            <button type="button" class="dashboard-button dashboard-button-danger"
+                                                    aria-disabled="@(!CanRevoke(session, id) ? "true" : "false")"
+                                                    aria-haspopup="dialog" aria-controls="@($"security-revoke-session-{id:N}")"
+                                                    @onfocus="() => FocusSessionAction(id)" @onblur="() => BlurSessionAction(id)"
+                                                    command="@(CanRevoke(session, id) ? "show-modal" : null)" commandfor="@($"security-revoke-session-{id:N}")">
+                                                @(Access.SecuritySessionRevocations.ContainsKey(id) ? "Revocation pending" : "Revoke session")
+                                            </button>
+                                        }
+                                    </td>
+                                </tr>
+                            }
                         }
-                    }
-                </tbody>
-            </table>
+                    </tbody>
+                </table>
+            </div>
             @foreach (var session in VisibleSessions(page))
             {
                 @if (RunPresentation.ReadId(session.SessionId) is Guid id && !IsCurrent(session, id))
                 {
                     <dialog @key="@($"session-dialog-{id:N}")" id="@($"security-revoke-session-{id:N}")" class="dashboard-dialog"
-                            aria-labelledby="@($"security-revoke-session-title-{id:N}")" closedby="closerequest">
+                            aria-labelledby="@($"security-revoke-session-title-{id:N}")"
+                            aria-describedby="@($"security-revoke-session-description-{id:N}")" closedby="closerequest">
                         <h2 id="@($"security-revoke-session-title-{id:N}")">Revoke this session?</h2>
-                        <p>End the selected @SessionLabel(session) session. Confirm this action with your passkey.</p>
+                        <p id="@($"security-revoke-session-description-{id:N}")">End the selected @SessionLabel(session) session. Confirm this action with your passkey.</p>
                         <dl class="dashboard-dialog-facts">
                             <dt>Session ID</dt><dd><code>@id</code></dd>
                             <dt>Last used</dt><dd><DashboardTime Value="@RunPresentation.ReadTime(session.LastUsedAt)" /></dd>
@@ -99,6 +104,7 @@
                         <form method="dialog" class="dashboard-actions">
                             <button type="submit" value="cancel" class="dashboard-button dashboard-button-quiet" autofocus>Cancel</button>
                             <button type="submit" value="revoke" class="dashboard-button dashboard-button-danger-solid"
+                                    @onfocus="() => FocusSessionAction(id)" @onblur="() => BlurSessionAction(id)"
                                     disabled="@(!CanRevoke(session, id))" @onclick="() => RevokeAsync(session, id)">Confirm revocation</button>
                         </form>
                     </dialog>
@@ -146,6 +152,9 @@
     private DateTimeOffset? _observed;
     private string? _cursor;
     private string? _notice;
+    private ElementReference _sessionsHeading;
+    private Guid? _focusedSessionAction;
+    private bool _focusAfterRevocation;
     private bool _reading;
     private bool _disposed;
 
@@ -153,6 +162,15 @@
     {
         Access.SecurityRevocationsChanged += RevocationsChanged;
         return ReadAsync(null);
+    }
+
+    protected override Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!_focusAfterRevocation || _disposed || Access.Cancellation.IsCancellationRequested)
+            return Task.CompletedTask;
+        _focusAfterRevocation = false;
+        _focusedSessionAction = null;
+        return _sessionsHeading.FocusAsync().AsTask();
     }
 
     private Task RefreshAsync() => ReadAsync(_cursor);
@@ -256,7 +274,25 @@
     private void RevocationsChanged()
     {
         if (!_disposed)
-            _ = InvokeAsync(StateHasChanged);
+        {
+            _ = InvokeAsync(() =>
+            {
+                if (_disposed)
+                    return;
+                if (_focusedSessionAction is Guid id &&
+                    Access.SecuritySessionRevocations.TryGetValue(id, out var pending) && pending.ConfirmedRevision is not null)
+                    _focusAfterRevocation = true;
+                StateHasChanged();
+            });
+        }
+    }
+
+    private void FocusSessionAction(Guid id) => _focusedSessionAction = id;
+
+    private void BlurSessionAction(Guid id)
+    {
+        if (_focusedSessionAction == id)
+            _focusedSessionAction = null;
     }
 
     private static string SessionLabel(SessionSummary session) =>

@@ -55,14 +55,19 @@
         @if (Pending is not null && !Saving)
         {
             <p>The Center has not confirmed the original save. Retry the same save to use its existing command.</p>
-            <button type="button" class="dashboard-button dashboard-button-quiet" disabled="@(!CanRetry)"
-                    @onclick="RetrySaveAsync">Retry original save</button>
         }
         @if (_profile is not null && !_readingDeletion && !DeletionPending && !ProfileChangesAdmitted)
         {
             <p>Check the current deletion status before changing the profile.</p>
         }
     </div>
+    @if (Pending is not null && !Saving)
+    {
+        <div class="dashboard-panel-copy">
+            <button type="button" class="dashboard-button dashboard-button-quiet" disabled="@(!CanRetry)"
+                    @onclick="RetrySaveAsync">Retry original save</button>
+        </div>
+    }
     @if (_profile is { } profile)
     {
         <div class="dashboard-panel-copy">
@@ -72,20 +77,40 @@
             </dl>
         </div>
         <form class="dashboard-run-fields dashboard-panel-copy" @onsubmit="SaveProfileAsync" @onsubmit:preventDefault autocomplete="off">
-            <label>Display name
-                <input type="text" @bind="_displayName" @bind:event="oninput" maxlength="128" disabled="@(!CanEdit)" />
-            </label>
-            <label>Language tag
-                <input type="text" @bind="_locale" @bind:event="oninput" maxlength="35" disabled="@(!CanEdit)" />
-            </label>
-            <label>Time zone
-                <input type="text" @bind="_timezone" @bind:event="oninput" maxlength="64" disabled="@(!CanEdit)" />
-            </label>
+            <div>
+                <label>Display name
+                    <input type="text" @bind="_displayName" @bind:event="oninput" maxlength="128" disabled="@(!CanEdit)"
+                           aria-invalid="@(DisplayNameInvalid ? "true" : null)"
+                           aria-describedby="@(DisplayNameInvalid ? "account-display-name-error" : null)" />
+                </label>
+                @if (DisplayNameInvalid)
+                {
+                    <p id="account-display-name-error" role="alert">Enter a display name of 128 characters or fewer.</p>
+                }
+            </div>
+            <div>
+                <label>Language tag
+                    <input type="text" @bind="_locale" @bind:event="oninput" maxlength="35" disabled="@(!CanEdit)"
+                           aria-invalid="@(LocaleInvalid ? "true" : null)"
+                           aria-describedby="@(LocaleInvalid ? "account-locale-error" : null)" />
+                </label>
+                @if (LocaleInvalid)
+                {
+                    <p id="account-locale-error" role="alert">Enter a language tag of 35 characters or fewer, such as en-US.</p>
+                }
+            </div>
+            <div>
+                <label>Time zone
+                    <input type="text" @bind="_timezone" @bind:event="oninput" maxlength="64" disabled="@(!CanEdit)"
+                           aria-invalid="@(TimezoneInvalid ? "true" : null)"
+                           aria-describedby="@(TimezoneInvalid ? "account-timezone-error" : null)" />
+                </label>
+                @if (TimezoneInvalid)
+                {
+                    <p id="account-timezone-error" role="alert">Enter a time zone of 64 characters or fewer, such as UTC.</p>
+                }
+            </div>
             <button type="submit" class="dashboard-button dashboard-button-primary" disabled="@(!CanEdit || !HasEdits)">Save profile</button>
-            @if (_invalidProfile)
-            {
-                <p role="alert">Enter a display name, language tag and time zone within the field limits.</p>
-            }
         </form>
     }
 </section>
@@ -202,7 +227,7 @@
     private bool _readingDeletion;
     private bool _deletionRead;
     private bool _saved;
-    private bool _invalidProfile;
+    private bool _validateProfile;
 
     private DashboardProfileAttempt? Pending => Access.PendingProfile;
     private bool Saving => Pending is { Sending: true };
@@ -215,6 +240,10 @@
         _profileReadError?.Failure is not (DashboardFailure.Forbidden or DashboardFailure.NotFound);
     private bool HasEdits => _profile is { } profile &&
         (_displayName != profile.DisplayName || _locale != profile.Locale || _timezone != profile.Timezone);
+    private bool DisplayNameInvalid => _validateProfile && _displayName != _profile?.DisplayName &&
+        (string.IsNullOrWhiteSpace(_displayName) || _displayName.Length > 128);
+    private bool LocaleInvalid => _validateProfile && _locale != _profile?.Locale && _locale.Length is < 1 or > 35;
+    private bool TimezoneInvalid => _validateProfile && _timezone != _profile?.Timezone && _timezone.Length is < 1 or > 64;
     private string HostingLabel => Center.Configuration.Mode switch
     {
         DashboardCenterMode.SelfHosted => "Self-hosted Center",
@@ -316,10 +345,8 @@
         var name = _displayName == profile.DisplayName ? null : _displayName;
         var locale = _locale == profile.Locale ? null : _locale;
         var timezone = _timezone == profile.Timezone ? null : _timezone;
-        _invalidProfile = name is not null && (string.IsNullOrWhiteSpace(name) || name.Length > 128) ||
-            locale is not null && locale.Length is < 1 or > 35 ||
-            timezone is not null && timezone.Length is < 1 or > 64;
-        if (_invalidProfile)
+        _validateProfile = true;
+        if (DisplayNameInvalid || LocaleInvalid || TimezoneInvalid)
             return Task.CompletedTask;
         return SubmitProfileAsync(new DashboardProfileAttempt(Guid.NewGuid(), profile.Revision.Value, name, locale, timezone));
     }
@@ -388,7 +415,7 @@
         _displayName = profile.DisplayName;
         _locale = profile.Locale;
         _timezone = profile.Timezone;
-        _invalidProfile = false;
+        _validateProfile = false;
     }
 
     private void ClearProfile()

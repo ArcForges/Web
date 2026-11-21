@@ -2,9 +2,18 @@
 
 :root {
   --font-sans: "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+  --canvas: #f4f3ed;
+  --surface: #fffdf9;
+  --ink: #1e2824;
+  --muted: #4c6256;
+  --rule: #cbd5cb;
+  --green: #235844;
+  --wash: #e8eee5;
+  --rail: #193b2e;
+  --red: #9d362f;
   font-family: var(--font-sans);
-  color: #1e2824;
-  background: #f4f3ed;
+  color: var(--ink);
+  background: var(--canvas);
 }
 * {
   box-sizing: border-box;
@@ -25,7 +34,8 @@ button, select, input {
   left: 16px;
   z-index: 5;
   padding: 12px;
-  background: white;
+  background: var(--surface);
+  color: var(--green);
 }
 .skip-link:focus {
   top: 12px;
@@ -54,15 +64,6 @@ button, select, input {
 }
 
 .dashboard-shell {
-  --canvas: #f4f3ed;
-  --surface: #fffdf9;
-  --ink: #1e2824;
-  --muted: #4c6256;
-  --rule: #cbd5cb;
-  --green: #235844;
-  --wash: #e8eee5;
-  --rail: #193b2e;
-  --red: #9d362f;
   display: grid;
   grid-template-columns: 13rem minmax(0, 1fr);
   min-height: 100dvh;
@@ -71,6 +72,7 @@ button, select, input {
   font-size: 15px;
   font-variant-numeric: tabular-nums;
   line-height: 1.5;
+  overflow-wrap: anywhere;
   color-scheme: light;
 }
 .dashboard-shell :focus-visible {
@@ -79,8 +81,8 @@ button, select, input {
 .dashboard-rail {
   position: sticky;
   top: 0;
-  align-self: start;
-  min-height: 100dvh;
+  height: 100dvh;
+  overflow-y: auto;
   padding: 20px 16px;
   background: var(--rail);
   color: #f8f6ef;
@@ -90,7 +92,7 @@ button, select, input {
   text-decoration: none;
 }
 .dashboard-rail :focus-visible {
-  outline-color: #f8f6ef;
+  outline-color: currentColor;
 }
 .dashboard-brand-row, .dashboard-context, .dashboard-intro, .dashboard-panel-header, .dashboard-access-panel {
   display: flex;
@@ -98,15 +100,22 @@ button, select, input {
   justify-content: space-between;
   gap: 12px;
 }
+.dashboard-context, .dashboard-panel-header, .dashboard-detail-heading {
+  flex-wrap: wrap;
+}
 .dashboard-navigation a, .dashboard-account, .dashboard-detail-heading {
   display: flex;
   align-items: center;
   gap: 8px;
 }
-.dashboard-brand {
+.dashboard-brand, .dashboard-button, .dashboard-presence {
   display: inline-flex;
   align-items: center;
+}
+.dashboard-brand, .dashboard-navigation a, .dashboard-menu, .dashboard-button {
   min-height: 44px;
+}
+.dashboard-brand {
   font-size: 22px;
   font-weight: 680;
 }
@@ -116,7 +125,6 @@ button, select, input {
   margin-top: 36px;
 }
 .dashboard-navigation a {
-  min-height: 44px;
   border-radius: 5px;
   padding: 8px 12px;
   font-weight: 620;
@@ -129,7 +137,6 @@ button, select, input {
 }
 .dashboard-menu {
   display: none;
-  min-height: 40px;
   border: 1px solid currentColor;
   border-radius: 5px;
   padding: 0 9px;
@@ -138,18 +145,12 @@ button, select, input {
   cursor: pointer;
 }
 .dashboard-context {
-  position: sticky;
-  top: 0;
-  z-index: 2;
   min-height: 62px;
-  border-bottom: 1px solid var(--rule);
   padding: 8px 16px;
   background: var(--surface);
 }
 .dashboard-center, .dashboard-account-text {
   display: grid;
-  min-width: 0;
-  overflow-wrap: anywhere;
 }
 .dashboard-muted, .dashboard-origin, .dashboard-account time, .dashboard-update, .dashboard-detail-state,
 .dashboard-summary dt, .dashboard-detail-facts dt, .dashboard-dialog-facts dt, .dashboard-table thead {
@@ -158,7 +159,7 @@ button, select, input {
 .dashboard-origin, .dashboard-account time, .dashboard-update, .dashboard-detail-state {
   font-size: 13px;
 }
-.dashboard-workspace, .dashboard-panel, .dashboard-select, .dashboard-account {
+.dashboard-workspace, .dashboard-panel, .dashboard-select, .dashboard-account, .dashboard-center, .dashboard-account-text {
   min-width: 0;
 }
 .dashboard-main {
@@ -170,14 +171,10 @@ button, select, input {
   margin: 0;
   font-size: clamp(30px, 4vw, 46px);
   line-height: 1.12;
-  overflow-wrap: anywhere;
 }
-.dashboard-shell h2, .dashboard-shell h3 {
+.dashboard-shell :is(h2, h3) {
   margin: 0;
   font-size: 17px;
-}
-.dashboard-shell code, .dashboard-device-link {
-  overflow-wrap: anywhere;
 }
 .dashboard-intro, .dashboard-summary, .dashboard-device-sections, .dashboard-work-scope {
   margin: 0 0 22px;
@@ -187,25 +184,23 @@ button, select, input {
 }
 .dashboard-link {
   color: var(--green);
-  font-weight: 650;
   text-underline-offset: 3px;
 }
+.dashboard-link, .dashboard-button, .dashboard-summary dd, .dashboard-presence {
+  font-weight: 650;
+}
 .dashboard-button {
-  display: inline-flex;
-  flex: 0 0 auto;
-  align-items: center;
+  text-decoration: none;
   justify-content: center;
-  min-height: 40px;
+  max-width: 100%;
   border: 1px solid var(--muted);
   border-radius: 6px;
   padding: 6px 12px;
   background: var(--surface);
   color: var(--ink);
-  font-weight: 650;
-  text-decoration: none;
   cursor: pointer;
 }
-.dashboard-button[aria-disabled="true"] {
+.dashboard-button:is(:disabled, [aria-disabled="true"]) {
   background: var(--canvas);
   color: var(--muted);
   cursor: default;
@@ -215,7 +210,7 @@ button, select, input {
   background: var(--green);
   color: var(--canvas);
 }
-.dashboard-button-danger:not([aria-disabled="true"]) {
+.dashboard-button-danger:not(:disabled, [aria-disabled="true"]) {
   border-color: var(--red);
   color: var(--red);
 }
@@ -236,7 +231,6 @@ button, select, input {
 .dashboard-summary dd {
   margin: 0;
   font-size: 32px;
-  font-weight: 650;
 }
 .dashboard-panel, .dashboard-session, .dashboard-dialog {
   border: 1px solid var(--rule);
@@ -248,29 +242,30 @@ button, select, input {
   margin: 0 0 18px;
 }
 .dashboard-panel-header, .dashboard-panel-footer, .dashboard-enrollment, .dashboard-empty, .dashboard-run-status,
-.dashboard-table th, .dashboard-table td, .dashboard-run-scope, .dashboard-access-panel, .dashboard-panel-copy,
+.dashboard-table :is(th, td), .dashboard-run-scope, .dashboard-access-panel, .dashboard-panel-copy,
 .dashboard-detail-facts > div {
   padding: 12px 16px;
 }
-.dashboard-panel-header, .dashboard-table tr, .dashboard-detail-facts > div {
+.dashboard-context, .dashboard-panel-header, .dashboard-table tr, .dashboard-detail-facts > div {
   border-bottom: 1px solid var(--rule);
 }
 .dashboard-table {
   width: 100%;
   border-collapse: collapse;
   text-align: left;
+  overflow-wrap: normal;
+}
+.dashboard-table :is(code, .dashboard-device-link) {
+  overflow-wrap: anywhere;
 }
 .dashboard-table thead {
   background: var(--canvas);
   font-size: 13px;
 }
 .dashboard-presence {
-  display: inline-flex;
-  align-items: center;
   gap: 6px;
   color: var(--muted);
   font-size: 13px;
-  font-weight: 650;
 }
 .dashboard-presence > span {
   width: 8px;
@@ -298,13 +293,14 @@ button, select, input {
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 12px;
 }
-.dashboard-run-fields label {
+.dashboard-run-fields label:not(.dashboard-run-commands) {
   display: grid;
   gap: 4px;
 }
-.dashboard-select select, .dashboard-run-fields input {
+.dashboard-shell select, .dashboard-run-fields input:not([type=checkbox]) {
   width: 100%;
   min-width: 0;
+  min-height: 44px;
   border: 1px solid var(--muted);
   border-radius: 5px;
   padding: 6px 8px;
@@ -317,19 +313,26 @@ button, select, input {
   flex-wrap: wrap;
   gap: 8px;
 }
+.dashboard-run-commands {
+  align-items: center;
+  min-height: 44px;
+}
+.dashboard-run-scope summary {
+  min-height: 32px;
+  cursor: pointer;
+}
 .dashboard-detail-intro {
   margin-bottom: 6px;
 }
 .dashboard-work-view pre {
   overflow: auto;
   white-space: pre-wrap;
-  overflow-wrap: anywhere;
 }
 .dashboard-table-wrap {
   overflow-x: auto;
 }
-.dashboard-detail-heading {
-  flex-wrap: wrap;
+.dashboard-table-wrap:focus-visible {
+  outline-offset: -3px;
 }
 .dashboard-detail-state {
   min-height: 23px;
@@ -342,9 +345,6 @@ button, select, input {
   grid-template-columns: 6rem minmax(0, 1fr);
   gap: 10px;
 }
-.dashboard-detail-facts dd, .dashboard-capabilities {
-  overflow-wrap: anywhere;
-}
 .dashboard-session, .dashboard-dialog {
   width: min(100%, 490px);
   padding: 20px;
@@ -353,14 +353,12 @@ button, select, input {
   margin: 32px auto;
 }
 .dashboard-dialog {
-  width: min(90vw, 490px);
+  max-width: 90vw;
   max-height: calc(100dvh - 32px);
   overscroll-behavior: contain;
 }
 .dashboard-dialog::backdrop {
   background: #101a16a8;
-  overflow: hidden;
-  overscroll-behavior: contain;
 }
 @media (prefers-color-scheme: dark) {
   .dashboard-shell {
@@ -381,21 +379,17 @@ button, select, input {
   }
   .dashboard-rail {
     position: relative;
-    min-height: auto;
+    height: auto;
     padding: 8px 16px;
   }
   .dashboard-menu {
     display: block;
   }
   .dashboard-navigation {
-    display: none;
     margin-top: 6px;
   }
-  .dashboard-navigation.is-open {
-    display: grid;
-  }
-  .dashboard-context {
-    position: static;
+  .dashboard-navigation:not(.is-open) {
+    display: none;
   }
 }
 @media (max-width: 620px) {
@@ -407,18 +401,12 @@ button, select, input {
     align-items: end;
     text-align: right;
   }
-  .dashboard-table .dashboard-table-extra {
-    display: none;
-  }
-  .dashboard-panel-header {
-    flex-wrap: wrap;
-  }
-  .dashboard-detail-grid, .dashboard-run-fields {
+  .dashboard-summary, .dashboard-detail-grid, .dashboard-run-fields {
     grid-template-columns: minmax(0, 1fr);
   }
 }
 @media (prefers-reduced-motion: reduce) {
-  *, *::before, *::after {
+  * {
     scroll-behavior: auto !important;
   }
 }

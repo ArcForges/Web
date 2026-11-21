@@ -8,6 +8,7 @@ using ArcForges.Web.App.Layout;
 using Google.Protobuf;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Forms;
+using Microsoft.AspNetCore.Components.Web;
 using Microsoft.JSInterop;
 
 namespace ArcForges.Web.App.Pages;
@@ -52,7 +53,10 @@ public sealed partial class SandboxTransfers : IDisposable
     private int? _browserBytes;
     private int _downloadLength;
     private long? _blockedSandboxRevision;
+    private ElementReference _transferHeading;
+    private bool _focusTransferHeading;
 
+    private bool ObservationStale => _requiresObservation || _pending is not null;
     private bool CanBegin => !_busy && _scope is { IsCancellationRequested: false } &&
         _intent is null && !_previousGrantLease && SandboxRevision > 0 && SandboxRevision != _blockedSandboxRevision &&
         Target.OwnerEpoch is Guid owner && owner != Guid.Empty &&
@@ -68,6 +72,15 @@ public sealed partial class SandboxTransfers : IDisposable
     private string CloseLabel => _receipt?.Transfer is { State: TransferState.Complete, Direction: "export" }
         ? "Release snapshot" : _receipt?.Transfer.State == TransferState.Complete ? "Close transfer" : "Cancel transfer";
 
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (_focusTransferHeading && _scope is { IsCancellationRequested: false })
+        {
+            _focusTransferHeading = false;
+            await _transferHeading.FocusAsync();
+        }
+    }
+
     protected override async Task OnParametersSetAsync()
     {
         if (ReferenceEquals(_appliedAccess, Access) && Equals(_appliedTarget, Target))
@@ -80,6 +93,7 @@ public sealed partial class SandboxTransfers : IDisposable
         ClearForm();
         ClearTransfer();
         _busy = false;
+        _focusTransferHeading = false;
         _blockedSandboxRevision = null;
         if (Access.TransferJourneys.TryGetValue(Target, out var current))
         {
@@ -149,6 +163,7 @@ public sealed partial class SandboxTransfers : IDisposable
 
                 var digest = Convert.ToHexStringLower(SHA256.HashData(bytes));
                 _intent = new Intent(target, "import", path, (ulong)bytes.Length, digest);
+                _focusTransferHeading = true;
                 ClearForm();
                 await ApplyMutationAsync(new Pending(TransferPhase.BeginImport, start), () =>
                     Work.BeginImportAsync(target, start, path, (ulong)bytes.Length, digest, replace, version, token), token);
@@ -203,6 +218,7 @@ public sealed partial class SandboxTransfers : IDisposable
         return RunAsync(async token =>
         {
             _intent = new Intent(target, "export", path);
+            _focusTransferHeading = true;
             ClearForm();
             _notice = "Preparing an export snapshot.";
             await ApplyMutationAsync(new Pending(TransferPhase.BeginExport, start), () =>
@@ -230,6 +246,7 @@ public sealed partial class SandboxTransfers : IDisposable
     {
         if (_receipt is not { } previous || _intent is not { } intent || ReadId(previous.Transfer.TransferId) is not Guid id)
             return;
+        _requiresObservation = true;
         var current = await Work.InspectTransferAsync(intent.Target, id, token);
         token.ThrowIfCancellationRequested();
         if (!ReceiptMatches(current, previous, id))
@@ -268,6 +285,7 @@ public sealed partial class SandboxTransfers : IDisposable
 
             if (!string.Equals(Convert.ToHexStringLower(SHA256.HashData(bytes)), transfer.Sha256, StringComparison.Ordinal))
             {
+                _requiresObservation = true;
                 _notice = "The downloaded bytes did not match the snapshot digest. No file was saved.";
                 return;
             }
@@ -283,11 +301,18 @@ public sealed partial class SandboxTransfers : IDisposable
             }
             catch (JSException) when (!token.IsCancellationRequested)
             {
-                _notice = "The browser could not save the file. The snapshot remains available while retained.";
+                _requiresObservation = true;
+                _notice = "The browser could not save the file. Check the transfer before downloading again.";
                 return;
             }
             token.ThrowIfCancellationRequested();
             _notice = "Verified file sent to your browser. Release the snapshot when you no longer need it.";
+        }
+        catch (DashboardApiException)
+        {
+            if (!token.IsCancellationRequested)
+                _requiresObservation = true;
+            throw;
         }
         finally
         {
@@ -305,6 +330,7 @@ public sealed partial class SandboxTransfers : IDisposable
         var command = NewCommand(intent.Target.OwnerEpoch!.Value, receipt.Revision);
         return RunAsync(async token =>
         {
+            _focusTransferHeading = true;
             await ApplyMutationAsync(new Pending(TransferPhase.CloseTransfer, command), () =>
                 Work.CloseTransferAsync(intent.Target, command, id, token), token);
             _notice = "The Node confirmed that the transfer was released.";
@@ -457,8 +483,11 @@ public sealed partial class SandboxTransfers : IDisposable
             }
             else
             {
-                if (_receipt is not null && error.Failure == DashboardFailure.Conflict)
+                if (_receipt is not null && error.Failure is DashboardFailure.Conflict or DashboardFailure.Forbidden or
+                    DashboardFailure.NotFound or DashboardFailure.Unavailable or DashboardFailure.Incompatible)
+                {
                     _requiresObservation = true;
+                }
                 _notice = _readOnlyOriginal ? PreviousTransferNotice
                     : _pending is not null
                     ? "The original command still needs reconciliation. Check its result before taking another action."
@@ -509,6 +538,7 @@ public sealed partial class SandboxTransfers : IDisposable
         if (_busy || _pending is not null || _receipt?.Transfer.ClosedAt is null && !_canDismiss)
             return;
         ClearTransfer();
+        _focusTransferHeading = true;
         _previousGrantLease = Access.TransferJourneys.Keys.Any(old => old.NodeId == Target.NodeId &&
             old.EnrollmentId == Target.EnrollmentId && old.SandboxId == Target.SandboxId);
         if (_previousGrantLease)
@@ -600,13 +630,16 @@ public sealed partial class SandboxTransfers : IDisposable
         _ => "State unavailable",
     };
 
-    private static string SnapshotLabel(Transfer row) => row.ClosedAt is not null ? "Released by the Node" :
+    private string SnapshotLabel(Transfer row) => row.ClosedAt is not null ? "Released by the Node" :
         ToTime(row.ExpiresAt) <= DateTimeOffset.UtcNow ? "Retention deadline passed. Release has not been confirmed." :
+        ObservationStale ? "Check the snapshot for its current availability" :
         row.State == TransferState.Failed ? "Snapshot unavailable" :
         row.State == TransferState.Complete ? "Retained for download" : "Awaiting materialization";
 
     private static string CurrentNotice(Transfer row) => row.ClosedAt is not null ? "The Node confirmed release." : row.State switch
     {
+        TransferState.Complete when row.Direction == "export" && ToTime(row.ExpiresAt) <= DateTimeOffset.UtcNow =>
+            "The retention deadline passed. Release has not been confirmed.",
         TransferState.Complete when row.Direction == "export" && row.ByteLength > BrowserBytes =>
             "The verified snapshot exceeds the browser limit. Release it with the original grant. " +
             "The local owner can export the source separately using the CLI.",

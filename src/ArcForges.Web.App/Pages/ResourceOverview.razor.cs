@@ -27,6 +27,7 @@ public partial class ResourceOverview : IDisposable
 
     private readonly List<ResourceSnapshot> _samples = new(SampleLimit);
     private CancellationTokenSource _lifetime = default!;
+    private CancellationTokenSource? _budgetRead;
     private CancellationTokenSource? _watch;
     private ResourceSnapshot? _snapshot;
     private PolicyDraft? _draft;
@@ -40,6 +41,7 @@ public partial class ResourceOverview : IDisposable
     private bool _reading;
     private bool _watching;
     private bool _watchFinished;
+    private bool _budgetNeedsRefresh;
     private bool _checking;
     private bool _runScopeVerified;
     private bool _canUseRevision;
@@ -52,14 +54,15 @@ public partial class ResourceOverview : IDisposable
     private DashboardPendingResourcePolicy? VisiblePending => Pending is { } pending && pending.OriginalTarget.GrantId == Target.GrantId
         ? pending : null;
     private long? PolicyRevision => _snapshot?.PolicyRevision is { HasValue: true, Value: > 0 } revision ? revision.Value : null;
-    private bool CanRead => !_disposed && !_reading && !_watching && !_checking && _draft is null && Pending is not { Sending: true };
-    private bool CanWatch => CanRead && Pending is null && (RunId is null || _runScopeVerified);
+    private bool CanRead => !_disposed && !_reading && !_watching && !_checking &&
+        (_draft is null || _budgetNeedsRefresh) && Pending is not { Sending: true };
+    private bool CanWatch => CanRead && _draft is null && Pending is null && (RunId is null || _runScopeVerified);
     private bool CanEdit => CanWatch && Target.OwnerEpoch is not null && EditableLimits is not null;
 
-    private string WatchStatus => _watching ? "Sampling on the device…" :
+    private string WatchStatus => _watching ? "Watching for new device samples. Values are shown at their reported times." :
         _watchFailure is not null || _readFailure is not null ? "Live samples unavailable. Displayed samples are historical." :
         _watchFinished ? "Sampling ended. Displayed samples are historical." :
-        _samples.Count > 0 ? "Showing recent reported samples." : "Sampling is off.";
+        _samples.Count > 0 ? "Showing the last reported samples." : "Sampling is off.";
 
     private PolicyDraft? EditableLimits
     {
@@ -82,6 +85,7 @@ public partial class ResourceOverview : IDisposable
     {
         _lifetime = CancellationTokenSource.CreateLinkedTokenSource(Access.Cancellation);
         Access.PendingResourcePoliciesChanged += PendingPolicyChanged;
+        Access.ViewResumed += ViewResumed;
         _observedPendingCommand = Pending?.Command.CommandId;
         return ReadAsync();
     }
@@ -91,8 +95,10 @@ public partial class ResourceOverview : IDisposable
         if (!CanRead)
             return;
 
+        using var read = CancellationTokenSource.CreateLinkedTokenSource(_lifetime.Token);
+        _budgetRead = read;
         _reading = true;
-        var ct = _lifetime.Token;
+        var ct = read.Token;
         try
         {
             if (RunId is not null && !_runScopeVerified)
@@ -110,6 +116,7 @@ public partial class ResourceOverview : IDisposable
                 return;
 
             _canUseRevision = AcceptSnapshot(result);
+            _budgetNeedsRefresh = !_canUseRevision;
             _readFailure = null;
             _watchFailure = null;
             _watchFinished = false;
@@ -127,7 +134,11 @@ public partial class ResourceOverview : IDisposable
         }
         finally
         {
-            _reading = false;
+            if (ReferenceEquals(_budgetRead, read))
+            {
+                _budgetRead = null;
+                _reading = false;
+            }
         }
     }
 
@@ -135,7 +146,7 @@ public partial class ResourceOverview : IDisposable
     {
         if (_watching)
         {
-            _watch?.Cancel();
+            StopWatch();
             return;
         }
         if (!CanWatch)
@@ -171,33 +182,66 @@ public partial class ResourceOverview : IDisposable
         }
         finally
         {
-            _watch = null;
-            _watching = false;
-            _watchFinished = true;
-            _canUseRevision = false;
+            if (ReferenceEquals(_watch, watch))
+                StopWatch();
         }
     }
+
+    private void StopWatch()
+    {
+        var watch = _watch;
+        _watch = null;
+        _watching = false;
+        _watchFinished = true;
+        _canUseRevision = false;
+        watch?.Cancel();
+    }
+
+    private void ViewResumed() => _ = InvokeAsync(() =>
+    {
+        if (_disposed)
+            return;
+
+        var read = _budgetRead;
+        _budgetRead = null;
+        _reading = false;
+        read?.Cancel();
+        if (_watching)
+            StopWatch();
+        _runScopeVerified = false;
+        _canUseRevision = false;
+        _budgetNeedsRefresh = _snapshot is not null;
+        _watchFinished = _samples.Count > 0;
+        StateHasChanged();
+    });
 
     private bool AcceptSnapshot(ResourceSnapshot snapshot)
     {
         if (snapshot.ScopeKind != (RunId is null ? "sandbox" : "run") || RunPresentation.ReadId(snapshot.ScopeId) != ScopeId)
             throw new DashboardApiException(DashboardFailure.Incompatible);
 
-        // Policy revisions can change between two snapshots of the same native sample.
+        bool observedSample = snapshot.SampleSequence > 0 && !string.IsNullOrEmpty(snapshot.SampleEpoch);
+        bool sameEpoch = observedSample && _samples.Count > 0 && _samples[0].SampleEpoch == snapshot.SampleEpoch;
+        if (sameEpoch && (_samples[0].SampleSequence > snapshot.SampleSequence ||
+            (_samples[0].SampleSequence == snapshot.SampleSequence && _samples[0].Stale && !snapshot.Stale)))
+        {
+            return false;
+        }
+
+        // A new policy revision can accompany the same native sample without advancing its observation time.
         bool canUseRevision = PolicyRevision is not long current || snapshot.PolicyRevision?.Value >= current;
         if (canUseRevision)
             _snapshot = snapshot;
 
-        if (snapshot.SampleSequence == 0 || string.IsNullOrEmpty(snapshot.SampleEpoch))
+        if (!observedSample)
             return canUseRevision;
 
-        if (_samples.Count > 0 && _samples[0].SampleEpoch != snapshot.SampleEpoch)
+        if (!sameEpoch)
             _samples.Clear();
 
-        if (_samples.Count > 0 && _samples[0].SampleSequence >= snapshot.SampleSequence)
+        if (sameEpoch && _samples[0].SampleSequence == snapshot.SampleSequence)
         {
-            if (_samples[0].SampleSequence == snapshot.SampleSequence)
-                _samples[0] = snapshot;
+            _samples[0] = snapshot;
             return canUseRevision;
         }
 
@@ -210,11 +254,14 @@ public partial class ResourceOverview : IDisposable
     private async Task ReadRefusalAsync(DashboardApiException failure)
     {
         _canUseRevision = false;
+        _budgetNeedsRefresh = _snapshot is not null;
         if (failure.Failure is DashboardFailure.Forbidden or DashboardFailure.NotFound or DashboardFailure.Unauthenticated)
         {
             _runScopeVerified = false;
             _samples.Clear();
             _snapshot = null;
+            _draft = null;
+            _budgetNeedsRefresh = false;
         }
         if (failure.Failure == DashboardFailure.Unauthenticated)
             await Access.ExpireAsync();
@@ -240,7 +287,7 @@ public partial class ResourceOverview : IDisposable
 
     private async Task SavePolicyAsync()
     {
-        if (_disposed || Pending is not null || _draft is not { } draft ||
+        if (_disposed || _reading || _budgetNeedsRefresh || Pending is not null || _draft is not { } draft ||
             Target.OwnerEpoch is not Guid epoch || RunId is not Guid run)
             return;
 
@@ -454,6 +501,7 @@ public partial class ResourceOverview : IDisposable
     {
         _disposed = true;
         Access.PendingResourcePoliciesChanged -= PendingPolicyChanged;
+        Access.ViewResumed -= ViewResumed;
         _lifetime.Cancel();
         _lifetime.Dispose();
     }

@@ -88,7 +88,7 @@ else
 @if (Official)
 {
     <section class="dashboard-panel" aria-labelledby="subscription-current">
-        <header class="dashboard-panel-header"><h2 id="subscription-current">Current subscription</h2></header>
+        <header class="dashboard-panel-header"><h2 id="subscription-current" tabindex="-1" @ref="_renewalHeading">Current subscription</h2></header>
         <div class="dashboard-panel-copy">
             @if (_subscriptionFailure is { } subscriptionFailure)
             {
@@ -96,6 +96,10 @@ else
             }
             else if (_subscription is { } subscription)
             {
+                @if (_refreshing)
+                {
+                    <p role="status">Refreshing subscription status. Last reported values are shown.</p>
+                }
                 <dl class="dashboard-detail-facts">
                     <div><dt>Status</dt><dd>@SubscriptionStatus(subscription.State)</dd></div>
                     <div><dt>Current period begins</dt><dd><DashboardTime Value="RunPresentation.ReadTime(subscription.CurrentPeriod?.From)" /></dd></div>
@@ -111,7 +115,7 @@ else
                 </dl>
                 @if (CanChangeRenewal)
                 {
-                    <button type="button" class="dashboard-button dashboard-button-quiet" @onclick="ReviewRenewal">
+                    <button type="button" class="dashboard-button dashboard-button-quiet" @ref="_renewalReview" @onclick="ReviewRenewal">
                         @(subscription.CancelAtPeriodEnd ? "Review reactivation" : "Review cancellation")
                     </button>
                 }
@@ -146,7 +150,7 @@ else
                             <button type="button" class="dashboard-button dashboard-button-quiet" disabled="@_refreshing" @onclick="RefreshAsync">Check current subscription</button>
                             @if (CanResumeRenewal(renewal))
                             {
-                                <button type="button" class="dashboard-button dashboard-button-quiet" @onclick="ReviewOriginalRenewal">
+                                <button type="button" class="dashboard-button dashboard-button-quiet" @ref="_renewalRetryReview" @onclick="ReviewOriginalRenewal">
                                     @(renewal.AutoRenew ? "Review reactivation retry" : "Review cancellation retry")
                                 </button>
                             }
@@ -167,7 +171,7 @@ else
     </section>
 
     <section class="dashboard-panel" aria-labelledby="subscription-catalogue">
-        <header class="dashboard-panel-header"><h2 id="subscription-catalogue">Hosted checkout</h2></header>
+        <header class="dashboard-panel-header"><h2 id="subscription-catalogue" tabindex="-1" @ref="_checkoutHeading">Hosted checkout</h2></header>
         <div class="dashboard-panel-copy">
             @if (Journey.Purchase is { } purchase)
             {
@@ -194,34 +198,36 @@ else
                        rel="noopener noreferrer" referrerpolicy="no-referrer">Open hosted checkout in a new tab</a>
                 }
                 <div class="dashboard-actions">
-                    <button type="button" class="dashboard-button dashboard-button-quiet" disabled="@(_checkingPurchase || purchase.Sending)" @onclick="ReadActivePurchaseAsync">Check purchase status</button>
+                    <button type="button" class="dashboard-button dashboard-button-quiet" disabled="@(PurchaseChecking || purchase.Sending)" @onclick="ReadActivePurchaseAsync">Check purchase status</button>
                     @if (CanPrepareCheckout(purchase))
                     {
-                        <button type="button" class="dashboard-button dashboard-button-quiet" @onclick="ReviewCheckout">Review checkout</button>
+                        <button type="button" class="dashboard-button dashboard-button-quiet" @ref="_checkoutReview" @onclick="ReviewCheckout">Review checkout</button>
                     }
                     else if (CanResumeCheckout(purchase))
                     {
-                        <button type="button" class="dashboard-button dashboard-button-quiet" @onclick="ReviewCheckout">Review original checkout</button>
+                        <button type="button" class="dashboard-button dashboard-button-quiet" @ref="_checkoutReview" @onclick="ReviewCheckout">Review original checkout</button>
                     }
                     else if (CanResumePurchase(purchase))
                     {
-                        <button type="button" class="dashboard-button dashboard-button-quiet" @onclick="ReviewOriginalPurchase">Review original purchase</button>
+                        <button type="button" class="dashboard-button dashboard-button-quiet" @ref="_purchaseRetryReview" @onclick="ReviewOriginalPurchase">Review original purchase</button>
                     }
                     @if (IsPurchaseTerminal(purchase) || (purchase.CommandId is null && purchase.VerifiedMissing))
                     {
-                        <button type="button" class="dashboard-button dashboard-button-quiet" disabled="@(_checkingPurchase || purchase.Sending)" @onclick="ClosePurchase">Close purchase status</button>
+                        <button type="button" class="dashboard-button dashboard-button-quiet" disabled="@(PurchaseChecking || purchase.Sending)" @onclick="ClosePurchase">Close purchase status</button>
                     }
                 </div>
             }
             else
             {
                 <form class="dashboard-run-fields" @onsubmit="ReadCatalogueAsync" @onsubmit:preventDefault>
-                    <label>Billing country code <input type="text" maxlength="2" required autocomplete="off" @bind="_region" @bind:event="oninput" /></label>
+                    <label>Billing country code <input type="text" maxlength="2" required autocomplete="off" @bind="_region" @bind:event="oninput"
+                                                      aria-invalid="@(_regionInvalid ? "true" : null)"
+                                                      aria-describedby="@(_regionInvalid ? "subscription-region-error" : null)" /></label>
                     <button type="submit" class="dashboard-button dashboard-button-quiet" disabled="@_loadingCatalogue">Check available offers</button>
                 </form>
                 @if (_regionInvalid)
                 {
-                    <p role="alert">Enter your two-letter billing country code.</p>
+                    <p id="subscription-region-error" role="alert">Enter your two-letter billing country code.</p>
                 }
                 @if (_catalogueFailure is { } catalogueFailure)
                 {
@@ -242,7 +248,9 @@ else
                                     <span>@OfferPrice(offer)</span>
                                     @if (CanStartPurchase)
                                     {
-                                        <button type="button" class="dashboard-button dashboard-button-quiet" @onclick="() => ReviewPurchase(offer)">Review purchase</button>
+                                        var offerId = RunPresentation.ReadId(offer.OfferId)!.Value;
+                                        <button type="button" class="dashboard-button dashboard-button-quiet" @ref="_offerReviews[offerId]"
+                                                @onclick="() => ReviewPurchase(offer, offerId)">Review purchase</button>
                                     }
                                 </li>
                             }
@@ -254,12 +262,14 @@ else
                     @Failure(_startFailure)
                 }
                 <form class="dashboard-run-fields" @onsubmit="FindPurchaseAsync" @onsubmit:preventDefault>
-                    <label>Previous purchase ID <input type="text" maxlength="36" required autocomplete="off" spellcheck="false" @bind="_previousPurchase" /></label>
+                    <label>Previous purchase ID <input type="text" maxlength="36" required autocomplete="off" spellcheck="false" @bind="_previousPurchase"
+                                                      aria-invalid="@(_purchaseIdInvalid ? "true" : null)"
+                                                      aria-describedby="@(_purchaseIdInvalid ? "subscription-purchase-error" : null)" /></label>
                     <button type="submit" class="dashboard-button dashboard-button-quiet">Look up purchase</button>
                 </form>
                 @if (_purchaseIdInvalid)
                 {
-                    <p role="alert">Enter the full purchase ID from the original request.</p>
+                    <p id="subscription-purchase-error" role="alert">Enter the full purchase ID from the original request.</p>
                 }
             }
         </div>
@@ -267,27 +277,36 @@ else
 
     @if (_confirmation is { } confirmation)
     {
-        <section class="dashboard-panel" aria-labelledby="subscription-confirmation">
-            <header class="dashboard-panel-header"><h2 id="subscription-confirmation">@ConfirmationTitle(confirmation)</h2></header>
+        <section class="dashboard-panel" aria-labelledby="subscription-confirmation" aria-describedby="subscription-confirmation-details"
+                 @onkeydown="ConfirmationKeyDown">
+            <header class="dashboard-panel-header">
+                <h2 id="subscription-confirmation" tabindex="-1" @ref="_confirmationHeading">@ConfirmationTitle(confirmation)</h2>
+            </header>
             <div class="dashboard-panel-copy">
-                @if (confirmation.Offer is { } offer)
+                <div id="subscription-confirmation-details">
+                    @if (confirmation.Offer is { } offer)
+                    {
+                        <p>@OfferPrice(offer) · billing country @offer.Region</p>
+                    }
+                    @if (confirmation.Renewal is { } change)
+                    {
+                        <p>The current subscription period ends <DashboardTime Value="change.PeriodEndsAt" />.</p>
+                    }
+                    @if (confirmation.Action == BillingAction.ResumeRenewal)
+                    {
+                        <p>Resubmitting can apply the original change if the Center never received it. This uses the original command and subscription revision.</p>
+                    }
+                    else if (confirmation.Action is BillingAction.ResumePurchase or BillingAction.ResumeCheckout)
+                    {
+                        <p>This uses the identifiers and details from the original request.</p>
+                    }
+                </div>
+                @if (!CanConfirm(confirmation))
                 {
-                    <p>@OfferPrice(offer) · billing country @offer.Region</p>
-                }
-                @if (confirmation.Renewal is { } change)
-                {
-                    <p>The current subscription period ends <DashboardTime Value="change.PeriodEndsAt" />.</p>
-                }
-                @if (confirmation.Action == BillingAction.ResumeRenewal)
-                {
-                    <p>Resubmitting can apply the original change if the Center never received it. This uses the original command and subscription revision.</p>
-                }
-                else if (confirmation.Action is BillingAction.ResumePurchase or BillingAction.ResumeCheckout)
-                {
-                    <p>This uses the identifiers and details from the original request.</p>
+                    <p role="status">Review the current billing status before confirming this request.</p>
                 }
                 <div class="dashboard-actions">
-                    <button type="button" class="dashboard-button dashboard-button-primary" @onclick="ConfirmAsync">
+                    <button type="button" class="dashboard-button dashboard-button-primary" disabled="@(!CanConfirm(confirmation))" @onclick="ConfirmAsync">
                         @(confirmation.Action == BillingAction.ResumeRenewal ? "Resubmit original request" : "Confirm")
                     </button>
                     <button type="button" class="dashboard-button dashboard-button-quiet" @onclick="CloseConfirmation">Back</button>
