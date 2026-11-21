@@ -39,15 +39,15 @@
         {
             <div class="dashboard-panel-copy dashboard-run-fields">
                 <label>Filter this page
-                    <select class="dashboard-select" @bind="_filter">
-                        <option value="@RunState.Unspecified">All Run states</option>
-                        <option value="@RunState.Starting">Starting</option>
-                        <option value="@RunState.Running">Running</option>
-                        <option value="@RunState.Stopping">Stopping</option>
-                        <option value="@RunState.Draining">Draining</option>
-                        <option value="@RunState.Exited">Exited</option>
-                        <option value="@RunState.Failed">Failed</option>
-                        <option value="@RunState.RecoveryRequired">Recovery required</option>
+                    <select class="dashboard-select" value="@_filter.ToString()" @onchange="SelectFilter">
+                        <option value="@(nameof(RunState.Unspecified))">All Run states</option>
+                        <option value="@(nameof(RunState.Starting))">Starting</option>
+                        <option value="@(nameof(RunState.Running))">Running</option>
+                        <option value="@(nameof(RunState.Stopping))">Stopping</option>
+                        <option value="@(nameof(RunState.Draining))">Draining</option>
+                        <option value="@(nameof(RunState.Exited))">Exited</option>
+                        <option value="@(nameof(RunState.Failed))">Failed</option>
+                        <option value="@(nameof(RunState.RecoveryRequired))">Recovery required</option>
                     </select>
                 </label>
             </div>
@@ -146,6 +146,22 @@
 
     private IEnumerable<Run> VisibleRuns(RunServiceListValue page) =>
         _filter == RunState.Unspecified ? page.Runs : page.Runs.Where(run => run.State == _filter);
+
+    private void SelectFilter(ChangeEventArgs change)
+    {
+        _filter = change.Value switch
+        {
+            nameof(RunState.Unspecified) => RunState.Unspecified,
+            nameof(RunState.Starting) => RunState.Starting,
+            nameof(RunState.Running) => RunState.Running,
+            nameof(RunState.Stopping) => RunState.Stopping,
+            nameof(RunState.Draining) => RunState.Draining,
+            nameof(RunState.Exited) => RunState.Exited,
+            nameof(RunState.Failed) => RunState.Failed,
+            nameof(RunState.RecoveryRequired) => RunState.RecoveryRequired,
+            _ => _filter,
+        };
+    }
 
     protected override Task OnInitializedAsync()
     {

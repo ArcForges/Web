@@ -11,8 +11,7 @@ namespace ArcForges.Web.App.Tests;
 public sealed class WasmProfilePolicyTests
 {
     private static readonly string Root = RepositoryRoot.Find();
-    private const string ActivityModulePath = "_framework/arcforges-dashboard-activity.43e6e05b58.js";
-    private const string TransferModulePath = "_framework/arcforges-sandbox-transfer.1eabd2d823.js";
+    internal const string ActivityModulePath = "_framework/arcforges-dashboard-activity.1ccb709650.js";
 
     private static string AppSource(string relative) => File.ReadAllText(Path.Combine(Root, "src", "ArcForges.Web.App", relative));
 
@@ -91,19 +90,18 @@ public sealed class WasmProfilePolicyTests
         Assert.Empty(loader.Groups["body"].Value);
     }
 
-    [Theory]
-    [InlineData("arcforges-dashboard-activity", ActivityModulePath, "Dashboard/DashboardActivity.cs")]
-    [InlineData("arcforges-sandbox-transfer", TransferModulePath, "Pages/SandboxTransfers.razor.cs")]
-    public void EachLocalModuleIsImportedByItsExactContentAddressInTheFrameworkNamespace(
-        string name, string modulePath, string importer)
+    [Fact]
+    public void TheSharedDashboardModuleIsImportedByItsExactContentAddress()
     {
         var root = Path.Combine(Root, "src", "ArcForges.Web.App", "wwwroot");
-        var path = Assert.Single(Directory.EnumerateFiles(root, name + "*.js", SearchOption.AllDirectories));
+        var path = Assert.Single(Directory.EnumerateFiles(root, "arcforges-dashboard-activity*.js", SearchOption.AllDirectories));
         var hash = Convert.ToHexStringLower(SHA256.HashData(File.ReadAllBytes(path)));
         var relative = Path.GetRelativePath(root, path).Replace('\\', '/');
-        Assert.Equal("_framework/" + name + "." + hash[..10] + ".js", relative);
-        Assert.Equal(modulePath, relative);
-        Assert.Contains("\"./" + relative + "\"", AppSource(importer), StringComparison.Ordinal);
+        Assert.Equal("_framework/arcforges-dashboard-activity." + hash[..10] + ".js", relative);
+        Assert.Equal(ActivityModulePath, relative);
+        Assert.Contains("\"./" + relative + "\"", AppSource("Dashboard/DashboardActivity.cs"), StringComparison.Ordinal);
+        Assert.Contains("DashboardActivity.ModulePath", AppSource("Dashboard/DashboardPasskeys.cs"), StringComparison.Ordinal);
+        Assert.Contains("DashboardActivity.ModulePath", AppSource("Pages/SandboxTransfers.razor.cs"), StringComparison.Ordinal);
     }
 
     [Fact]

@@ -21,15 +21,15 @@
     <div class="dashboard-panel-copy">
         <div class="dashboard-run-fields">
             <label>Stream
-                <select class="dashboard-select" @bind="_stream" @bind:after="ResetStream" disabled="@(_read is not null)">
+                <select class="dashboard-select" value="@_stream.ToString()" @onchange="SelectStream" disabled="@(_read is not null)">
                     @if (Mode == TerminalMode.Interactive)
                     {
-                        <option value="@StreamKind.Terminal">Terminal output</option>
+                        <option value="@(nameof(StreamKind.Terminal))">Terminal output</option>
                     }
                     else
                     {
-                        <option value="@StreamKind.Stdout">Standard output</option>
-                        <option value="@StreamKind.Stderr">Standard error</option>
+                        <option value="@(nameof(StreamKind.Stdout))">Standard output</option>
+                        <option value="@(nameof(StreamKind.Stderr))">Standard error</option>
                     }
                 </select>
             </label>
@@ -116,6 +116,22 @@
     {
         if (!Available)
             CancelRead();
+    }
+
+    private void SelectStream(ChangeEventArgs change)
+    {
+        StreamKind? stream = change.Value switch
+        {
+            nameof(StreamKind.Terminal) when Mode == TerminalMode.Interactive => StreamKind.Terminal,
+            nameof(StreamKind.Stdout) when Mode == TerminalMode.Pipes => StreamKind.Stdout,
+            nameof(StreamKind.Stderr) when Mode == TerminalMode.Pipes => StreamKind.Stderr,
+            _ => null,
+        };
+        if (_read is null && stream is { } selected)
+        {
+            _stream = selected;
+            ResetStream();
+        }
     }
 
     private Task ReadFromStartAsync()

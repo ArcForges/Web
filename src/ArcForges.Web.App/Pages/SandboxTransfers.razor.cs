@@ -16,7 +16,6 @@ public sealed partial class SandboxTransfers : IDisposable
 {
     private const int BrowserBytes = 16 * 1024 * 1024;
     private const int ChunkBytes = 256 * 1024;
-    private const string ModulePath = "./_framework/arcforges-sandbox-transfer.1eabd2d823.js";
     private const string PreviousTransferNotice =
         "A previous transfer is still retained or unresolved. Use its original grant to check its status or request release. " +
         "The Node releases expired transfers when it can do so safely. The local owner can check the original command receipt " +
@@ -278,7 +277,7 @@ public sealed partial class SandboxTransfers : IDisposable
             using var reference = new DotNetStreamReference(content, leaveOpen: true);
             try
             {
-                await using var module = await Browser.InvokeAsync<IJSObjectReference>("import", token, ModulePath);
+                await using var module = await Browser.InvokeAsync<IJSObjectReference>("import", token, DashboardActivity.ModulePath);
                 token.ThrowIfCancellationRequested();
                 await module.InvokeVoidAsync("saveVerifiedFile", token, name, reference);
             }

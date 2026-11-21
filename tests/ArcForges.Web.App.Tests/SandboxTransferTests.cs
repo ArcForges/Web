@@ -123,7 +123,7 @@ public sealed class SandboxTransferTests
         context.Services.AddSingleton(Assert.IsAssignableFrom<IDashboardWorkspaces>(center));
         context.Services.AddSingleton(TimeProvider.System);
         context.JSInterop.Mode = JSRuntimeMode.Loose;
-        var download = context.JSInterop.SetupModule("./_framework/arcforges-sandbox-transfer.1eabd2d823.js");
+        var download = context.JSInterop.SetupModule("./" + WasmProfilePolicyTests.ActivityModulePath);
         download.Mode = JSRuntimeMode.Loose;
         var view = context.Render<DashboardLayout>(parameters => parameters.Add<SandboxTransfers>(layout => layout.Body, transferParameters =>
             transferParameters.Add(component => component.Target, WorkFixture.Target)
