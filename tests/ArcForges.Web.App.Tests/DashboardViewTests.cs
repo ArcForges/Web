@@ -97,6 +97,8 @@ public sealed class DashboardViewTests
 
         Assert.Equal(new[]
         {
+            "/account",
+            "/account/subscription",
             "/devices",
             "/devices/{DeviceId:guid}",
             "/devices/{DeviceId:guid}/resources",
@@ -105,6 +107,7 @@ public sealed class DashboardViewTests
             "/devices/{DeviceId:guid}/sandboxes",
             "/devices/{DeviceId:guid}/sandboxes/{SandboxId:guid}",
             "/overview",
+            "/security",
         }, routes);
     }
 

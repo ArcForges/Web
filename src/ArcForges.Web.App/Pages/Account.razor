@@ -1,0 +1,456 @@
+@* SPDX-License-Identifier: AGPL-3.0-only *@
+@page "/account"
+@using ArcForges.Contracts.Foundation.V1
+@using ArcForges.Contracts.PublicApi.V1
+@using ArcForges.Web.App.Dashboard
+@using ArcForges.Web.App.Layout
+@implements IDisposable
+@inject IDashboardAccount Accounts
+@inject IDashboardCenter Center
+@inject NavigationManager Navigation
+
+<PageTitle>Account | ArcForges</PageTitle>
+
+<section class="dashboard-intro" aria-labelledby="account-title">
+    <h1 id="account-title" tabindex="-1">Account</h1>
+    <p>Manage your profile and account access on this Center.</p>
+</section>
+
+<section class="dashboard-panel" aria-labelledby="account-profile-heading">
+    <div class="dashboard-panel-header">
+        <h2 id="account-profile-heading">Profile</h2>
+        <button type="button" class="dashboard-button dashboard-button-quiet" disabled="@(_readingProfile || Saving)"
+                @onclick="ReadProfileAsync">Refresh profile</button>
+    </div>
+    <div class="dashboard-panel-copy" role="status">
+        @if (_readingProfile)
+        {
+            <p>@(_profile is null ? "Loading profile…" : "Refreshing profile…")</p>
+        }
+        @if (_profileReadError is not null)
+        {
+            <p><strong>@(_profile is null ? "Profile unavailable" : "Profile details are stale")</strong></p>
+            <p>@ProfileFailure(_profileReadError)</p>
+            @if (_profileReadError.CorrelationId is Guid reference)
+            {
+                <p>Reference <code>@reference</code></p>
+            }
+        }
+        @if (Saving)
+        {
+            <p>Saving profile…</p>
+        }
+        @if (_saveError is not null)
+        {
+            <p>@ProfileFailure(_saveError)</p>
+            @if (_saveError.CorrelationId is Guid reference)
+            {
+                <p>Reference <code>@reference</code></p>
+            }
+        }
+        @if (_saved)
+        {
+            <p>Profile saved.</p>
+        }
+        @if (Pending is not null && !Saving)
+        {
+            <p>The Center has not confirmed the original save. Retry the same save to use its existing command.</p>
+            <button type="button" class="dashboard-button dashboard-button-quiet" disabled="@(!CanRetry)"
+                    @onclick="RetrySaveAsync">Retry original save</button>
+        }
+        @if (_profile is not null && !_readingDeletion && !DeletionPending && !ProfileChangesAdmitted)
+        {
+            <p>Check the current deletion status before changing the profile.</p>
+        }
+    </div>
+    @if (_profile is { } profile)
+    {
+        <div class="dashboard-panel-copy">
+            <dl class="dashboard-detail-facts">
+                <div><dt>Primary email</dt><dd>@(profile.HasPrimaryEmail ? profile.PrimaryEmail : "Unavailable")</dd></div>
+                <div><dt>Profile revision</dt><dd class="dashboard-number">@profile.Revision.Value</dd></div>
+            </dl>
+        </div>
+        <form class="dashboard-run-fields dashboard-panel-copy" @onsubmit="SaveProfileAsync" @onsubmit:preventDefault autocomplete="off">
+            <label>Display name
+                <input type="text" @bind="_displayName" @bind:event="oninput" maxlength="128" disabled="@(!CanEdit)" />
+            </label>
+            <label>Language tag
+                <input type="text" @bind="_locale" @bind:event="oninput" maxlength="35" disabled="@(!CanEdit)" />
+            </label>
+            <label>Time zone
+                <input type="text" @bind="_timezone" @bind:event="oninput" maxlength="64" disabled="@(!CanEdit)" />
+            </label>
+            <button type="submit" class="dashboard-button dashboard-button-primary" disabled="@(!CanEdit || !HasEdits)">Save profile</button>
+            @if (_invalidProfile)
+            {
+                <p role="alert">Enter a display name, language tag and time zone within the field limits.</p>
+            }
+        </form>
+    }
+</section>
+
+<section class="dashboard-panel" aria-labelledby="account-session-heading">
+    <div class="dashboard-panel-header"><h2 id="account-session-heading">Center and session</h2></div>
+    <div class="dashboard-panel-copy">
+        <dl class="dashboard-detail-facts">
+            <div><dt>Center</dt><dd>@Center.Configuration.Origin?.GetLeftPart(UriPartial.Authority)</dd></div>
+            <div><dt>Hosting</dt><dd>@HostingLabel</dd></div>
+            <div><dt>Session expires</dt><dd><DashboardTime Value="Access.Session.ExpiresAt" /></dd></div>
+            <div><dt>Idle expiry</dt><dd><DashboardTime Value="Access.Session.IdleExpiresAt" /></dd></div>
+        </dl>
+        @if (Center.Configuration.Mode == DashboardCenterMode.SelfHosted)
+        {
+            <p>Service limits are set by this Center's operator.</p>
+        }
+        else if (Center.Configuration.Mode == DashboardCenterMode.OfficialHosted)
+        {
+            <a class="dashboard-link" href="/account/subscription">View subscription and service access</a>
+        }
+        @if (Center.Configuration.Origin is { } origin)
+        {
+            <div class="dashboard-actions">
+                <a class="dashboard-button dashboard-button-quiet" href="@CenterPage(origin, PasskeysPath)"
+                   @onclick="() => OpenCenterPage(PasskeysPath)" @onclick:preventDefault>Manage passkeys</a>
+                <a class="dashboard-button dashboard-button-quiet" href="@CenterPage(origin, SessionsPath)"
+                   @onclick="() => OpenCenterPage(SessionsPath)" @onclick:preventDefault>Manage sessions</a>
+            </div>
+        }
+    </div>
+</section>
+
+@if (Center.Configuration.Origin is { } centerOrigin)
+{
+    <section class="dashboard-panel" aria-labelledby="account-recovery-heading">
+        <div class="dashboard-panel-header"><h2 id="account-recovery-heading">Account recovery</h2></div>
+        <div class="dashboard-panel-copy">
+            <p>Use your previously verified recovery email to prove ownership and register a replacement passkey. Successful recovery revokes old sessions and remote enrollments. Local Sandboxes and running processes remain on their Nodes.</p>
+            <a class="dashboard-button dashboard-button-quiet" href="@CenterPage(centerOrigin, RecoveryPath)"
+               @onclick="() => OpenCenterPage(RecoveryPath)" @onclick:preventDefault>Open account recovery</a>
+        </div>
+    </section>
+
+    <section class="dashboard-panel" aria-labelledby="account-lifecycle-heading">
+        <div class="dashboard-panel-header">
+            <h2 id="account-lifecycle-heading">Account data and deletion</h2>
+            <button type="button" class="dashboard-button dashboard-button-quiet" disabled="@_readingDeletion"
+                    @onclick="ReadDeletionAsync">Refresh deletion status</button>
+        </div>
+        <div class="dashboard-panel-copy">
+            <div role="status">
+                @if (_readingDeletion)
+                {
+                    <p>Checking deletion status…</p>
+                }
+                else if (_deletionError is not null)
+                {
+                    <p>Deletion status is unavailable.</p>
+                    <p>@_deletionError.Message</p>
+                    @if (_deletionError.CorrelationId is Guid reference)
+                    {
+                        <p>Reference <code>@reference</code></p>
+                    }
+                }
+                else if (_deletion is { } deletion)
+                {
+                    <p><strong>@DeletionLabel(deletion.State)</strong></p>
+                    @if (DeletionPending)
+                    {
+                        <p>Final cleanup is pending. Review the operation on the Center.</p>
+                    }
+                    @if (ReadInstant(deletion.GraceEndsAt) is DateTimeOffset grace)
+                    {
+                        <p>Grace period ends <DashboardTime Value="grace" /></p>
+                    }
+                    @if (ReadInstant(deletion.PurgeAfter) is DateTimeOffset purge)
+                    {
+                        <p>Earliest recorded purge time <DashboardTime Value="purge" /></p>
+                    }
+                }
+                else if (_deletionRead)
+                {
+                    <p>No account deletion operation is recorded.</p>
+                }
+            </div>
+            <p>The Center page handles fresh passkey confirmation, the expiring data export, and preparation, confirmation or cancellation of a deletion plan.</p>
+            <p>Account deletion revokes Center sessions and remote enrollments. Local Sandboxes, files and running processes remain on their Nodes.</p>
+            <a class="dashboard-button dashboard-button-quiet" href="@CenterPage(centerOrigin, LifecyclePath)"
+               @onclick="() => OpenCenterPage(LifecyclePath)" @onclick:preventDefault>Open account data and deletion</a>
+        </div>
+    </section>
+}
+
+@code {
+    private const string PasskeysPath = "/api/account/passkeys";
+    private const string SessionsPath = "/api/account/sessions";
+    private const string RecoveryPath = "/api/account/recovery";
+    private const string LifecyclePath = "/api/account/lifecycle";
+
+    [CascadingParameter]
+    private DashboardAccess Access { get; set; } = default!;
+
+    private readonly CancellationTokenSource _unmounted = new();
+    private AccountProfile? _profile;
+    private DeletionStatus? _deletion;
+    private DashboardApiException? _profileReadError;
+    private DashboardApiException? _deletionError;
+    private DashboardApiException? _saveError;
+    private string _displayName = "";
+    private string _locale = "";
+    private string _timezone = "";
+    private bool _readingProfile;
+    private bool _readingDeletion;
+    private bool _deletionRead;
+    private bool _saved;
+    private bool _invalidProfile;
+
+    private DashboardProfileAttempt? Pending => Access.PendingProfile;
+    private bool Saving => Pending is { Sending: true };
+    private bool DeletionPending => _deletion?.State is "confirmed" or "processing";
+    private bool ProfileChangesAdmitted => _deletionRead && !_readingDeletion && _deletionError is null &&
+        (_deletion is null || _deletion.State is "awaitingProof" or "failed" or "expired" or "revoked");
+    private bool CanEdit => _profile is not null && _profileReadError is null && !_readingProfile &&
+        Pending is null && ProfileChangesAdmitted && _saveError?.Failure != DashboardFailure.Conflict;
+    private bool CanRetry => Pending is { Sending: false } && !_readingProfile && ProfileChangesAdmitted &&
+        _profileReadError?.Failure is not (DashboardFailure.Forbidden or DashboardFailure.NotFound);
+    private bool HasEdits => _profile is { } profile &&
+        (_displayName != profile.DisplayName || _locale != profile.Locale || _timezone != profile.Timezone);
+    private string HostingLabel => Center.Configuration.Mode switch
+    {
+        DashboardCenterMode.SelfHosted => "Self-hosted Center",
+        DashboardCenterMode.OfficialHosted => "Officially hosted Center",
+        _ => "Unavailable",
+    };
+
+    protected override Task OnInitializedAsync()
+    {
+        Access.PendingProfileChanged += ProfileAttemptChanged;
+        return Task.WhenAll(ReadProfileAsync(), ReadDeletionAsync());
+    }
+
+    private async Task ReadProfileAsync()
+    {
+        if (_readingProfile || _unmounted.IsCancellationRequested)
+            return;
+
+        using var work = BeginWork();
+        _readingProfile = true;
+        _profileReadError = null;
+        _saved = false;
+        try
+        {
+            var profile = await Accounts.ReadProfileAsync(work.Token);
+            work.Token.ThrowIfCancellationRequested();
+            if (profile.Revision is not { Value: > 0 } || _profile?.Revision.Value > profile.Revision.Value)
+                throw new DashboardApiException(DashboardFailure.Incompatible);
+            ApplyProfile(profile);
+            if (Pending is null)
+                _saveError = null;
+        }
+        catch (DashboardApiException failure) when (!work.IsCancellationRequested)
+        {
+            if (failure.Failure is DashboardFailure.Forbidden or DashboardFailure.NotFound or DashboardFailure.Incompatible)
+                ClearProfile();
+            _profileReadError = failure;
+            await EndIfUnauthenticatedAsync(failure);
+        }
+        catch (DashboardApiException) when (work.IsCancellationRequested)
+        {
+        }
+        catch (OperationCanceledException) when (work.IsCancellationRequested)
+        {
+        }
+        finally
+        {
+            _readingProfile = false;
+        }
+    }
+
+    private async Task ReadDeletionAsync()
+    {
+        if (_readingDeletion || _unmounted.IsCancellationRequested)
+            return;
+
+        using var work = BeginWork();
+        _readingDeletion = true;
+        _deletionError = null;
+        try
+        {
+            var deletion = await Accounts.ReadAccountDeletionAsync(work.Token);
+            work.Token.ThrowIfCancellationRequested();
+            if (deletion.DeletionId?.Value.Length != 16 || new Guid(deletion.DeletionId.Value.Span, bigEndian: true) == Guid.Empty)
+                throw new DashboardApiException(DashboardFailure.Incompatible);
+            _deletion = deletion;
+            _deletionRead = true;
+        }
+        catch (DashboardApiException failure) when (!work.IsCancellationRequested)
+        {
+            if (failure is { Failure: DashboardFailure.NotFound, Code: "not_found" })
+            {
+                _deletion = null;
+                _deletionRead = true;
+            }
+            else
+            {
+                _deletionError = failure;
+                await EndIfUnauthenticatedAsync(failure);
+            }
+        }
+        catch (DashboardApiException) when (work.IsCancellationRequested)
+        {
+        }
+        catch (OperationCanceledException) when (work.IsCancellationRequested)
+        {
+        }
+        finally
+        {
+            _readingDeletion = false;
+        }
+    }
+
+    private Task SaveProfileAsync()
+    {
+        if (!CanEdit || !HasEdits || _profile is not { } profile || _unmounted.IsCancellationRequested)
+            return Task.CompletedTask;
+
+        var name = _displayName == profile.DisplayName ? null : _displayName;
+        var locale = _locale == profile.Locale ? null : _locale;
+        var timezone = _timezone == profile.Timezone ? null : _timezone;
+        _invalidProfile = name is not null && (string.IsNullOrWhiteSpace(name) || name.Length > 128) ||
+            locale is not null && locale.Length is < 1 or > 35 ||
+            timezone is not null && timezone.Length is < 1 or > 64;
+        if (_invalidProfile)
+            return Task.CompletedTask;
+        return SubmitProfileAsync(new DashboardProfileAttempt(Guid.NewGuid(), profile.Revision.Value, name, locale, timezone));
+    }
+
+    private Task RetrySaveAsync() => CanRetry && Pending is { } pending &&
+        !_unmounted.IsCancellationRequested ? SubmitProfileAsync(pending) : Task.CompletedTask;
+
+    private async Task SubmitProfileAsync(DashboardProfileAttempt attempt)
+    {
+        var access = Access;
+        var retry = ReferenceEquals(access.PendingProfile, attempt);
+        if (Saving || access.PendingProfile is not null && !retry || !ProfileChangesAdmitted)
+            return;
+
+        using var work = BeginWork();
+        access.PendingProfile = attempt;
+        attempt.Sending = true;
+        _saved = false;
+        _saveError = null;
+        access.NotifyPendingProfileChanged();
+        try
+        {
+            var profile = await Accounts.UpdateProfileAsync(attempt.CommandId, attempt.Revision, attempt.CreatePatch(), work.Token);
+            work.Token.ThrowIfCancellationRequested();
+            if (profile.Revision is not { Value: > 0 } || profile.Revision.Value <= attempt.Revision ||
+                attempt.DisplayName is not null && profile.DisplayName != attempt.DisplayName ||
+                attempt.Locale is not null && profile.Locale != attempt.Locale ||
+                attempt.Timezone is not null && profile.Timezone != attempt.Timezone)
+            {
+                throw new DashboardApiException(DashboardFailure.Uncertain);
+            }
+
+            if (_profile is null || _profile.Revision.Value <= profile.Revision.Value)
+            {
+                ApplyProfile(profile);
+                _profileReadError = null;
+            }
+            access.PendingProfile = null;
+            _saved = true;
+        }
+        catch (DashboardApiException failure) when (!work.IsCancellationRequested)
+        {
+            var definitelyRefused = failure.Failure is not (DashboardFailure.Uncertain or DashboardFailure.Unavailable or DashboardFailure.Incompatible)
+                && (!retry || failure.Code is "revision_conflict" or "invalid_argument");
+            if (definitelyRefused)
+                access.PendingProfile = null;
+            _saveError = failure;
+            await EndIfUnauthenticatedAsync(failure);
+        }
+        catch (DashboardApiException) when (work.IsCancellationRequested)
+        {
+        }
+        catch (OperationCanceledException) when (work.IsCancellationRequested)
+        {
+        }
+        finally
+        {
+            attempt.Sending = false;
+            access.NotifyPendingProfileChanged();
+        }
+    }
+
+    private void ApplyProfile(AccountProfile profile)
+    {
+        _profile = profile;
+        _displayName = profile.DisplayName;
+        _locale = profile.Locale;
+        _timezone = profile.Timezone;
+        _invalidProfile = false;
+    }
+
+    private void ClearProfile()
+    {
+        _profile = null;
+        _displayName = "";
+        _locale = "";
+        _timezone = "";
+        _saved = false;
+    }
+
+    private CancellationTokenSource BeginWork() => CancellationTokenSource.CreateLinkedTokenSource(Access.Cancellation, _unmounted.Token);
+
+    private void ProfileAttemptChanged()
+    {
+        if (!_unmounted.IsCancellationRequested)
+            _ = InvokeAsync(StateHasChanged);
+    }
+
+    private Task EndIfUnauthenticatedAsync(DashboardApiException failure) =>
+        failure.Failure == DashboardFailure.Unauthenticated ? Access.ExpireAsync() : Task.CompletedTask;
+
+    private void OpenCenterPage(string path)
+    {
+        if (!Access.Cancellation.IsCancellationRequested && Center.Configuration.Origin is { } origin)
+            Navigation.NavigateTo(CenterPage(origin, path), forceLoad: true);
+    }
+
+    private static string CenterPage(Uri origin, string path) => new Uri(origin, path).AbsoluteUri;
+
+    private static string ProfileFailure(DashboardApiException failure) => failure.Failure switch
+    {
+        DashboardFailure.Conflict => "The profile has changed. Refresh it before saving new edits.",
+        DashboardFailure.Validation => "The Center refused one of the profile fields. Check the values and try again.",
+        DashboardFailure.NotFound => "This account profile is unavailable.",
+        DashboardFailure.Uncertain => "The Center did not confirm whether the profile save completed.",
+        _ => failure.Message,
+    };
+
+    private static string DeletionLabel(string state) => state switch
+    {
+        "awaitingProof" => "Deletion plan awaiting fresh confirmation",
+        "confirmed" or "processing" => "Deletion pending",
+        "completed" => "Deletion completed",
+        "failed" => "The deletion operation failed",
+        "expired" => "The deletion plan expired",
+        "revoked" => "The deletion operation was revoked",
+        _ => "Deletion state unknown",
+    };
+
+    private static DateTimeOffset? ReadInstant(Instant? value)
+    {
+        if (value is not { HasUnixSeconds: true, UnixSeconds: >= -62_135_596_800 and <= 253_402_300_799, Nanos: <= 999_999_999 })
+            return null;
+        return DateTimeOffset.FromUnixTimeSeconds(value.UnixSeconds).AddTicks(value.Nanos / 100);
+    }
+
+    public void Dispose()
+    {
+        Access.PendingProfileChanged -= ProfileAttemptChanged;
+        _unmounted.Cancel();
+        ClearProfile();
+        _unmounted.Dispose();
+    }
+}

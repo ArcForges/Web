@@ -14,15 +14,23 @@ internal sealed class DashboardAccess(DashboardSession session, CancellationToke
     internal Dictionary<(DashboardWorkTarget Target, Guid? RunId), DashboardPendingRunCommand> RunCommands { get; } = new();
     internal Dictionary<DashboardResourceScope, DashboardPendingResourcePolicy> PendingResourcePolicies { get; } = new();
     internal Dictionary<DashboardWorkTarget, SandboxTransferJourney> TransferJourneys { get; } = new();
+    internal Dictionary<Guid, PendingSecuritySessionRevocation> SecuritySessionRevocations { get; } = new();
+    internal Dictionary<DashboardWorkTarget, PendingSecurityGrantRevocation> SecurityGrantRevocations { get; } = new();
+    internal SubscriptionJourney Subscription { get; } = new();
+    internal DashboardProfileAttempt? PendingProfile { get; set; }
 
     internal event Action<DashboardDevice?>? RevocationsChanged;
     internal event Action? RunCommandsChanged;
     internal event Action? PendingResourcePoliciesChanged;
+    internal event Action? SecurityRevocationsChanged;
+    internal event Action? PendingProfileChanged;
 
     internal Task ExpireAsync() => expire(this);
     internal void NotifyRevocationsChanged(DashboardDevice? confirmed = null) => RevocationsChanged?.Invoke(confirmed);
     internal void NotifyRunCommandsChanged() => RunCommandsChanged?.Invoke();
     internal void NotifyPendingResourcePoliciesChanged() => PendingResourcePoliciesChanged?.Invoke();
+    internal void NotifySecurityRevocationsChanged() => SecurityRevocationsChanged?.Invoke();
+    internal void NotifyPendingProfileChanged() => PendingProfileChanged?.Invoke();
 }
 
 internal sealed record PendingDeviceRevocation(Guid DeviceId, Guid EnrollmentId, long Revision, Guid CommandId)

@@ -20,7 +20,7 @@ internal sealed partial class DashboardCenter(
     SessionProbe sessions,
     DashboardGrpcTransport transport,
     DashboardPasskeys passkeys,
-    TimeProvider time) : IDashboardCenter, IDashboardWorkspaces
+    TimeProvider time) : IDashboardCenter, IDashboardWorkspaces, IDashboardAccount, IDashboardSecurity, IDashboardSubscription
 {
     private const string DeviceRevoke = "management.deviceRevoke";
     private static readonly TimeSpan CallDeadline = TimeSpan.FromSeconds(10);
@@ -134,7 +134,7 @@ internal sealed partial class DashboardCenter(
         var reply = await SendRevokeAsync();
         if (reply.Error is { Code: "step_up_required", Effect: EffectCertainty.DidNotHappen })
         {
-            await ConfirmRevokeAsync(deviceId, session, cancellationToken);
+            await ConfirmOperationAsync(DeviceRevoke, deviceId, session, cancellationToken);
             EnsureCurrent(session, cancellationToken);
             reply = await SendRevokeAsync();
         }
@@ -189,13 +189,13 @@ internal sealed partial class DashboardCenter(
         return new DashboardRunSummary(state, count, time.GetUtcNow(), target.SandboxId);
     }
 
-    private async Task ConfirmRevokeAsync(Guid deviceId, SessionState session, CancellationToken cancellationToken)
+    private async Task ConfirmOperationAsync(string operationClass, Guid target, SessionState session, CancellationToken cancellationToken)
     {
         var origin = RequireOrigin();
-        var hash = SHA256.HashData(Encoding.UTF8.GetBytes($"{DeviceRevoke}\n{session.View.AccountId:D}\n{deviceId:D}"));
+        var hash = SHA256.HashData(Encoding.UTF8.GetBytes($"{operationClass}\n{session.View.AccountId:D}\n{target:D}"));
         var request = new WebBrowserBeginStepUpRequest
         {
-            OperationClass = DeviceRevoke,
+            OperationClass = operationClass,
             Method = "passkey",
             TargetHash = Convert.ToHexStringLower(hash),
         };
@@ -220,7 +220,7 @@ internal sealed partial class DashboardCenter(
             };
             var evidence = await sessions.CompleteStepUpAsync(proof, session.Csrf, cancellationToken);
             EnsureCurrent(session, cancellationToken);
-            if (evidence.OperationClass != DeviceRevoke || !TryUtc(evidence.ExpiresAt, out var evidenceExpiry) ||
+            if (evidence.OperationClass != operationClass || !TryUtc(evidence.ExpiresAt, out var evidenceExpiry) ||
                 evidenceExpiry <= time.GetUtcNow())
             {
                 throw InvalidResult();

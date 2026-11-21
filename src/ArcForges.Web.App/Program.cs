@@ -22,6 +22,9 @@ builder.Services.AddSingleton<DashboardPasskeys>();
 builder.Services.AddSingleton<DashboardCenter>();
 builder.Services.AddSingleton<IDashboardCenter>(services => services.GetRequiredService<DashboardCenter>());
 builder.Services.AddSingleton<IDashboardWorkspaces>(services => services.GetRequiredService<DashboardCenter>());
+builder.Services.AddSingleton<IDashboardAccount>(services => services.GetRequiredService<DashboardCenter>());
+builder.Services.AddSingleton<IDashboardSecurity>(services => services.GetRequiredService<DashboardCenter>());
+builder.Services.AddSingleton<IDashboardSubscription>(services => services.GetRequiredService<DashboardCenter>());
 builder.Services.AddTransient<IDashboardActivity, DashboardActivity>();
 
 await builder.Build().RunAsync();

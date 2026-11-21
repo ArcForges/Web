@@ -19,6 +19,7 @@ const revalidate = "public, no-cache, no-transform";
 const immutable = "public, max-age=31536000, immutable, no-transform";
 const loaders = new Set(["_framework/blazor.webassembly.js", "_framework/dotnet.js"]);
 const rootAssets = new Set(["app.css", "favicon.svg", "robots.txt"]);
+const rootDocuments = new Set(["/overview", "/devices", "/security", "/account", "/account/subscription"]);
 const fingerprinted = /^_framework\/[A-Za-z0-9_][A-Za-z0-9._-]*\.[a-z0-9]{10}\.(?:js|wasm|dat)$/u;
 const routeId = "[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}";
 const deviceDocument = new RegExp(
@@ -162,7 +163,7 @@ export async function dashboardAssets(archive: string, expectedDigest: string) {
   return (method: string, target: string, ifNoneMatch?: string): StaticReply => {
     const pathname = target.split("?", 1)[0] ?? "";
     const asset =
-      pathname === "/overview" || pathname === "/devices" || deviceDocument.test(pathname)
+      rootDocuments.has(pathname) || deviceDocument.test(pathname)
         ? document
         : assets.get(pathname);
     if (!asset || (method !== "GET" && method !== "HEAD"))

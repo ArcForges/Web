@@ -1,0 +1,403 @@
+@* SPDX-License-Identifier: AGPL-3.0-only *@
+@using ArcForges.Contracts.Foundation.V1
+@using ArcForges.Contracts.Sandbox.V2
+@using ArcForges.Web.App.Dashboard
+@using ArcForges.Web.App.Layout
+@implements IDisposable
+@inject IDashboardSecurity SecurityApi
+@inject IDashboardWorkspaces Workspaces
+@inject TimeProvider Clock
+
+<section class="dashboard-panel" aria-labelledby="dashboard-security-selected-grant">
+    <header class="dashboard-panel-header">
+        <div>
+            <h2 id="dashboard-security-selected-grant">Selected grant</h2>
+            @if (_observed is { } observed)
+            {
+                <p class="dashboard-muted">Observed <DashboardTime Value="observed" />. @(_failure is null ? null : "The details may be stale.")</p>
+            }
+        </div>
+        <button type="button" class="dashboard-button dashboard-button-quiet"
+                disabled="@(_reading || CurrentPending is { Sending: true })" @onclick="ReadAsync">Refresh grant</button>
+    </header>
+    @if (_reading)
+    {
+        <p class="dashboard-panel-copy" role="status">Reading the selected grant…</p>
+    }
+    @if (_failure is { } failure)
+    {
+        <p class="dashboard-notice" role="alert">@failure.Message</p>
+    }
+    @if (_resultMessage is { } message)
+    {
+        <p class="dashboard-panel-copy" role="status">@message</p>
+    }
+    @if (_mutationFailure is { } mutationFailure)
+    {
+        <p class="dashboard-notice" role="alert">@mutationFailure.Message</p>
+        @if (mutationFailure.CorrelationId is Guid mutationReference)
+        {
+            <p class="dashboard-panel-copy">Reference <code>@mutationReference</code></p>
+        }
+    }
+    @if (CurrentPending?.ConfirmedRevision is long confirmedRevision)
+    {
+        <p class="dashboard-panel-copy" role="status">The Node confirmed revocation at grant revision @confirmedRevision.</p>
+    }
+    else if (_grant is { } grant)
+    {
+        <dl class="dashboard-detail-facts">
+            <div><dt>Grant</dt><dd><code>@Target.GrantId</code></dd></div>
+            <div><dt>Revision</dt><dd>@grant.Revision.Value</dd></div>
+            <div><dt>State</dt><dd>@GrantStateText(grant.State)</dd></div>
+            <div><dt>Scope</dt><dd>@ScopeText(grant)</dd></div>
+            @if (RunPresentation.ReadId(grant.SandboxId) is Guid sandboxId)
+            {
+                <div><dt>Sandbox</dt><dd><code>@sandboxId</code></dd></div>
+            }
+            @if (grant.ExpiresAt is { } expires)
+            {
+                <div><dt>Expires</dt><dd><DashboardTime Value="@RunPresentation.ReadTime(expires)" /></dd></div>
+            }
+            <div><dt>Methods</dt><dd>
+                @if (grant.Methods.Count == 0)
+                {
+                    <span class="dashboard-muted">None recorded</span>
+                }
+                else
+                {
+                    <ul class="dashboard-capabilities">
+                        @foreach (var method in grant.Methods)
+                        {
+                            <li><code>@MethodName(method)</code></li>
+                        }
+                    </ul>
+                }
+            </dd></div>
+        </dl>
+        @if (grant.State == GrantState.Active)
+        {
+            <div class="dashboard-panel-footer">
+                @if (!HasExactRevocationScope(grant))
+                {
+                    @if (grant.ScopeKind == "sandbox" && RunPresentation.ReadId(grant.SandboxId) is Guid requiredSandbox)
+                    {
+                        <p class="dashboard-muted">In Change local grant, select Sandbox ID <code>@requiredSandbox</code> to revoke this grant.</p>
+                    }
+                    else
+                    {
+                        <p class="dashboard-muted">Revocation requires the exact scope returned by the Node.</p>
+                    }
+                }
+                else if (Target.OwnerEpoch is null)
+                {
+                    <p class="dashboard-muted">Supply the Node owner epoch in your local grant selection to revoke this grant.</p>
+                }
+                else if (!grant.Methods.Contains(RevokePath, StringComparer.Ordinal))
+                {
+                    <p class="dashboard-muted">Revoke this grant from the owner-local CLI.</p>
+                }
+                else
+                {
+                    <button type="button" class="dashboard-button dashboard-button-danger"
+                            aria-disabled="@(!CanRevoke(grant) ? "true" : "false")"
+                            command="@(CanRevoke(grant) ? "show-modal" : null)" commandfor="security-revoke-grant">
+                        @(CurrentPending is null ? "Revoke grant" : "Revocation pending")
+                    </button>
+                }
+            </div>
+            <dialog id="security-revoke-grant" class="dashboard-dialog" aria-labelledby="security-revoke-grant-title" closedby="closerequest">
+                <h2 id="security-revoke-grant-title">Revoke this grant?</h2>
+                <p>End future access through this grant. Local Runs continue.</p>
+                <dl class="dashboard-dialog-facts">
+                    <dt>Grant</dt><dd><code>@Target.GrantId</code></dd>
+                    <dt>Revision</dt><dd>@grant.Revision.Value</dd>
+                </dl>
+                <form method="dialog" class="dashboard-actions">
+                    <button type="submit" value="cancel" class="dashboard-button dashboard-button-quiet" autofocus>Cancel</button>
+                    <button type="submit" value="revoke" class="dashboard-button dashboard-button-danger-solid"
+                            disabled="@(!CanRevoke(grant))" @onclick="() => RevokeAsync(grant)">Confirm revocation</button>
+                </form>
+            </dialog>
+        }
+    }
+    else if (!_reading && _failure is null && CurrentPending is null)
+    {
+        <p class="dashboard-panel-copy">The Node returned no grant for this selection.</p>
+    }
+
+    @if (CurrentPending is { ConfirmedRevision: null } pending)
+    {
+        <div class="dashboard-panel-copy">
+            <p role="status">@(pending.Sending ? "Waiting for the Node to confirm revocation." : "Grant revocation result unknown.")</p>
+            <dl class="dashboard-dialog-facts">
+                <dt>Command ID</dt><dd><code>@pending.Command.CommandId</code></dd>
+                <dt>Owner epoch</dt><dd><code>@pending.Command.OwnerEpoch</code></dd>
+                <dt>Original revision</dt><dd>@pending.Command.ExpectedRevision</dd>
+            </dl>
+            @if (pending.CanVerify)
+            {
+                <button type="button" class="dashboard-button dashboard-button-quiet" disabled="@_checking" @onclick="CheckAsync">Check original outcome</button>
+                @if (_receiptFailure is not null || _checkedUnsettled)
+                {
+                    <p class="dashboard-muted">You can inspect the original command on the Node.</p>
+                    <p><code>@OperationCommand(pending.Command)</code></p>
+                }
+            }
+            @if (pending.Failure?.CorrelationId is Guid commandReference)
+            {
+                <p>Command reference <code>@commandReference</code></p>
+            }
+            @if (_checkedUnsettled)
+            {
+                <p class="dashboard-muted">The Node has not reported a final effect for this command.</p>
+            }
+            @if (_receiptFailure is { } receiptFailure)
+            {
+                <p class="dashboard-notice" role="alert">@receiptFailure.Message</p>
+                @if (receiptFailure.CorrelationId is Guid receiptReference)
+                {
+                    <p>Reference <code>@receiptReference</code></p>
+                }
+            }
+        </div>
+    }
+    <p class="dashboard-panel-copy dashboard-muted">
+        On the Node, use <code>arcforges grant list --json</code> to review local grants. To edit an existing grant, include its
+        <code>grantId</code> in <code>grant.json</code> and run <code>arcforges grant set --file grant.json --expected-revision &lt;current-revision&gt;</code>.
+    </p>
+</section>
+
+@code {
+    [CascadingParameter]
+    private DashboardAccess Access { get; set; } = default!;
+
+    [Parameter, EditorRequired]
+    public DashboardWorkTarget Target { get; set; } = default!;
+
+    private const string RevokePath = "/arcforges.sandbox.v2.NodeService/RevokeRemoteGrant";
+    private const string RevokeMethod = "NodeService.RevokeRemoteGrant";
+    private readonly CancellationTokenSource _lifetime = new();
+    private RemoteGrant? _grant;
+    private DashboardApiException? _failure;
+    private DashboardApiException? _receiptFailure;
+    private DashboardApiException? _mutationFailure;
+    private DateTimeOffset? _observed;
+    private string? _resultMessage;
+    private bool _reading;
+    private bool _checking;
+    private bool _checkedUnsettled;
+    private bool _disposed;
+
+    private PendingSecurityGrantRevocation? CurrentPending =>
+        Access.SecurityGrantRevocations.Values.FirstOrDefault(pending => pending.Matches(Target));
+
+    protected override Task OnInitializedAsync()
+    {
+        Access.SecurityRevocationsChanged += RevocationsChanged;
+        return ReadAsync();
+    }
+
+    private async Task ReadAsync()
+    {
+        if (_reading || _disposed)
+            return;
+        _reading = true;
+        try
+        {
+            var page = await Workspaces.ListRemoteGrantsAsync(Target, null, _lifetime.Token);
+            if (_disposed)
+                return;
+            if (page.Grants.Count > 1 || page.Page?.NextCursor is { Length: > 0 })
+                throw new DashboardApiException(DashboardFailure.Incompatible);
+
+            _grant = page.Grants.FirstOrDefault();
+            if (_grant is { } grant && !Matches(grant, Target.GrantRevision))
+            {
+                _grant = null;
+                throw new DashboardApiException(DashboardFailure.Incompatible);
+            }
+            _failure = null;
+            _observed = Clock.GetUtcNow();
+        }
+        catch (DashboardApiException failure) when (!_disposed)
+        {
+            _failure = failure;
+            if (failure.Failure is not DashboardFailure.Unavailable)
+            {
+                _grant = null;
+                _observed = null;
+            }
+            if (failure.Failure == DashboardFailure.Unauthenticated)
+                await Access.ExpireAsync();
+        }
+        catch (DashboardApiException) when (_disposed)
+        {
+        }
+        catch (OperationCanceledException) when (_lifetime.IsCancellationRequested)
+        {
+        }
+        finally
+        {
+            _reading = false;
+        }
+    }
+
+    private bool Matches(RemoteGrant grant, long revision) =>
+        RunPresentation.ReadId(grant.GrantId) == Target.GrantId &&
+        RunPresentation.ReadId(grant.EnrollmentId) == Target.EnrollmentId &&
+        (Target.SandboxId is null || RunPresentation.ReadId(grant.SandboxId) == Target.SandboxId) &&
+        grant.Revision?.Value == revision;
+
+    private bool HasExactRevocationScope(RemoteGrant grant) => grant.ScopeKind switch
+    {
+        "sandbox" => Target.SandboxId is Guid sandbox && RunPresentation.ReadId(grant.SandboxId) == sandbox,
+        "provision" => Target.SandboxId is null && grant.SandboxId is null,
+        _ => false,
+    };
+
+    private bool CanRevoke(RemoteGrant grant) => !_disposed && !_reading && !_checking && _failure is null &&
+        CurrentPending is null && ReferenceEquals(grant, _grant) && Target.OwnerEpoch is not null &&
+        Matches(grant, Target.GrantRevision) && HasExactRevocationScope(grant) && grant.State == GrantState.Active &&
+        grant.Methods.Contains(RevokePath, StringComparer.Ordinal);
+
+    private async Task RevokeAsync(RemoteGrant grant)
+    {
+        if (!CanRevoke(grant) || Target.OwnerEpoch is not Guid epoch)
+            return;
+
+        var access = Access;
+        var target = Target;
+        var command = new DashboardWorkCommand(Guid.NewGuid(), epoch, target.GrantRevision);
+        var pending = new PendingSecurityGrantRevocation(target, command);
+        if (!access.SecurityGrantRevocations.TryAdd(target, pending))
+            return;
+
+        _resultMessage = null;
+        _receiptFailure = null;
+        _mutationFailure = null;
+        _checkedUnsettled = false;
+        access.NotifySecurityRevocationsChanged();
+        try
+        {
+            var revoked = await SecurityApi.RevokeGrantAsync(target, command, access.Cancellation);
+            if (revoked.State != GrantState.Revoked || revoked.Revision is not { Value: > 0 } revision ||
+                revision.Value <= target.GrantRevision || !Matches(revoked, revision.Value) || !HasExactRevocationScope(revoked))
+                throw new DashboardApiException(DashboardFailure.Uncertain);
+
+            pending.ConfirmedRevision = revision.Value;
+        }
+        catch (DashboardApiException failure)
+        {
+            pending.Failure = failure;
+            if (failure.Failure != DashboardFailure.Uncertain)
+                access.SecurityGrantRevocations.Remove(target);
+            if (!_disposed)
+                _mutationFailure = failure;
+            if (failure.Failure == DashboardFailure.Unauthenticated)
+                await access.ExpireAsync();
+        }
+        catch (OperationCanceledException) when (access.Cancellation.IsCancellationRequested)
+        {
+        }
+        finally
+        {
+            pending.Sending = false;
+            access.NotifySecurityRevocationsChanged();
+        }
+    }
+
+    private async Task CheckAsync()
+    {
+        if (_disposed || _checking || CurrentPending is not { CanVerify: true } pending)
+            return;
+
+        _checking = true;
+        _receiptFailure = null;
+        _checkedUnsettled = false;
+        try
+        {
+            var operation = await Workspaces.GetOperationAsync(pending.Target, pending.Command, _lifetime.Token);
+            if (_disposed)
+                return;
+            if (RunPresentation.ReadId(operation.CommandId) != pending.Command.CommandId ||
+                RunPresentation.ReadId(operation.OwnerEpoch) != pending.Command.OwnerEpoch || operation.Method != RevokeMethod)
+                throw new DashboardApiException(DashboardFailure.Incompatible);
+
+            if (operation is { State: OperationState.Succeeded, Effect: EffectCertainty.Happened, Revision.Value: > 0 } &&
+                operation.Revision.Value > pending.Target.GrantRevision &&
+                RunPresentation.ReadId(operation.AggregateId) == pending.Target.GrantId)
+            {
+                pending.ConfirmedRevision = operation.Revision.Value;
+                _mutationFailure = null;
+                Access.NotifySecurityRevocationsChanged();
+            }
+            else if (operation is { State: OperationState.Failed, Effect: EffectCertainty.DidNotHappen })
+            {
+                Access.SecurityGrantRevocations.Remove(pending.Target);
+                _mutationFailure = null;
+                _resultMessage = "The Node confirmed that the original revocation had no effect.";
+                Access.NotifySecurityRevocationsChanged();
+                await ReadAsync();
+            }
+            else
+            {
+                _checkedUnsettled = true;
+            }
+        }
+        catch (DashboardApiException failure) when (!_disposed)
+        {
+            _receiptFailure = failure;
+            if (failure.Failure == DashboardFailure.Unauthenticated)
+                await Access.ExpireAsync();
+        }
+        catch (DashboardApiException) when (_disposed)
+        {
+        }
+        catch (OperationCanceledException) when (_lifetime.IsCancellationRequested)
+        {
+        }
+        finally
+        {
+            _checking = false;
+        }
+    }
+
+    private static string GrantStateText(GrantState state) => state switch
+    {
+        GrantState.Active => "Active",
+        GrantState.Revoked => "Revoked",
+        GrantState.Expired => "Expired",
+        _ => "Unavailable",
+    };
+
+    private static string ScopeText(RemoteGrant grant) => grant.ScopeKind switch
+    {
+        "sandbox" => "Sandbox",
+        "provision" => "Sandbox creation",
+        _ => "Unavailable",
+    };
+
+    private static string MethodName(string method)
+    {
+        const string prefix = "/arcforges.sandbox.v2.";
+        return method.StartsWith(prefix, StringComparison.Ordinal) ? method[prefix.Length..].Replace('/', '.') : method;
+    }
+
+    private static string OperationCommand(DashboardWorkCommand command) =>
+        $"arcforges operation inspect {SandboxPageValues.CliId(command.CommandId)} --owner-epoch {SandboxPageValues.CliId(command.OwnerEpoch)} --json";
+
+    private void RevocationsChanged()
+    {
+        if (!_disposed)
+            _ = InvokeAsync(StateHasChanged);
+    }
+
+    public void Dispose()
+    {
+        _disposed = true;
+        Access.SecurityRevocationsChanged -= RevocationsChanged;
+        _lifetime.Cancel();
+        _lifetime.Dispose();
+    }
+}
