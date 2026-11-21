@@ -84,8 +84,12 @@ public sealed class DashboardKeyboardAcceptanceTests
                 {
                     Device = new()
                     {
-                        DeviceId = inspect.DeviceId, EnrollmentId = WorkFixture.Id(WorkFixture.EnrollmentId), DisplayName = "Fixture workstation",
-                        Revision = new() { Value = WorkFixture.Revision }, Presence = "online", NodeEpoch = "fixture-device-epoch",
+                        DeviceId = inspect.DeviceId,
+                        EnrollmentId = WorkFixture.Id(WorkFixture.EnrollmentId),
+                        DisplayName = "Fixture workstation",
+                        Revision = new() { Value = WorkFixture.Revision },
+                        Presence = "online",
+                        NodeEpoch = "fixture-device-epoch",
                     },
                 },
             });
@@ -97,7 +101,8 @@ public sealed class DashboardKeyboardAcceptanceTests
             Assert.Equal(WorkFixture.Id(WorkFixture.RunId), inspect.RunId);
             return WorkFixture.Reply(new RunServiceInspectResponse
             {
-                Meta = WorkFixture.Meta(inspect.Meta, WorkFixture.Revision), Value = new() { Run = WorkFixture.Run() },
+                Meta = WorkFixture.Meta(inspect.Meta, WorkFixture.Revision),
+                Value = new() { Run = WorkFixture.Run() },
             });
         }
 

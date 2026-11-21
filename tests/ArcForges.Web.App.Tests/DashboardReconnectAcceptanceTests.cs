@@ -78,8 +78,16 @@ public sealed class DashboardReconnectAcceptanceTests
                     return WorkFixture.Reply(new CommerceServiceCreateCheckoutAttemptResponse
                     {
                         Meta = WorkFixture.Meta(checkout.Meta),
-                        Value = new() { Checkout = new() { PurchaseIntentId = checkout.PurchaseIntentId, CheckoutAttemptId = checkout.CheckoutAttemptId,
-                            Url = link, ExpiresAt = new() { UnixSeconds = DateTimeOffset.UtcNow.AddMinutes(10).ToUnixTimeSeconds() } } },
+                        Value = new()
+                        {
+                            Checkout = new()
+                            {
+                                PurchaseIntentId = checkout.PurchaseIntentId,
+                                CheckoutAttemptId = checkout.CheckoutAttemptId,
+                                Url = link,
+                                ExpiresAt = new() { UnixSeconds = DateTimeOffset.UtcNow.AddMinutes(10).ToUnixTimeSeconds() }
+                            }
+                        },
                     });
                 default:
                     var read = WorkFixture.Read(captured, Commerce + "GetPurchaseState", CommerceServiceGetPurchaseStateRequest.Parser);
@@ -163,8 +171,12 @@ public sealed class DashboardReconnectAcceptanceTests
                 {
                     Device = new()
                     {
-                        DeviceId = inspect.DeviceId, EnrollmentId = WorkFixture.Id(WorkFixture.EnrollmentId), DisplayName = "Scoped fixture device",
-                        Revision = new() { Value = WorkFixture.Revision }, Presence = "online", NodeEpoch = attempt == 3 ? "replacement-epoch" : "first-epoch",
+                        DeviceId = inspect.DeviceId,
+                        EnrollmentId = WorkFixture.Id(WorkFixture.EnrollmentId),
+                        DisplayName = "Scoped fixture device",
+                        Revision = new() { Value = WorkFixture.Revision },
+                        Presence = "online",
+                        NodeEpoch = attempt == 3 ? "replacement-epoch" : "first-epoch",
                     },
                 },
             });
