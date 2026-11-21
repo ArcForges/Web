@@ -58,25 +58,27 @@
         }
         else if (page.Runs.Count > 0)
         {
-            <table class="dashboard-table" aria-label="Runs in the selected Sandbox">
-                <thead>
-                    <tr><th scope="col">Run</th><th scope="col">State</th><th scope="col" class="dashboard-table-extra">Started</th><th scope="col" class="dashboard-table-extra">Ended</th></tr>
-                </thead>
-                <tbody>
-                    @foreach (var run in VisibleRuns(page))
-                    {
-                        @if (RunPresentation.ReadId(run.RunId) is { } id)
+            <div class="dashboard-table-wrap" role="region" aria-label="Runs in the selected Sandbox" tabindex="0">
+                <table class="dashboard-table" aria-label="Runs in the selected Sandbox">
+                    <thead>
+                        <tr><th scope="col">Run</th><th scope="col">State</th><th scope="col" class="dashboard-table-extra">Started</th><th scope="col" class="dashboard-table-extra">Ended</th></tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var run in VisibleRuns(page))
                         {
-                            <tr @key="id">
-                                <td><a class="dashboard-link dashboard-device-link" href="@($"/devices/{DeviceId:D}/runs/{id:D}")">@RunPresentation.Caption(run)</a></td>
-                                <td>@RunPresentation.Caption(run.State)</td>
-                                <td class="dashboard-table-extra"><DashboardTime Value="@RunPresentation.ReadTime(run.StartedAt)" /></td>
-                                <td class="dashboard-table-extra"><DashboardTime Value="@RunPresentation.ReadTime(run.EndedAt)" /></td>
-                            </tr>
+                            @if (RunPresentation.ReadId(run.RunId) is { } id)
+                            {
+                                <tr @key="id">
+                                    <td><a class="dashboard-link dashboard-device-link" href="@($"/devices/{DeviceId:D}/runs/{id:D}")">@RunPresentation.Caption(run)</a></td>
+                                    <td>@RunPresentation.Caption(run.State)</td>
+                                    <td class="dashboard-table-extra"><DashboardTime Value="@RunPresentation.ReadTime(run.StartedAt)" /></td>
+                                    <td class="dashboard-table-extra"><DashboardTime Value="@RunPresentation.ReadTime(run.EndedAt)" /></td>
+                                </tr>
+                            }
                         }
-                    }
-                </tbody>
-            </table>
+                    </tbody>
+                </table>
+            </div>
         }
         @if (_cursor is not null || !string.IsNullOrEmpty(page.Page?.NextCursor))
         {

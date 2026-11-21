@@ -24,6 +24,10 @@
     }
     @if (_snapshot is { } snapshot)
     {
+        @if (_budgetNeedsRefresh)
+        {
+            <p class="dashboard-panel-copy" role="status">Showing the last reported budget. Refresh to check current values.</p>
+        }
         <dl class="dashboard-detail-facts">
             <div><dt>Policy revision</dt><dd>@(PolicyRevision?.ToString() ?? "Unavailable")</dd></div>
             <div><dt>CPU budget</dt><dd>@Count(snapshot.HasBudgetCpuMillicores, snapshot.BudgetCpuMillicores, "millicores")</dd></div>
@@ -188,6 +192,10 @@
             <form class="dashboard-panel-copy dashboard-run-fields" aria-describedby="dashboard-resource-policy-help"
                   @onsubmit="SavePolicyAsync" @onsubmit:preventDefault>
                 <p id="dashboard-resource-policy-help">Lower one or both requested limits for this live Run. Policy revision @_draft.Revision.</p>
+                @if (!_budgetNeedsRefresh && EditableLimits != _draft)
+                {
+                    <p role="status">The current limits no longer match this edit. Cancel and review the reported values.</p>
+                }
                 <label>CPU limit (millicores)
                     <input type="text" inputmode="numeric" maxlength="10" required @bind="_cpu" />
                 </label>
@@ -195,7 +203,8 @@
                     <input type="text" inputmode="numeric" maxlength="20" required @bind="_memory" />
                 </label>
                 <div class="dashboard-actions">
-                    <button type="submit" class="dashboard-button dashboard-button-primary">Submit change</button>
+                    <button type="submit" class="dashboard-button dashboard-button-primary"
+                            disabled="@(_reading || _budgetNeedsRefresh || EditableLimits != _draft)">Submit change</button>
                     <button type="button" class="dashboard-button dashboard-button-quiet" @onclick="CancelPolicyEdit">Cancel</button>
                 </div>
             </form>

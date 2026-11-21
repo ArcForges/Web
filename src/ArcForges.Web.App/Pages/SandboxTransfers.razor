@@ -5,7 +5,7 @@
 
 <section class="dashboard-panel" aria-labelledby="sandbox-transfers">
     <div class="dashboard-panel-copy">
-        <h2 id="sandbox-transfers">Files</h2>
+        <h2 id="sandbox-transfers" tabindex="-1" @ref="_transferHeading">Files</h2>
         <p class="dashboard-muted">Transfer one regular file at a time, up to 16 MiB in the browser.</p>
     </div>
 
@@ -20,7 +20,7 @@
                 </label>
                 <label>
                     Destination path in Sandbox
-                    <input required maxlength="4096" @bind="_importPath" @bind:event="oninput" disabled="@_busy" />
+                    <input required maxlength="4096" @bind="_importPath" @bind:event="oninput" disabled="@_busy" aria-describedby="sandbox-transfer-path-help" />
                 </label>
                 <label class="dashboard-run-commands">
                     <input type="checkbox" @bind="_overwrite" disabled="@_busy" />
@@ -45,7 +45,7 @@
             <form class="dashboard-run-fields" @onsubmit="ExportAsync" @onsubmit:preventDefault>
                 <label>
                     Source path in Sandbox
-                    <input required maxlength="4096" @bind="_exportPath" @bind:event="oninput" disabled="@_busy" />
+                    <input required maxlength="4096" @bind="_exportPath" @bind:event="oninput" disabled="@_busy" aria-describedby="sandbox-transfer-path-help" />
                 </label>
                 <label>
                     Expected file version (optional)
@@ -58,7 +58,7 @@
                 </div>
             </form>
         </details>
-        <p class="dashboard-muted dashboard-panel-copy">Use a path relative to the Sandbox, with / between folders.</p>
+        <p id="sandbox-transfer-path-help" class="dashboard-muted dashboard-panel-copy">Use a path relative to the Sandbox, with / between folders.</p>
     }
 
     @if (_receipt is { } observed)
@@ -67,7 +67,7 @@
             <h3>@(observed.Transfer.Direction == "export" ? "Export" : "Import")</h3>
             <p><code>@observed.Transfer.RelativePath</code></p>
             <dl class="dashboard-detail-facts">
-                <div><dt>Transfer state</dt><dd>@TransferStateLabel(observed.Transfer)</dd></div>
+                <div><dt>@(ObservationStale ? "Last reported transfer state" : "Transfer state")</dt><dd>@TransferStateLabel(observed.Transfer)</dd></div>
                 @if (observed.Transfer.Direction != "export" || observed.Transfer.State == TransferState.Complete || observed.Transfer.ByteLength > 0)
                 {
                     <div><dt>Verified bytes</dt><dd>@observed.Transfer.VerifiedOffset of @observed.Transfer.ByteLength</dd></div>

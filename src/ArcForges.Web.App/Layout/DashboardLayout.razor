@@ -12,7 +12,7 @@
         <div class="dashboard-brand-row">
             <a href="/overview" class="dashboard-brand">ArcForges</a>
             <button type="button" class="dashboard-menu" aria-expanded="@(_menuOpen ? "true" : "false")"
-                    aria-controls="dashboard-navigation" @onclick="ToggleMenu" @ref="_menuButton">
+                    aria-controls="dashboard-navigation" @onclick="ToggleMenu" @onkeydown="HandleMenuKeyAsync" @ref="_menuButton">
                 @(_menuOpen ? "Close menu" : "Menu")
             </button>
         </div>
@@ -37,28 +37,28 @@
             <div class="dashboard-account">
                 <div class="dashboard-account-text">
                     <strong>@SessionLabel</strong>
-                    @if (!_revalidating && _access is not null && EndsAt(_access.Session) is DateTimeOffset expires)
+                    @if (!_revalidating && !_workspaceSuspended && _access is not null && EndsAt(_access.Session) is DateTimeOffset expires)
                     {
                         <time datetime="@expires.ToString("O")" title="@expires.ToUniversalTime().ToString("u")">
                             Expires @expires.ToLocalTime().ToString("g")
                         </time>
                     }
                 </div>
-                @if (_access is not null && !_revalidating)
+                @if (_access is not null && !_revalidating && !_workspaceSuspended)
                 {
                     <button type="button" class="dashboard-button dashboard-button-quiet" @onclick="SignOutAsync">Sign out</button>
                 }
             </div>
         </header>
         <main id="dashboard-content" class="dashboard-main" tabindex="-1" @ref="_main">
-            @if (_access is not null)
+            @if (_access is { } access && !_workspaceSuspended)
             {
                 @if (_revalidating)
                 {
                     <p role="status">Checking the Center session…</p>
                 }
                 <div hidden="@_revalidating">
-                    <CascadingValue Value="_access" @key="_access">
+                    <CascadingValue Value="access" @key="access">
                         @Body
                     </CascadingValue>
                 </div>
@@ -92,6 +92,7 @@
     private enum Screen
     {
         Checking,
+        Active,
         SignedOut,
         Expired,
         Unavailable,
@@ -111,6 +112,7 @@
     private bool _busy;
     private bool _resumePending;
     private bool _revalidating;
+    private bool _workspaceSuspended;
     private bool _menuOpen;
     private bool _focusSession;
     private bool _disposed;
@@ -124,8 +126,9 @@
 
     private string OriginLabel => Center.Configuration.Origin?.GetLeftPart(UriPartial.Authority) ?? "Configuration unavailable";
     private string CenterName => Center.Configuration.Name ?? CenterLabel;
+    private bool WorkspaceAttached => _access is not null && !_workspaceSuspended;
     private string SessionLabel => _revalidating ? "Checking session" :
-        _access?.Session.DisplayName ?? (_access is null ? "Session" : "Signed in");
+        _workspaceSuspended ? "Session unavailable" : _access?.Session.DisplayName ?? (_access is null ? "Session" : "Signed in");
     private bool CanSignIn => _screen is Screen.SignedOut or Screen.Expired;
 
     private string ScreenTitle => _screen switch
@@ -153,7 +156,7 @@
             {
             }
         }
-        if (_focusSession && _access is null)
+        if (_focusSession && !WorkspaceAttached)
         {
             _focusSession = false;
             await _sessionHeading.FocusAsync();
@@ -198,8 +201,18 @@
         }
         catch (DashboardApiException error)
         {
-            ClearSession();
-            _focusSession = priorAccess is not null;
+            if (error.Failure == DashboardFailure.Unavailable && priorAccess is not null && ReferenceEquals(_access, priorAccess))
+            {
+                _focusSession = !_workspaceSuspended;
+                // Retain original command identities while the authenticated workspace is detached.
+                // Only a newly verified matching session can make those receipts available again.
+                _workspaceSuspended = true;
+            }
+            else
+            {
+                ClearSession();
+                _focusSession = priorAccess is not null;
+            }
             _screen = error.Failure switch
             {
                 DashboardFailure.NotConfigured => Screen.Unconfigured,
@@ -254,14 +267,20 @@
 
         if (priorAccess is not null && ReferenceEquals(_access, priorAccess) && SameIdentity(priorAccess.Session, session))
         {
+            var wasAttached = WorkspaceAttached;
             priorAccess.Session = session;
+            _workspaceSuspended = false;
+            _screen = Screen.Active;
             ScheduleExpiry(priorAccess);
+            if (wasAttached)
+                priorAccess.NotifyViewResumed();
             return;
         }
 
         ClearSession();
         _activeSession = CancellationTokenSource.CreateLinkedTokenSource(_lifetime.Token);
         _access = new DashboardAccess(session, _activeSession.Token, ExpireAsync);
+        _screen = Screen.Active;
         ScheduleExpiry(_access);
     }
 
@@ -406,6 +425,7 @@
     private void ClearSession()
     {
         _access = null;
+        _workspaceSuspended = false;
         StopExpiryWatch();
         _activeSession?.Cancel();
         _activeSession?.Dispose();

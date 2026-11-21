@@ -11,7 +11,7 @@
 <section class="dashboard-panel" aria-labelledby="dashboard-security-selected-grant">
     <header class="dashboard-panel-header">
         <div>
-            <h2 id="dashboard-security-selected-grant">Selected grant</h2>
+            <h2 id="dashboard-security-selected-grant" tabindex="-1" @ref="_grantHeading">Selected grant</h2>
             @if (_observed is { } observed)
             {
                 <p class="dashboard-muted">Observed <DashboardTime Value="observed" />. @(_failure is null ? null : "The details may be stale.")</p>
@@ -101,14 +101,17 @@
                 {
                     <button type="button" class="dashboard-button dashboard-button-danger"
                             aria-disabled="@(!CanRevoke(grant) ? "true" : "false")"
+                            aria-haspopup="dialog" aria-controls="security-revoke-grant"
+                            @onfocus="FocusRevocationAction" @onblur="BlurRevocationAction"
                             command="@(CanRevoke(grant) ? "show-modal" : null)" commandfor="security-revoke-grant">
                         @(CurrentPending is null ? "Revoke grant" : "Revocation pending")
                     </button>
                 }
             </div>
-            <dialog id="security-revoke-grant" class="dashboard-dialog" aria-labelledby="security-revoke-grant-title" closedby="closerequest">
+            <dialog id="security-revoke-grant" class="dashboard-dialog" aria-labelledby="security-revoke-grant-title"
+                    aria-describedby="security-revoke-grant-description" closedby="closerequest">
                 <h2 id="security-revoke-grant-title">Revoke this grant?</h2>
-                <p>End future access through this grant. Local Runs continue.</p>
+                <p id="security-revoke-grant-description">End future access through this grant. Local Runs continue.</p>
                 <dl class="dashboard-dialog-facts">
                     <dt>Grant</dt><dd><code>@Target.GrantId</code></dd>
                     <dt>Revision</dt><dd>@grant.Revision.Value</dd>
@@ -116,6 +119,7 @@
                 <form method="dialog" class="dashboard-actions">
                     <button type="submit" value="cancel" class="dashboard-button dashboard-button-quiet" autofocus>Cancel</button>
                     <button type="submit" value="revoke" class="dashboard-button dashboard-button-danger-solid"
+                            @onfocus="FocusRevocationAction" @onblur="BlurRevocationAction"
                             disabled="@(!CanRevoke(grant))" @onclick="() => RevokeAsync(grant)">Confirm revocation</button>
                 </form>
             </dialog>
@@ -137,7 +141,9 @@
             </dl>
             @if (pending.CanVerify)
             {
-                <button type="button" class="dashboard-button dashboard-button-quiet" disabled="@_checking" @onclick="CheckAsync">Check original outcome</button>
+                <button type="button" class="dashboard-button dashboard-button-quiet"
+                        aria-disabled="@(_checking ? "true" : "false")" @onfocus="FocusRevocationAction" @onblur="BlurRevocationAction"
+                        @onclick="CheckAsync">Check original outcome</button>
                 @if (_receiptFailure is not null || _checkedUnsettled)
                 {
                     <p class="dashboard-muted">You can inspect the original command on the Node.</p>
@@ -184,6 +190,9 @@
     private DashboardApiException? _mutationFailure;
     private DateTimeOffset? _observed;
     private string? _resultMessage;
+    private ElementReference _grantHeading;
+    private bool _revocationActionFocused;
+    private bool _focusAfterRevocation;
     private bool _reading;
     private bool _checking;
     private bool _checkedUnsettled;
@@ -196,6 +205,15 @@
     {
         Access.SecurityRevocationsChanged += RevocationsChanged;
         return ReadAsync();
+    }
+
+    protected override Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!_focusAfterRevocation || _disposed || Access.Cancellation.IsCancellationRequested)
+            return Task.CompletedTask;
+        _focusAfterRevocation = false;
+        _revocationActionFocused = false;
+        return _grantHeading.FocusAsync().AsTask();
     }
 
     private async Task ReadAsync()
@@ -334,6 +352,7 @@
             }
             else if (operation is { State: OperationState.Failed, Effect: EffectCertainty.DidNotHappen })
             {
+                _focusAfterRevocation = _revocationActionFocused;
                 Access.SecurityGrantRevocations.Remove(pending.Target);
                 _mutationFailure = null;
                 _resultMessage = "The Node confirmed that the original revocation had no effect.";
@@ -390,8 +409,20 @@
     private void RevocationsChanged()
     {
         if (!_disposed)
-            _ = InvokeAsync(StateHasChanged);
+        {
+            _ = InvokeAsync(() =>
+            {
+                if (_disposed)
+                    return;
+                if (_revocationActionFocused && CurrentPending?.ConfirmedRevision is not null)
+                    _focusAfterRevocation = true;
+                StateHasChanged();
+            });
+        }
     }
+
+    private void FocusRevocationAction() => _revocationActionFocused = true;
+    private void BlurRevocationAction() => _revocationActionFocused = false;
 
     public void Dispose()
     {

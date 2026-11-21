@@ -6,8 +6,9 @@
 @inject IDashboardCenter Center
 
 <section class="dashboard-panel dashboard-work-scope" aria-label="Local access">
-    @if (_device is { Presence: DashboardDevicePresence.Online } device && _failure is null && !RevocationPending)
+    @if (IsOnline(_device) && _resumeCheck is null && _failure is null && !RevocationPending)
     {
+        var device = _device!;
         <details class="dashboard-run-scope" open="@(_target is null)">
             <summary>@(_target is null ? "Select a local grant" : "Change local grant")</summary>
             <p class="dashboard-muted" id="work-scope-help">
@@ -71,10 +72,12 @@
     }
 </section>
 
-@if (_target is { } target && !RevocationPending && _failure is null && _device?.Presence == DashboardDevicePresence.Online)
+@if (_target is { } target && !RevocationPending && _failure is null && IsOnline(_device))
 {
-    <div class="dashboard-work-view" @key="target">
-        @ChildContent(target)
+    <div hidden="@(_resumeCheck is not null)">
+        <div class="dashboard-work-view" @key="target">
+            @ChildContent(target)
+        </div>
     </div>
 }
 
@@ -102,11 +105,13 @@
     private string _sandboxId = "";
     private string _ownerEpoch = "";
     private bool _inputError;
+    private object? _resumeCheck;
+    private bool _resumePending;
     private bool _disposed;
 
     private bool RevocationPending => Access.Revocations.ContainsKey(DeviceId);
     private string Availability => RevocationPending ? "Waiting for enrollment access confirmation." :
-        _read is not null ? "Checking the selected device…" :
+        _read is not null || _resumeCheck is not null ? "Checking the selected device…" :
         _failure?.Message ?? (_device?.Presence switch
         {
             DashboardDevicePresence.Revoked => "This device enrollment was revoked.",
@@ -114,7 +119,11 @@
             _ => "The Center has no current connection observation for this device.",
         });
 
-    protected override void OnInitialized() => Access.RevocationsChanged += RevocationsChanged;
+    protected override void OnInitialized()
+    {
+        Access.RevocationsChanged += RevocationsChanged;
+        Access.ViewResumed += ViewResumed;
+    }
 
     protected override Task OnParametersSetAsync()
     {
@@ -122,6 +131,7 @@
         if (_route == route)
             return Task.CompletedTask;
 
+        CancelDeviceRead();
         _route = route;
         ResetForm();
         if (Access.WorkSelection is { } saved &&
@@ -131,22 +141,26 @@
         return ReadDeviceAsync();
     }
 
-    private async Task ReadDeviceAsync()
+    private Task ReadDeviceAsync() => ReadDeviceAsync(keepSelection: false);
+
+    private async Task ReadDeviceAsync(bool keepSelection)
     {
-        if (_disposed || RevocationPending)
+        if (_disposed || _read is not null || RevocationPending || Access.Cancellation.IsCancellationRequested)
             return;
 
-        _read?.Cancel();
         using var read = CancellationTokenSource.CreateLinkedTokenSource(Access.Cancellation);
         _read = read;
-        _device = null;
         _failure = null;
-        _target = null;
+        if (!keepSelection)
+        {
+            _device = null;
+            _target = null;
+        }
         var deviceId = DeviceId;
         try
         {
             var device = await Center.InspectDeviceAsync(deviceId, read.Token);
-            if (read.IsCancellationRequested)
+            if (_disposed || read.IsCancellationRequested || !ReferenceEquals(_read, read))
                 return;
             if (device.Id != deviceId || device.EnrollmentId == Guid.Empty || device.Revision <= 0)
                 throw new DashboardApiException(DashboardFailure.Incompatible);
@@ -155,9 +169,20 @@
             if (Access.WorkSelection is { } saved)
             {
                 if (saved.Matches(device) && (SandboxId is null || SandboxId == saved.Target.SandboxId))
-                    RestoreSelection(saved.Target);
+                {
+                    if (_target != saved.Target)
+                        RestoreSelection(saved.Target);
+                }
+                else if (device.Presence is DashboardDevicePresence.Offline or DashboardDevicePresence.Stale &&
+                    saved.Device.Id == device.Id && saved.Device.EnrollmentId == device.EnrollmentId &&
+                    saved.Device.Revision == device.Revision)
+                {
+                    _target = null;
+                }
                 else
+                {
                     ClearScope();
+                }
             }
         }
         catch (OperationCanceledException) when (read.IsCancellationRequested)
@@ -168,7 +193,11 @@
             if (failure.Failure == DashboardFailure.Unauthenticated)
                 await Access.ExpireAsync();
             else
+            {
                 _failure = failure;
+                if (failure.Failure is DashboardFailure.Forbidden or DashboardFailure.NotFound)
+                    ClearScope();
+            }
         }
         catch (DashboardApiException) when (read.IsCancellationRequested)
         {
@@ -180,9 +209,57 @@
         }
     }
 
+    private void ViewResumed() => _ = InvokeAsync(async () =>
+    {
+        if (_disposed || RevocationPending || Access.Cancellation.IsCancellationRequested)
+            return;
+
+        if (_resumeCheck is not null)
+        {
+            _resumePending = true;
+            _read?.Cancel();
+            return;
+        }
+
+        CancelDeviceRead();
+        var resumeCheck = new object();
+        _resumeCheck = resumeCheck;
+        try
+        {
+            do
+            {
+                _resumePending = false;
+                var read = ReadDeviceAsync(keepSelection: true);
+                StateHasChanged();
+                await read;
+            }
+            while (ReferenceEquals(_resumeCheck, resumeCheck) && _resumePending &&
+                !_disposed && !RevocationPending && !Access.Cancellation.IsCancellationRequested);
+        }
+        finally
+        {
+            if (ReferenceEquals(_resumeCheck, resumeCheck))
+            {
+                _resumeCheck = null;
+                _resumePending = false;
+                if (!_disposed)
+                    StateHasChanged();
+            }
+        }
+    });
+
+    private void CancelDeviceRead()
+    {
+        var read = _read;
+        _read = null;
+        _resumeCheck = null;
+        _resumePending = false;
+        read?.Cancel();
+    }
+
     private void ApplyScope()
     {
-        if (_device is not { Presence: DashboardDevicePresence.Online } device || _read is not null ||
+        if (!IsOnline(_device) || _read is not null || _resumeCheck is not null ||
             _failure is not null || RevocationPending)
             return;
 
@@ -197,6 +274,7 @@
         }
 
         _inputError = false;
+        var device = _device!;
         _target = new DashboardWorkTarget(node, device.EnrollmentId, grant, revision, SandboxId ?? selectedSandbox, ownerEpoch);
         Access.WorkSelection = new DashboardWorkSelection(device, _target);
     }
@@ -231,9 +309,11 @@
 
         _ = InvokeAsync(async () =>
         {
+            if (_disposed)
+                return;
             if (confirmed is not null || RevocationPending)
             {
-                _read?.Cancel();
+                CancelDeviceRead();
                 ClearScope();
             }
             if (confirmed is not null)
@@ -245,6 +325,9 @@
     }
 
     private static string DeviceName(DashboardDevice device) => string.IsNullOrWhiteSpace(device.Name) ? "the enrolled device" : device.Name;
+
+    private static bool IsOnline(DashboardDevice? device) =>
+        device is { Presence: DashboardDevicePresence.Online, NodeEpoch.Length: > 0 };
 
     private static bool TryOptionalId(string text, out Guid? value)
     {
@@ -261,6 +344,7 @@
     {
         _disposed = true;
         Access.RevocationsChanged -= RevocationsChanged;
-        _read?.Cancel();
+        Access.ViewResumed -= ViewResumed;
+        CancelDeviceRead();
     }
 }

@@ -13,7 +13,7 @@
             <h2 id="dashboard-run-output-title">Run output</h2>
             <p class="dashboard-muted">A bounded window of the output retained by the Node.</p>
         </div>
-        @if (_read is not null)
+        @if (_read is { IsCancellationRequested: false })
         {
             <button type="button" class="dashboard-button dashboard-button-quiet" @onclick="CancelRead">Pause reading</button>
         }
@@ -96,6 +96,7 @@
     private const int MaximumFrames = 128;
     private readonly StringBuilder _text = new();
     private readonly Decoder _decoder = Encoding.UTF8.GetDecoder();
+    private (DashboardWorkTarget Target, Guid RunId, string Epoch, TerminalMode Mode)? _view;
     private CancellationTokenSource? _read;
     private DashboardApiException? _failure;
     private OutputGap? _gap;
@@ -107,13 +108,21 @@
     private bool _requiresRunRefresh;
     private bool _disposed;
 
-    protected override void OnInitialized()
-    {
-        _stream = Mode == TerminalMode.Interactive ? StreamKind.Terminal : StreamKind.Stdout;
-    }
+    protected override void OnInitialized() => Access.ViewResumed += ViewResumed;
 
     protected override void OnParametersSet()
     {
+        var view = (Target, RunId, RunEpoch, Mode);
+        if (_view is not { } current || current != view)
+        {
+            var oldRead = _read;
+            _read = null;
+            oldRead?.Cancel();
+            _view = view;
+            _stream = Mode == TerminalMode.Interactive ? StreamKind.Terminal : StreamKind.Stdout;
+            _requiresRunRefresh = false;
+            ResetStream();
+        }
         if (!Available)
             CancelRead();
     }
@@ -161,10 +170,11 @@
 
     private async Task ReadAsync()
     {
-        if (_disposed || _read is not null || _requiresRunRefresh || !Available || string.IsNullOrEmpty(RunEpoch))
+        if (_disposed || _read is not null || _requiresRunRefresh || !Available ||
+            Access.Cancellation.IsCancellationRequested || string.IsNullOrEmpty(RunEpoch))
             return;
 
-        using var read = new CancellationTokenSource();
+        using var read = CancellationTokenSource.CreateLinkedTokenSource(Access.Cancellation);
         _read = read;
         _failure = null;
         _gap = null;
@@ -176,7 +186,7 @@
         {
             await foreach (var frame in Workspaces.WatchRunOutputAsync(Target, RunId, _stream, RunEpoch, _offset, read.Token))
             {
-                if (_disposed)
+                if (!OwnsRead(read))
                     return;
                 read.Token.ThrowIfCancellationRequested();
                 frames++;
@@ -224,22 +234,26 @@
                 _readingMessage = null;
                 return;
             }
+            read.Token.ThrowIfCancellationRequested();
+            if (!OwnsRead(read))
+                return;
             _readingMessage = remaining == WindowBytes ? "No output was received in this read." :
                 "Output window ended. Read more to continue from the last confirmed byte.";
         }
         catch (OperationCanceledException) when (read.IsCancellationRequested)
         {
-            if (!_disposed)
+            if (OwnsRead(read) && !Access.Cancellation.IsCancellationRequested)
                 _readingMessage = "Output reading paused.";
         }
         catch (DashboardApiException failure)
         {
-            if (!_disposed)
+            if (OwnsRead(read) && !read.IsCancellationRequested)
             {
                 _failure = failure;
                 _readingMessage = "Previously received output is shown below, if available.";
                 if (failure.Failure is DashboardFailure.Unauthenticated or DashboardFailure.Forbidden)
                 {
+                    _offset = null;
                     ResetWindow();
                     _decoder.Reset();
                 }
@@ -249,7 +263,8 @@
         }
         finally
         {
-            _read = null;
+            if (ReferenceEquals(_read, read))
+                _read = null;
         }
     }
 
@@ -307,11 +322,30 @@
 
     private Task ShowReceivedOutputAsync() => InvokeAsync(StateHasChanged);
 
-    private void CancelRead() => _read?.Cancel();
+    private bool OwnsRead(CancellationTokenSource read) => !_disposed && ReferenceEquals(_read, read);
+
+    private void ViewResumed() => _ = InvokeAsync(() =>
+    {
+        if (!_disposed)
+        {
+            CancelRead();
+            StateHasChanged();
+        }
+    });
+
+    private void CancelRead()
+    {
+        if (_read is { IsCancellationRequested: false } read)
+        {
+            _readingMessage = "Output reading paused.";
+            read.Cancel();
+        }
+    }
 
     public void Dispose()
     {
         _disposed = true;
+        Access.ViewResumed -= ViewResumed;
         CancelRead();
     }
 }

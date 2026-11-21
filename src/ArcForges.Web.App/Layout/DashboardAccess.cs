@@ -24,6 +24,7 @@ internal sealed class DashboardAccess(DashboardSession session, CancellationToke
     internal event Action? PendingResourcePoliciesChanged;
     internal event Action? SecurityRevocationsChanged;
     internal event Action? PendingProfileChanged;
+    internal event Action? ViewResumed;
 
     internal Task ExpireAsync() => expire(this);
     internal void NotifyRevocationsChanged(DashboardDevice? confirmed = null) => RevocationsChanged?.Invoke(confirmed);
@@ -31,6 +32,7 @@ internal sealed class DashboardAccess(DashboardSession session, CancellationToke
     internal void NotifyPendingResourcePoliciesChanged() => PendingResourcePoliciesChanged?.Invoke();
     internal void NotifySecurityRevocationsChanged() => SecurityRevocationsChanged?.Invoke();
     internal void NotifyPendingProfileChanged() => PendingProfileChanged?.Invoke();
+    internal void NotifyViewResumed() => ViewResumed?.Invoke();
 }
 
 internal sealed record PendingDeviceRevocation(Guid DeviceId, Guid EnrollmentId, long Revision, Guid CommandId)

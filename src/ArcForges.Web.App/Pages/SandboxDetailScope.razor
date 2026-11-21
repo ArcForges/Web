@@ -27,16 +27,16 @@
         }
         @if (_checkedAt is not null)
         {
-            <p>@(_failure is null ? "Checked" : "Last successful read") <DashboardTime Value="_checkedAt" /></p>
+            <p>@(ShowingPrevious ? "Last successful read" : "Checked") <DashboardTime Value="_checkedAt" /></p>
         }
     </div>
     @if (_sandbox is { } sandbox)
     {
         <div class="dashboard-panel-copy">
             <dl class="dashboard-detail-facts">
-                <div><dt>State</dt><dd>@SandboxPageValues.State(sandbox.State)</dd></div>
+                <div><dt>@(ShowingPrevious ? "Last reported state" : "State")</dt><dd>@SandboxPageValues.State(sandbox.State)</dd></div>
                 <div><dt>Revision</dt><dd class="dashboard-number">@sandbox.Revision.Value</dd></div>
-                <div><dt>Active Runs</dt><dd class="dashboard-number">@sandbox.ActiveRunIds.Count</dd></div>
+                <div><dt>@(ShowingPrevious ? "Last reported active Runs" : "Active Runs")</dt><dd class="dashboard-number">@sandbox.ActiveRunIds.Count</dd></div>
                 @if (sandbox.Config is { } config)
                 {
                     <div><dt>Profile</dt><dd>@config.ProfileId @config.ProfileVersion</dd></div>
@@ -61,7 +61,7 @@
 @if (_sandbox is { } observed)
 {
     <section class="dashboard-panel" aria-labelledby="sandbox-capabilities-heading">
-        <div class="dashboard-panel-header"><h2 id="sandbox-capabilities-heading">Profile capabilities</h2></div>
+        <div class="dashboard-panel-header"><h2 id="sandbox-capabilities-heading">@(ShowingPrevious ? "Last reported profile capabilities" : "Profile capabilities")</h2></div>
         <div class="dashboard-panel-copy">
             @if (observed.Capabilities.Count == 0)
             {
@@ -89,10 +89,10 @@
 @if (_sandbox is { State: SandboxState.Ready } ready && _failure is null &&
     Target.SandboxId is Guid sandboxId && SandboxPageValues.Id(ready.SandboxId) == sandboxId)
 {
-    <div>
+    <div inert="@_reading">
         <SandboxRunStart @key="Target" Target="Target" DeviceId="DeviceId" SandboxRevision="ready.Revision.Value" />
     </div>
-    <div>
+    <div inert="@_reading">
         <SandboxTransfers @key="Target" Target="Target" SandboxRevision="ready.Revision.Value" LeaseChanged="OnLeaseChanged" />
     </div>
 }
@@ -140,6 +140,7 @@
     private DateTimeOffset? _checkedAt;
     private bool _reading;
     private bool _retainedLease;
+    private bool ShowingPrevious => _reading || _failure is not null;
 
     protected override Task OnInitializedAsync() => ReadAsync();
 

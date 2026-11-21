@@ -69,27 +69,29 @@
     }
     else if (_devices is { Count: > 0 })
     {
-        <table class="dashboard-table">
-            <thead>
-                <tr>
-                    <th scope="col">Device</th>
-                    <th scope="col">Connection</th>
-                    <th scope="col" class="dashboard-table-extra">Platform</th>
-                    <th scope="col" class="dashboard-table-extra">Last seen</th>
-                </tr>
-            </thead>
-            <tbody>
-                @foreach (var device in _devices)
-                {
-                    <tr @key="device.Id">
-                        <th scope="row"><a class="dashboard-link dashboard-device-link" href="@DevicePath(device.Id)">@DeviceName(device)</a></th>
-                        <td><DevicePresence Presence="device.Presence" /></td>
-                        <td class="dashboard-table-extra">@(string.IsNullOrWhiteSpace(device.Platform) ? "Unavailable" : device.Platform)</td>
-                        <td class="dashboard-table-extra"><DashboardTime Value="device.LastSeenAt" /></td>
+        <div class="dashboard-table-wrap" role="region" aria-label="Device registry" tabindex="0">
+            <table class="dashboard-table">
+                <thead>
+                    <tr>
+                        <th scope="col">Device</th>
+                        <th scope="col">Connection</th>
+                        <th scope="col" class="dashboard-table-extra">Platform</th>
+                        <th scope="col" class="dashboard-table-extra">Last seen</th>
                     </tr>
-                }
-            </tbody>
-        </table>
+                </thead>
+                <tbody>
+                    @foreach (var device in _devices)
+                    {
+                        <tr @key="device.Id">
+                            <th scope="row"><a class="dashboard-link dashboard-device-link" href="@DevicePath(device.Id)">@DeviceName(device)</a></th>
+                            <td><DevicePresence Presence="device.Presence" /></td>
+                            <td class="dashboard-table-extra">@(string.IsNullOrWhiteSpace(device.Platform) ? "Unavailable" : device.Platform)</td>
+                            <td class="dashboard-table-extra"><DashboardTime Value="device.LastSeenAt" /></td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
         @if (_next is not null)
         {
             <div class="dashboard-panel-footer">
