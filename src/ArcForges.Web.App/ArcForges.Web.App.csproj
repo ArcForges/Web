@@ -4,6 +4,9 @@
     <RunAOTCompilation>false</RunAOTCompilation>
     <TrimMode>full</TrimMode>
     <DisableTransitiveFrameworkReferences>true</DisableTransitiveFrameworkReferences>
+    <!-- The Dashboard reports bounded typed outcomes. Keep raw protobuf diagnostic formatting out of its WASM publish. -->
+    <MSBuildAllProjects>$(MSBuildAllProjects);$(MSBuildThisFileDirectory)ProtobufBrowserDiagnostics.xml</MSBuildAllProjects>
+    <_ExtraTrimmerArgs>$(_ExtraTrimmerArgs) --substitutions &quot;$(MSBuildThisFileDirectory)ProtobufBrowserDiagnostics.xml&quot;</_ExtraTrimmerArgs>
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="ArcForges.Contracts.Management.V2" />

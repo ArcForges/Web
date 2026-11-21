@@ -1,0 +1,12 @@
+<!-- SPDX-License-Identifier: AGPL-3.0-only -->
+<linker>
+  <!-- These presentation methods pull in the reflected schema graph. Keep the binary protocol codecs intact. -->
+  <assembly fullname="Google.Protobuf">
+    <type fullname="Google.Protobuf.JsonFormatter">
+      <method signature="System.String ToDiagnosticString(Google.Protobuf.IMessage)" body="stub" value="Protobuf diagnostics unavailable" />
+    </type>
+    <type fullname="Google.Protobuf.Collections.RepeatedField`1">
+      <method signature="System.String ToString()" body="stub" value="Protobuf diagnostics unavailable" />
+    </type>
+  </assembly>
+</linker>

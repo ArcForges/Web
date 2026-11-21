@@ -5,6 +5,10 @@ using ArcForges.Contracts.PublicApi.V1;
 using ArcForges.Contracts.Sandbox.V2;
 using Google.Protobuf;
 using Grpc.Core;
+using Grpc.Net.Client;
+using CommerceClient = ArcForges.Contracts.PublicApi.V1.CommerceService.CommerceServiceClient;
+using EntitlementClient = ArcForges.Contracts.PublicApi.V1.EntitlementService.EntitlementServiceClient;
+using IdentityClient = ArcForges.Contracts.PublicApi.V1.IdentityService.IdentityServiceClient;
 using NodeClient = ArcForges.Contracts.Sandbox.V2.NodeService.NodeServiceClient;
 
 namespace ArcForges.Web.App.Dashboard;
@@ -22,7 +26,7 @@ internal sealed partial class DashboardCenter
     public Task<AccountProfile> ReadProfileAsync(CancellationToken ct) =>
         AccountUnaryAsync(
             static meta => new IdentityServiceGetProfileRequest { Meta = meta },
-            AccountRpc.GetProfile,
+            static (channel, request, options) => new IdentityClient(channel).GetProfileAsync(request, options),
             static reply => (reply.Value?.Profile, reply.Error, reply.Meta),
             static profile => profile.Revision is { Value: > 0 }, ct);
 
@@ -38,7 +42,7 @@ internal sealed partial class DashboardCenter
                 Meta = AccountCommandMeta(meta, commandId, expectedRevision),
                 Patch = patch.Clone(),
             },
-            AccountRpc.UpdateProfile,
+            static (channel, request, options) => new IdentityClient(channel).UpdateProfileAsync(request, options),
             static reply => (reply.Value?.Profile, reply.Error, reply.Meta),
             profile => profile.Revision?.Value >= expectedRevision, ct, mutation: true);
     }
@@ -46,14 +50,14 @@ internal sealed partial class DashboardCenter
     public Task<DeletionStatus> ReadAccountDeletionAsync(CancellationToken ct) =>
         AccountUnaryAsync(
             static meta => new IdentityServiceGetAccountDeletionRequest { Meta = meta },
-            AccountRpc.GetAccountDeletion,
+            static (channel, request, options) => new IdentityClient(channel).GetAccountDeletionAsync(request, options),
             static reply => (reply.Value?.Deletion, reply.Error, reply.Meta),
             static deletion => ReadId(deletion.DeletionId) is not null && !string.IsNullOrEmpty(deletion.State), ct);
 
     public Task<IdentityServiceListSessionsValue> ListSessionsAsync(string? cursor, CancellationToken ct) =>
         AccountUnaryAsync(
             meta => new IdentityServiceListSessionsRequest { Meta = meta, Page = AccountPage(cursor) },
-            AccountRpc.ListSessions,
+            static (channel, request, options) => new IdentityClient(channel).ListSessionsAsync(request, options),
             static reply => (reply.Value, reply.Error, reply.Meta),
             static page => ValidAccountPage(page.Page) && page.Sessions.Count <= WorkPageSize &&
                 page.Sessions.All(row => ReadId(row.SessionId) is not null && ReadId(row.DeviceId) is not null &&
@@ -62,7 +66,7 @@ internal sealed partial class DashboardCenter
     public Task<IdentityServiceListAuthIdentitiesValue> ListCredentialsAsync(string? cursor, CancellationToken ct) =>
         AccountUnaryAsync(
             meta => new IdentityServiceListAuthIdentitiesRequest { Meta = meta, Page = AccountPage(cursor) },
-            AccountRpc.ListAuthIdentities,
+            static (channel, request, options) => new IdentityClient(channel).ListAuthIdentitiesAsync(request, options),
             static reply => (reply.Value, reply.Error, reply.Meta),
             static page => ValidAccountPage(page.Page) && page.Items.Count <= WorkPageSize &&
                 page.Items.All(row => ReadId(row.CredentialId) is not null && !string.IsNullOrEmpty(row.Kind)), ct);
@@ -70,7 +74,7 @@ internal sealed partial class DashboardCenter
     public Task<Receipt> RevokeSessionAsync(Guid sessionId, Guid commandId, CancellationToken ct) =>
         AccountUnaryAsync(
             meta => new IdentityServiceRevokeSessionRequest { Meta = AccountCommandMeta(meta, commandId), SessionId = ExactId(sessionId) },
-            AccountRpc.RevokeSession,
+            static (channel, request, options) => new IdentityClient(channel).RevokeSessionAsync(request, options),
             static reply => (reply.Value?.Receipt, reply.Error, reply.Meta),
             receipt => ValidAccountReceipt(receipt, commandId), ct,
             mutation: true, proofClass: RevokeSession, proofTarget: sessionId, revokeSession: sessionId);
@@ -99,14 +103,14 @@ internal sealed partial class DashboardCenter
     public Task<EntitlementSnapshot> ReadEntitlementAsync(CancellationToken ct) =>
         AccountUnaryAsync(
             static meta => new EntitlementServiceGetSnapshotRequest { Meta = meta },
-            AccountRpc.GetSnapshot,
+            static (channel, request, options) => new EntitlementClient(channel).GetSnapshotAsync(request, options),
             static reply => (reply.Value?.Snapshot, reply.Error, reply.Meta),
             snapshot => ValidEntitlement(snapshot, Configuration.Mode), ct);
 
     public Task<CommerceServiceGetCatalogueValue> ReadCatalogueAsync(string region, CancellationToken ct) =>
         AccountUnaryAsync(
             meta => new CommerceServiceGetCatalogueRequest { Meta = meta, Region = Region(region) },
-            AccountRpc.GetCatalogue,
+            static (channel, request, options) => new CommerceClient(channel).GetCatalogueAsync(request, options),
             static reply => (reply.Value, reply.Error, reply.Meta),
             catalogue => !string.IsNullOrEmpty(catalogue.CatalogueVersion) && catalogue.Items.All(item =>
                 ReadId(item.OfferId) is not null && item.Kind == "subscription" && item.Region == region &&
@@ -127,7 +131,7 @@ internal sealed partial class DashboardCenter
                 PriceVersion = priceVersion,
                 Region = Region(region),
             },
-            AccountRpc.CreatePurchaseIntent,
+            static (channel, request, options) => new CommerceClient(channel).CreatePurchaseIntentAsync(request, options),
             static reply => (reply.Value?.Purchase, reply.Error, reply.Meta),
             purchase => ValidPurchase(purchase, purchaseId) && ReadId(purchase.OfferId) == offerId,
             ct, mutation: true, hosted: true);
@@ -142,7 +146,7 @@ internal sealed partial class DashboardCenter
                 CheckoutAttemptId = ExactId(checkoutId),
                 ReturnRoute = BillingReturn,
             },
-            AccountRpc.CreateCheckoutAttempt,
+            static (channel, request, options) => new CommerceClient(channel).CreateCheckoutAttemptAsync(request, options),
             static reply => (reply.Value?.Checkout, reply.Error, reply.Meta),
             checkout => ReadId(checkout.PurchaseIntentId) == purchaseId && ReadId(checkout.CheckoutAttemptId) == checkoutId &&
                 ValidCheckoutLink(checkout.Url) && IsValidInstant(checkout.ExpiresAt) && InstantValue(checkout.ExpiresAt) > time.GetUtcNow(),
@@ -151,14 +155,14 @@ internal sealed partial class DashboardCenter
     public Task<PurchaseView> ReadPurchaseAsync(Guid purchaseId, CancellationToken ct) =>
         AccountUnaryAsync(
             meta => new CommerceServiceGetPurchaseStateRequest { Meta = meta, PurchaseIntentId = ExactId(purchaseId) },
-            AccountRpc.GetPurchaseState,
+            static (channel, request, options) => new CommerceClient(channel).GetPurchaseStateAsync(request, options),
             static reply => (reply.Value?.Purchase, reply.Error, reply.Meta),
             purchase => ValidPurchase(purchase, purchaseId), ct, hosted: true);
 
     public Task<SubscriptionView> ReadSubscriptionAsync(CancellationToken ct) =>
         AccountUnaryAsync(
             static meta => new CommerceServiceGetSubscriptionRequest { Meta = meta },
-            AccountRpc.GetSubscription,
+            static (channel, request, options) => new CommerceClient(channel).GetSubscriptionAsync(request, options),
             static reply => (reply.Value?.Subscription, reply.Error, reply.Meta),
             ValidSubscription, ct, hosted: true);
 
@@ -175,7 +179,7 @@ internal sealed partial class DashboardCenter
                     Meta = AccountCommandMeta(meta, commandId, expectedRevision),
                     SubscriptionId = ExactId(subscriptionId),
                 },
-                AccountRpc.ReactivateSubscription,
+                static (channel, request, options) => new CommerceClient(channel).ReactivateSubscriptionAsync(request, options),
                 static reply => (reply.Value?.Subscription, reply.Error, reply.Meta),
                 ValidRenewal, ct, mutation: true, hosted: true);
         }
@@ -186,7 +190,7 @@ internal sealed partial class DashboardCenter
                 Meta = AccountCommandMeta(meta, commandId, expectedRevision),
                 SubscriptionId = ExactId(subscriptionId),
             },
-            AccountRpc.CancelSubscription,
+            static (channel, request, options) => new CommerceClient(channel).CancelSubscriptionAsync(request, options),
             static reply => (reply.Value?.Subscription, reply.Error, reply.Meta),
             ValidRenewal, ct, mutation: true, hosted: true, proofClass: CancelSubscription, proofTarget: subscriptionId);
 
@@ -206,7 +210,7 @@ internal sealed partial class DashboardCenter
                 Period = new TimeRangeUtc { From = ExactInstant(from), Until = ExactInstant(until) },
                 Page = AccountPage(cursor, BillingCursorBytes),
             },
-            AccountRpc.ListBillingHistory,
+            static (channel, request, options) => new CommerceClient(channel).ListBillingHistoryAsync(request, options),
             static reply => (reply.Value, reply.Error, reply.Meta),
             static page => ValidAccountPage(page.Page, BillingCursorBytes) && page.Items.Count <= WorkPageSize &&
                 page.Items.All(item => ReadId(item.ItemId) is not null && item.Amount is not null && IsValidInstant(item.OccurredAt)),
@@ -215,7 +219,7 @@ internal sealed partial class DashboardCenter
 
     private async Task<T> AccountUnaryAsync<TRequest, TReply, T>(
         Func<RequestMeta, TRequest> build,
-        Method<TRequest, TReply> method,
+        Func<GrpcChannel, TRequest, CallOptions, AsyncUnaryCall<TReply>> invoke,
         Func<TReply, (T? Value, ArcError? Error, ResponseMeta? Meta)> outcome,
         Func<T, bool> validate,
         CancellationToken ct,
@@ -232,7 +236,6 @@ internal sealed partial class DashboardCenter
         var requestMeta = Meta(session);
         var request = BoundRequest(build(requestMeta), AccountRequestBytes);
         using var channel = OpenWorkChannel(session, AccountRequestBytes, AccountReplyBytes);
-        var invoker = channel.CreateCallInvoker();
         var (value, error, meta) = await SendAsync();
         if (proofClass is not null && proofTarget is Guid target &&
             error is { Code: "step_up_required", Effect: EffectCertainty.DidNotHappen })
@@ -251,7 +254,7 @@ internal sealed partial class DashboardCenter
 
         async Task<(T? Value, ArcError? Error, ResponseMeta? Meta)> SendAsync()
         {
-            var call = invoker.AsyncUnaryCall(method, null, Options(ct, deadline: AccountDeadline), request);
+            var call = invoke(channel, request, Options(ct, deadline: AccountDeadline));
             var reply = outcome(await CallAsync(call, session, ct, mutation));
             // Worker-side denials can precede reading the request. A server success or step-up challenge echoes our correlation.
             if ((reply.Error is null || reply.Error.Code == "step_up_required") &&
@@ -352,82 +355,4 @@ internal sealed partial class DashboardCenter
 
     private static bool IsValidInstant(Instant? instant) =>
         instant is { HasUnixSeconds: true, UnixSeconds: >= -62_135_596_800 and <= 253_402_300_799, Nanos: < 1_000_000_000 };
-
-    private static class AccountRpc
-    {
-        private const string Identity = "arcforges.publicapi.v1.IdentityService";
-        private const string Entitlement = "arcforges.publicapi.v1.EntitlementService";
-        private const string Commerce = "arcforges.publicapi.v1.CommerceService";
-
-        // Use the published message codecs without rooting every stub in the generated service registries.
-        public static readonly Method<IdentityServiceGetProfileRequest, IdentityServiceGetProfileResponse> GetProfile =
-            Define<IdentityServiceGetProfileRequest, IdentityServiceGetProfileResponse>(Identity, "GetProfile", IdentityServiceGetProfileResponse.Parser);
-
-        public static readonly Method<IdentityServiceUpdateProfileRequest, IdentityServiceUpdateProfileResponse> UpdateProfile =
-            Define<IdentityServiceUpdateProfileRequest, IdentityServiceUpdateProfileResponse>(Identity, "UpdateProfile", IdentityServiceUpdateProfileResponse.Parser);
-
-        public static readonly Method<IdentityServiceGetAccountDeletionRequest, IdentityServiceGetAccountDeletionResponse> GetAccountDeletion =
-            Define<IdentityServiceGetAccountDeletionRequest, IdentityServiceGetAccountDeletionResponse>(Identity, "GetAccountDeletion", IdentityServiceGetAccountDeletionResponse.Parser);
-
-        public static readonly Method<IdentityServiceListSessionsRequest, IdentityServiceListSessionsResponse> ListSessions =
-            Define<IdentityServiceListSessionsRequest, IdentityServiceListSessionsResponse>(Identity, "ListSessions", IdentityServiceListSessionsResponse.Parser);
-
-        public static readonly Method<IdentityServiceListAuthIdentitiesRequest, IdentityServiceListAuthIdentitiesResponse> ListAuthIdentities =
-            Define<IdentityServiceListAuthIdentitiesRequest, IdentityServiceListAuthIdentitiesResponse>(Identity, "ListAuthIdentities", IdentityServiceListAuthIdentitiesResponse.Parser);
-
-        public static readonly Method<IdentityServiceRevokeSessionRequest, IdentityServiceRevokeSessionResponse> RevokeSession =
-            Define<IdentityServiceRevokeSessionRequest, IdentityServiceRevokeSessionResponse>(Identity, "RevokeSession", IdentityServiceRevokeSessionResponse.Parser);
-
-        public static readonly Method<EntitlementServiceGetSnapshotRequest, EntitlementServiceGetSnapshotResponse> GetSnapshot =
-            Define<EntitlementServiceGetSnapshotRequest, EntitlementServiceGetSnapshotResponse>(Entitlement, "GetSnapshot", EntitlementServiceGetSnapshotResponse.Parser);
-
-        public static readonly Method<CommerceServiceGetCatalogueRequest, CommerceServiceGetCatalogueResponse> GetCatalogue =
-            Define<CommerceServiceGetCatalogueRequest, CommerceServiceGetCatalogueResponse>(Commerce, "GetCatalogue", CommerceServiceGetCatalogueResponse.Parser);
-
-        public static readonly Method<CommerceServiceCreatePurchaseIntentRequest, CommerceServiceCreatePurchaseIntentResponse> CreatePurchaseIntent =
-            Define<CommerceServiceCreatePurchaseIntentRequest, CommerceServiceCreatePurchaseIntentResponse>(Commerce, "CreatePurchaseIntent", CommerceServiceCreatePurchaseIntentResponse.Parser);
-
-        public static readonly Method<CommerceServiceCreateCheckoutAttemptRequest, CommerceServiceCreateCheckoutAttemptResponse> CreateCheckoutAttempt =
-            Define<CommerceServiceCreateCheckoutAttemptRequest, CommerceServiceCreateCheckoutAttemptResponse>(Commerce, "CreateCheckoutAttempt", CommerceServiceCreateCheckoutAttemptResponse.Parser);
-
-        public static readonly Method<CommerceServiceGetPurchaseStateRequest, CommerceServiceGetPurchaseStateResponse> GetPurchaseState =
-            Define<CommerceServiceGetPurchaseStateRequest, CommerceServiceGetPurchaseStateResponse>(Commerce, "GetPurchaseState", CommerceServiceGetPurchaseStateResponse.Parser);
-
-        public static readonly Method<CommerceServiceGetSubscriptionRequest, CommerceServiceGetSubscriptionResponse> GetSubscription =
-            Define<CommerceServiceGetSubscriptionRequest, CommerceServiceGetSubscriptionResponse>(Commerce, "GetSubscription", CommerceServiceGetSubscriptionResponse.Parser);
-
-        public static readonly Method<CommerceServiceReactivateSubscriptionRequest, CommerceServiceReactivateSubscriptionResponse> ReactivateSubscription =
-            Define<CommerceServiceReactivateSubscriptionRequest, CommerceServiceReactivateSubscriptionResponse>(Commerce, "ReactivateSubscription", CommerceServiceReactivateSubscriptionResponse.Parser);
-
-        public static readonly Method<CommerceServiceCancelSubscriptionRequest, CommerceServiceCancelSubscriptionResponse> CancelSubscription =
-            Define<CommerceServiceCancelSubscriptionRequest, CommerceServiceCancelSubscriptionResponse>(Commerce, "CancelSubscription", CommerceServiceCancelSubscriptionResponse.Parser);
-
-        public static readonly Method<CommerceServiceListBillingHistoryRequest, CommerceServiceListBillingHistoryResponse> ListBillingHistory =
-            Define<CommerceServiceListBillingHistoryRequest, CommerceServiceListBillingHistoryResponse>(Commerce, "ListBillingHistory", CommerceServiceListBillingHistoryResponse.Parser);
-
-        private static Method<TRequest, TReply> Define<TRequest, TReply>(string service, string method, MessageParser<TReply> parser)
-            where TRequest : class, IMessage<TRequest>, IBufferMessage
-            where TReply : class, IMessage<TReply>, IBufferMessage
-        {
-            var request = Marshallers.Create<TRequest>(Write, static _ => throw new NotSupportedException());
-            var reply = Marshallers.Create<TReply>(static (_, _) => throw new NotSupportedException(), context =>
-            {
-                var payload = context.PayloadAsReadOnlySequence();
-                if (payload.Length > AccountReplyBytes)
-                    throw new RpcException(new Status(StatusCode.ResourceExhausted, "The account response exceeds the published limit."));
-                return parser.ParseFrom(payload);
-            });
-            return new Method<TRequest, TReply>(MethodType.Unary, service, method, request, reply);
-        }
-
-        private static void Write<T>(T message, SerializationContext context) where T : class, IMessage<T>, IBufferMessage
-        {
-            var size = message.CalculateSize();
-            if (size > AccountRequestBytes)
-                throw new RpcException(new Status(StatusCode.ResourceExhausted, "The account request exceeds the published limit."));
-            context.SetPayloadLength(size);
-            MessageExtensions.WriteTo(message, context.GetBufferWriter());
-            context.Complete();
-        }
-    }
 }

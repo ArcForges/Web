@@ -213,6 +213,7 @@
     "src/ArcForges.Web.App/Probe/WireJson.cs",
     "src/ArcForges.Web.App/ProfileIdentity.cs",
     "src/ArcForges.Web.App/Program.cs",
+    "src/ArcForges.Web.App/ProtobufBrowserDiagnostics.xml",
     "src/ArcForges.Web.App/_Imports.razor",
     "src/ArcForges.Web.App/packages.lock.json",
     "src/ArcForges.Web.App/wwwroot/_framework/arcforges-dashboard-activity.1ccb709650.js",
