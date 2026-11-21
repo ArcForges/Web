@@ -20,7 +20,11 @@ const immutable = "public, max-age=31536000, immutable, no-transform";
 const loaders = new Set(["_framework/blazor.webassembly.js", "_framework/dotnet.js"]);
 const rootAssets = new Set(["app.css", "favicon.svg", "robots.txt"]);
 const fingerprinted = /^_framework\/[A-Za-z0-9_][A-Za-z0-9._-]*\.[a-z0-9]{10}\.(?:js|wasm|dat)$/u;
-const deviceDocument = /^\/devices\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/u;
+const routeId = "[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}";
+const deviceDocument = new RegExp(
+  `^/devices/${routeId}(?:/resources|/(?:sandboxes|runs)(?:/${routeId})?)?$`,
+  "u",
+);
 const contentTypes: Record<string, string> = {
   ".css": "text/css; charset=utf-8",
   ".dat": "application/octet-stream",

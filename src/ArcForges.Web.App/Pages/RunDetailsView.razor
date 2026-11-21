@@ -1,0 +1,308 @@
+@* SPDX-License-Identifier: AGPL-3.0-only *@
+@using ArcForges.Contracts.Foundation.V1
+@using ArcForges.Contracts.Sandbox.V2
+@using ArcForges.Web.App.Dashboard
+@using ArcForges.Web.App.Layout
+@implements IDisposable
+@inject IDashboardWorkspaces Workspaces
+@inject TimeProvider Clock
+
+<section class="dashboard-panel" aria-labelledby="dashboard-selected-run-title">
+    <header class="dashboard-panel-header">
+        <div>
+            <h2 id="dashboard-selected-run-title">@(_run is { } summary ? RunPresentation.Caption(summary) : "Selected Run")</h2>
+            @if (_observedAt is { } observedAt)
+            {
+                <p class="dashboard-muted">Observed <DashboardTime Value="observedAt" />. @(_readFailure is null ? null : "Results may be stale.")</p>
+            }
+        </div>
+        <button type="button" class="dashboard-button dashboard-button-quiet" disabled="@(_reading || Sending)" @onclick="ReadAsync">Refresh</button>
+    </header>
+    @if (_reading)
+    {
+        <p class="dashboard-panel-copy" role="status">@(_run is null ? "Reading Run…" : "Refreshing Run…")</p>
+    }
+    @if (_readFailure is not null)
+    {
+        <p class="dashboard-notice" role="alert">@_readFailure.Message</p>
+        @if (_readFailure.CorrelationId is Guid readReference)
+        {
+            <p class="dashboard-panel-copy dashboard-muted">Reference <code>@readReference</code></p>
+        }
+    }
+    @if (_run is { } run)
+    {
+        <dl class="dashboard-detail-facts">
+            <div><dt>Run ID</dt><dd><code>@RunId</code></dd></div>
+            <div><dt>Sandbox ID</dt><dd><code>@RunPresentation.ReadId(run.SandboxId)</code></dd></div>
+            <div><dt>State</dt><dd>@RunPresentation.Caption(run.State)</dd></div>
+            <div><dt>Run revision</dt><dd>@run.Revision?.Value</dd></div>
+            <div><dt>Sandbox revision at start</dt><dd>@(run.SandboxRevision?.Value.ToString() ?? "Unavailable")</dd></div>
+            <div><dt>Profile</dt><dd>@(run.HasProfileId ? run.ProfileId : "Unavailable")</dd></div>
+            <div><dt>Profile version at start</dt><dd>@(run.HasProfileVersion ? run.ProfileVersion : "Unavailable")</dd></div>
+            <div><dt>Started</dt><dd><DashboardTime Value="@RunPresentation.ReadTime(run.StartedAt)" /></dd></div>
+            <div><dt>Ended</dt><dd><DashboardTime Value="@RunPresentation.ReadTime(run.EndedAt)" /></dd></div>
+            @if (RunPresentation.ReadTime(run.StartedAt) is { } start &&
+                RunPresentation.ReadTime(run.EndedAt) is { } end && end >= start)
+            {
+                <div><dt>Elapsed</dt><dd>@((end - start).ToString("g"))</dd></div>
+            }
+            @if (run.Exit is { } exit)
+            {
+                <div><dt>Exit code</dt><dd>@(exit.HasRawCode ? exit.RawCode.ToString() : "Unavailable")</dd></div>
+                <div><dt>Exit source</dt><dd>@(exit.HasSource ? exit.Source.ToString() : "Unavailable")</dd></div>
+                @if (exit.HasTerminationReason)
+                {
+                    <div><dt>Termination reason</dt><dd>@exit.TerminationReason</dd></div>
+                }
+                <div><dt>Process tree</dt><dd>@(exit.GroupEmptyVerified ? "Confirmed empty" : "Emptiness unconfirmed")</dd></div>
+            }
+            else
+            {
+                <div><dt>Exit</dt><dd>No exit status observed.</dd></div>
+            }
+        </dl>
+        <div class="dashboard-panel-footer">
+            <a class="dashboard-link" href="@($"/devices/{DeviceId:D}/resources?run={RunId:D}")">View resources for this Run</a>
+        </div>
+    }
+</section>
+
+@if (_run is not null || _pending is not null)
+{
+    <section class="dashboard-panel" aria-labelledby="dashboard-stop-run-title">
+        <header class="dashboard-panel-header">
+            <div>
+                <h2 id="dashboard-stop-run-title">Stop Run</h2>
+                <p class="dashboard-muted">The Node requests graceful termination and may escalate under its stop policy.</p>
+            </div>
+            <button type="button" class="dashboard-button dashboard-button-danger" aria-disabled="@(!CanStop ? "true" : "false")"
+                    command="@(CanStop ? "show-modal" : null)" commandfor="dashboard-stop-run-confirm">
+                @(Sending ? "Sending stop…" : "Stop Run")
+            </button>
+        </header>
+        @if (Target.OwnerEpoch is null)
+        {
+            <p class="dashboard-panel-copy">The Node owner epoch is required for a stop command.</p>
+        }
+        @if (_stopFailure is { } stopFailure)
+        {
+            <p class="dashboard-notice" role="alert">@(stopFailure.Failure == DashboardFailure.Conflict ? "The Run changed. Refresh it before attempting another stop." : stopFailure.Message)</p>
+            @if (stopFailure.Code is { } code)
+            {
+                <p class="dashboard-panel-copy dashboard-muted">Node result <code>@(code)</code>@(stopFailure.Reason is { } reason ? $" ({reason})" : null)</p>
+            }
+        }
+        @if (_pending is { } pending && _originalTarget is { } originalTarget)
+        {
+            <RunCommandReceipt @key="pending.Command" Target="originalTarget" Command="pending.Command"
+                               Initial="pending.Operation" Sending="pending.Sending" OnChecked="RecordOperationAsync" />
+        }
+    </section>
+}
+
+@if (_run is { } selected)
+{
+    <dialog id="dashboard-stop-run-confirm" class="dashboard-dialog" aria-labelledby="dashboard-stop-confirm-title" closedby="closerequest">
+        <h2 id="dashboard-stop-confirm-title">Stop this Run?</h2>
+        <p>@RunPresentation.Caption(selected)</p>
+        <dl class="dashboard-dialog-facts">
+            <dt>Run ID</dt><dd><code>@RunId</code></dd>
+            <dt>Run revision</dt><dd>@selected.Revision?.Value</dd>
+        </dl>
+        <form method="dialog" class="dashboard-actions">
+            <button type="submit" value="cancel" class="dashboard-button dashboard-button-quiet" autofocus>Cancel</button>
+            <button type="submit" value="stop" class="dashboard-button dashboard-button-danger-solid" disabled="@(!CanStop)"
+                    @onclick="() => StopAsync(selected.Revision?.Value)">Confirm stop</button>
+        </form>
+    </dialog>
+    @if (selected.HasEpoch && (_readFailure is null or { Failure: DashboardFailure.Unavailable }) &&
+        selected.TerminalMode is TerminalMode.Interactive or TerminalMode.Pipes)
+    {
+        <RunOutputView @key="selected.Epoch" Target="Target" RunId="RunId" RunEpoch="selected.Epoch" Mode="selected.TerminalMode"
+                       Available="@(_readFailure is null)" />
+    }
+}
+
+@code {
+    [CascadingParameter]
+    private DashboardAccess Access { get; set; } = default!;
+
+    [Parameter, EditorRequired]
+    public DashboardWorkTarget Target { get; set; } = default!;
+
+    [Parameter, EditorRequired]
+    public Guid RunId { get; set; }
+
+    [Parameter, EditorRequired]
+    public Guid DeviceId { get; set; }
+
+    private readonly CancellationTokenSource _lifetime = new();
+    private Run? _run;
+    private DateTimeOffset? _observedAt;
+    private DashboardApiException? _readFailure;
+    private DashboardApiException? _stopFailure;
+    private DashboardWorkTarget? _originalTarget;
+    private DashboardPendingRunCommand? _pending;
+    private bool _reading;
+    private bool _disposed;
+
+    private bool Sending => _pending is { Sending: true };
+    private bool CanStop => !_reading && !Sending && _readFailure is null &&
+        _stopFailure?.Failure != DashboardFailure.Conflict && Target.OwnerEpoch is not null &&
+        (_pending is null || _pending.Operation is { State: OperationState.Failed, Effect: EffectCertainty.DidNotHappen }) &&
+        _run is { Revision.Value: > 0, State: RunState.Running or RunState.Starting };
+
+    protected override Task OnInitializedAsync()
+    {
+        ReadPending();
+        Access.RunCommandsChanged += PendingChanged;
+        return ReadAsync();
+    }
+
+    private async Task ReadAsync()
+    {
+        if (_reading || _disposed)
+            return;
+
+        _reading = true;
+        try
+        {
+            var run = await Workspaces.InspectRunAsync(Target, RunId, _lifetime.Token);
+            if (!_disposed)
+            {
+                SetRun(run);
+                _readFailure = null;
+                if (_stopFailure?.Failure == DashboardFailure.Conflict)
+                    _stopFailure = null;
+            }
+        }
+        catch (OperationCanceledException) when (_disposed)
+        {
+        }
+        catch (DashboardApiException failure)
+        {
+            if (!_disposed)
+            {
+                _readFailure = failure;
+                if (failure.Failure is DashboardFailure.Unauthenticated or DashboardFailure.Forbidden)
+                {
+                    _run = null;
+                    _observedAt = null;
+                }
+                if (failure.Failure == DashboardFailure.Unauthenticated)
+                    await Access.ExpireAsync();
+            }
+        }
+        finally
+        {
+            _reading = false;
+        }
+    }
+
+    private async Task StopAsync(long? confirmedRevision)
+    {
+        if (_disposed)
+            return;
+        ReadPending();
+        if (!CanStop || Target.OwnerEpoch is not { } ownerEpoch ||
+            confirmedRevision is not > 0 || _run?.Revision?.Value != confirmedRevision)
+            return;
+
+        var command = new DashboardWorkCommand(Guid.NewGuid(), ownerEpoch, confirmedRevision);
+        var target = Target;
+        var pending = new DashboardPendingRunCommand(command) { Sending = true };
+        _originalTarget = target;
+        _pending = pending;
+        Access.RunCommands.Add((target, RunId), pending);
+        _stopFailure = null;
+        Access.NotifyRunCommandsChanged();
+        try
+        {
+            var result = await Workspaces.StopRunAsync(target, command, RunId, null, _lifetime.Token);
+            if (!_disposed)
+                SetRun(result.Run);
+            CompleteObservation(pending, target, result.Operation);
+        }
+        catch (OperationCanceledException) when (_disposed)
+        {
+        }
+        catch (DashboardApiException failure)
+        {
+            pending.Failure = failure;
+            if (failure.Failure != DashboardFailure.Uncertain)
+                pending.Settle(Access, target, RunId);
+            if (!_disposed)
+            {
+                _stopFailure = failure;
+                if (failure.Failure != DashboardFailure.Uncertain)
+                    _pending = null;
+                if (failure.Failure == DashboardFailure.Unauthenticated)
+                    await Access.ExpireAsync();
+            }
+        }
+        finally
+        {
+            pending.Sending = false;
+            Access.NotifyRunCommandsChanged();
+        }
+    }
+
+    private async Task RecordOperationAsync(Operation operation)
+    {
+        if (_pending is not { } pending || _originalTarget is not { } originalTarget)
+            return;
+
+        CompleteObservation(pending, originalTarget, operation);
+        if (!RunPresentation.NeedsCheck(operation))
+        {
+            _stopFailure = null;
+            await ReadAsync();
+        }
+    }
+
+    private void CompleteObservation(DashboardPendingRunCommand pending, DashboardWorkTarget target, Operation operation)
+    {
+        pending.Failure = null;
+        pending.Operation = operation;
+        if (!RunPresentation.NeedsCheck(operation))
+            pending.Settle(Access, target, RunId);
+    }
+
+    private void ReadPending()
+    {
+        if (DashboardPendingRunCommand.Find(Access, Target, RunId) is { } found)
+        {
+            _originalTarget = found.Target;
+            _pending = found.Pending;
+            _stopFailure = found.Pending.Failure;
+        }
+        else if (_pending?.Failure is { Failure: not DashboardFailure.Uncertain } refusal)
+        {
+            _stopFailure = refusal;
+            _pending = null;
+        }
+    }
+
+    private void PendingChanged()
+    {
+        if (_disposed)
+            return;
+        ReadPending();
+        _ = InvokeAsync(StateHasChanged);
+    }
+
+    private void SetRun(Run run)
+    {
+        _run = run;
+        _observedAt = Clock.GetUtcNow();
+    }
+
+    public void Dispose()
+    {
+        _disposed = true;
+        Access.RunCommandsChanged -= PendingChanged;
+        _lifetime.Cancel();
+        _lifetime.Dispose();
+    }
+}

@@ -11,7 +11,7 @@ namespace ArcForges.Web.App.Tests;
 public sealed class WasmProfilePolicyTests
 {
     private static readonly string Root = RepositoryRoot.Find();
-    private const string ActivityModulePath = "_framework/arcforges-dashboard-activity.43e6e05b58.js";
+    internal const string ActivityModulePath = "_framework/arcforges-dashboard-activity.1ccb709650.js";
 
     private static string AppSource(string relative) => File.ReadAllText(Path.Combine(Root, "src", "ArcForges.Web.App", relative));
 
@@ -91,7 +91,7 @@ public sealed class WasmProfilePolicyTests
     }
 
     [Fact]
-    public void TheActivityModuleIsImportedByItsExactContentAddressInTheFrameworkNamespace()
+    public void TheSharedDashboardModuleIsImportedByItsExactContentAddress()
     {
         var root = Path.Combine(Root, "src", "ArcForges.Web.App", "wwwroot");
         var path = Assert.Single(Directory.EnumerateFiles(root, "arcforges-dashboard-activity*.js", SearchOption.AllDirectories));
@@ -100,6 +100,8 @@ public sealed class WasmProfilePolicyTests
         Assert.Equal("_framework/arcforges-dashboard-activity." + hash[..10] + ".js", relative);
         Assert.Equal(ActivityModulePath, relative);
         Assert.Contains("\"./" + relative + "\"", AppSource("Dashboard/DashboardActivity.cs"), StringComparison.Ordinal);
+        Assert.Contains("DashboardActivity.ModulePath", AppSource("Dashboard/DashboardPasskeys.cs"), StringComparison.Ordinal);
+        Assert.Contains("DashboardActivity.ModulePath", AppSource("Pages/SandboxTransfers.razor.cs"), StringComparison.Ordinal);
     }
 
     [Fact]
@@ -116,7 +118,7 @@ public sealed class WasmProfilePolicyTests
     }
 
     [Fact]
-    public void TheAppUsesJavaScriptInteropOnlyForLifecycleAndPasskeys()
+    public void TheAppUsesJavaScriptInteropOnlyForLifecyclePasskeysAndVerifiedDownloads()
     {
         var app = Path.Combine(Root, "src", "ArcForges.Web.App");
         var sources = Directory.EnumerateFiles(app, "*.cs", SearchOption.AllDirectories)
@@ -129,7 +131,12 @@ public sealed class WasmProfilePolicyTests
             if (source.Contains("IJSRuntime", StringComparison.Ordinal))
                 interop.Add(Path.GetRelativePath(app, file).Replace('\\', '/'));
         }
-        Assert.Equal(new[] { "Dashboard/DashboardActivity.cs", "Dashboard/DashboardPasskeys.cs" }, interop.Order(StringComparer.Ordinal));
+        Assert.Equal(new[]
+        {
+            "Dashboard/DashboardActivity.cs",
+            "Dashboard/DashboardPasskeys.cs",
+            "Pages/SandboxTransfers.razor.cs",
+        }, interop.Order(StringComparer.Ordinal));
     }
 
     [Fact]

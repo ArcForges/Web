@@ -29,7 +29,12 @@ test("verified compiled Dashboard documents, cache policy and exact route bounda
   assert.equal(overview.headers["X-Content-Type-Options"], "nosniff");
   assert.equal(overview.headers["Cache-Control"], "public, no-cache, no-transform");
   const device = "/devices/77bfe61e-b5ea-4a5b-8c22-3ab49787a10e";
-  for (const route of ["/devices", device, device + "?tab=summary"]) {
+  const item = "99b6f777-c1ed-4385-aa31-32df881ea31b";
+  for (const route of [
+    "/devices", device, device + "?tab=summary", device + "/resources",
+    device + "/sandboxes", device + "/sandboxes/" + item,
+    device + "/runs", device + "/runs/" + item,
+  ]) {
     const reply = asset("GET", route);
     assert.equal(reply.status, 200, route);
     assert.deepEqual(reply.body, overview.body, route);
@@ -83,6 +88,11 @@ test("verified compiled Dashboard documents, cache policy and exact route bounda
     "/devices/77BFE61E-B5EA-4A5B-8C22-3AB49787A10E",
     "/devices//77bfe61e-b5ea-4a5b-8c22-3ab49787a10e",
     "/devices/%37%37bfe61e-b5ea-4a5b-8c22-3ab49787a10e",
+    device + "/unknown",
+    device + "/resources/" + item,
+    device + "/sandboxes/",
+    device + "/sandboxes/../runs",
+    device + "/runs/not-a-guid",
     "/x/../overview",
     "/%6fverview",
     "/account",

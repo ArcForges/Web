@@ -1,0 +1,266 @@
+@* SPDX-License-Identifier: AGPL-3.0-only *@
+@using System.Globalization
+@using ArcForges.Web.App.Dashboard
+@using ArcForges.Web.App.Layout
+@implements IDisposable
+@inject IDashboardCenter Center
+
+<section class="dashboard-panel dashboard-work-scope" aria-label="Local access">
+    @if (_device is { Presence: DashboardDevicePresence.Online } device && _failure is null && !RevocationPending)
+    {
+        <details class="dashboard-run-scope" open="@(_target is null)">
+            <summary>@(_target is null ? "Select a local grant" : "Change local grant")</summary>
+            <p class="dashboard-muted" id="work-scope-help">
+                Get the Node ID and <code>handshake.ownerEpoch</code> from <code>arcforges --json node status</code>.
+                Get the grant ID, revision, and any Sandbox ID from <code>arcforges --json grant list</code> on @DeviceName(device).
+                The owner epoch is required to make changes. You can leave it blank for reads.
+            </p>
+            <form class="dashboard-run-fields" aria-describedby="work-scope-help" autocomplete="off"
+                  @onsubmit="ApplyScope" @onsubmit:preventDefault>
+                <label>Node ID
+                    <input type="text" required maxlength="36" spellcheck="false" @bind="_nodeId" @bind:event="oninput" />
+                </label>
+                <label>Grant ID
+                    <input type="text" required maxlength="36" spellcheck="false" @bind="_grantId" @bind:event="oninput" />
+                </label>
+                <label>Grant revision
+                    <input type="text" required inputmode="numeric" maxlength="19" @bind="_grantRevision" @bind:event="oninput" />
+                </label>
+                @if (SandboxId is null)
+                {
+                    <label>Sandbox ID (if required by your grant)
+                        <input type="text" maxlength="36" spellcheck="false" @bind="_sandboxId" @bind:event="oninput" />
+                    </label>
+                }
+                <label>Owner epoch
+                    <input type="text" maxlength="36" spellcheck="false" @bind="_ownerEpoch" @bind:event="oninput" />
+                </label>
+                <div class="dashboard-run-commands">
+                    <button type="submit" class="dashboard-button dashboard-button-primary" disabled="@(_read is not null)">
+                        Use grant
+                    </button>
+                    @if (_inputError)
+                    {
+                        <p role="alert">Enter full IDs and the exact positive grant revision.</p>
+                    }
+                </div>
+            </form>
+        </details>
+        @if (_target is { } current)
+        {
+            <div class="dashboard-panel-header">
+                <span>Grant <code>@current.GrantId</code> · revision @current.GrantRevision</span>
+                <span class="dashboard-muted">@(current.OwnerEpoch is null ? "Read-only selection" : "Owner epoch supplied")</span>
+                <button type="button" class="dashboard-button dashboard-button-quiet" @onclick="ClearScope">Clear selection</button>
+            </div>
+        }
+    }
+    else
+    {
+        <div class="dashboard-panel-header" role="status">
+            <span>@Availability</span>
+            @if (_failure?.CorrelationId is Guid reference)
+            {
+                <span>Reference <code>@reference</code></span>
+            }
+            @if (_read is null && !RevocationPending)
+            {
+                <button type="button" class="dashboard-button dashboard-button-quiet" @onclick="ReadDeviceAsync">Refresh device</button>
+            }
+        </div>
+    }
+</section>
+
+@if (_target is { } target && !RevocationPending && _failure is null && _device?.Presence == DashboardDevicePresence.Online)
+{
+    <div class="dashboard-work-view" @key="target">
+        @ChildContent(target)
+    </div>
+}
+
+@code {
+    [CascadingParameter]
+    private DashboardAccess Access { get; set; } = default!;
+
+    [Parameter, EditorRequired]
+    public Guid DeviceId { get; set; }
+
+    [Parameter]
+    public Guid? SandboxId { get; set; }
+
+    [Parameter, EditorRequired]
+    public RenderFragment<DashboardWorkTarget> ChildContent { get; set; } = default!;
+
+    private CancellationTokenSource? _read;
+    private DashboardDevice? _device;
+    private DashboardApiException? _failure;
+    private DashboardWorkTarget? _target;
+    private (Guid DeviceId, Guid? SandboxId) _route;
+    private string _nodeId = "";
+    private string _grantId = "";
+    private string _grantRevision = "";
+    private string _sandboxId = "";
+    private string _ownerEpoch = "";
+    private bool _inputError;
+    private bool _disposed;
+
+    private bool RevocationPending => Access.Revocations.ContainsKey(DeviceId);
+    private string Availability => RevocationPending ? "Waiting for enrollment access confirmation." :
+        _read is not null ? "Checking the selected device…" :
+        _failure?.Message ?? (_device?.Presence switch
+        {
+            DashboardDevicePresence.Revoked => "This device enrollment was revoked.",
+            DashboardDevicePresence.Offline => "Reconnect the device to use its local grants.",
+            _ => "The Center has no current connection observation for this device.",
+        });
+
+    protected override void OnInitialized() => Access.RevocationsChanged += RevocationsChanged;
+
+    protected override Task OnParametersSetAsync()
+    {
+        var route = (DeviceId, SandboxId);
+        if (_route == route)
+            return Task.CompletedTask;
+
+        _route = route;
+        ResetForm();
+        if (Access.WorkSelection is { } saved &&
+            (saved.Device.Id != DeviceId || SandboxId is { } sandbox && saved.Target.SandboxId != sandbox))
+            Access.WorkSelection = null;
+
+        return ReadDeviceAsync();
+    }
+
+    private async Task ReadDeviceAsync()
+    {
+        if (_disposed || RevocationPending)
+            return;
+
+        _read?.Cancel();
+        using var read = CancellationTokenSource.CreateLinkedTokenSource(Access.Cancellation);
+        _read = read;
+        _device = null;
+        _failure = null;
+        _target = null;
+        var deviceId = DeviceId;
+        try
+        {
+            var device = await Center.InspectDeviceAsync(deviceId, read.Token);
+            if (read.IsCancellationRequested)
+                return;
+            if (device.Id != deviceId || device.EnrollmentId == Guid.Empty || device.Revision <= 0)
+                throw new DashboardApiException(DashboardFailure.Incompatible);
+
+            _device = device;
+            if (Access.WorkSelection is { } saved)
+            {
+                if (saved.Matches(device) && (SandboxId is null || SandboxId == saved.Target.SandboxId))
+                    RestoreSelection(saved.Target);
+                else
+                    ClearScope();
+            }
+        }
+        catch (OperationCanceledException) when (read.IsCancellationRequested)
+        {
+        }
+        catch (DashboardApiException failure) when (!read.IsCancellationRequested)
+        {
+            if (failure.Failure == DashboardFailure.Unauthenticated)
+                await Access.ExpireAsync();
+            else
+                _failure = failure;
+        }
+        catch (DashboardApiException) when (read.IsCancellationRequested)
+        {
+        }
+        finally
+        {
+            if (ReferenceEquals(_read, read))
+                _read = null;
+        }
+    }
+
+    private void ApplyScope()
+    {
+        if (_device is not { Presence: DashboardDevicePresence.Online } device || _read is not null ||
+            _failure is not null || RevocationPending)
+            return;
+
+        if (!DashboardRunTarget.TryIdentifier(_nodeId, out var node) ||
+            !DashboardRunTarget.TryIdentifier(_grantId, out var grant) ||
+            !DashboardRunTarget.TryRevision(_grantRevision, out var revision) ||
+            !TryOptionalId(_sandboxId, out var selectedSandbox) ||
+            !TryOptionalId(_ownerEpoch, out var ownerEpoch))
+        {
+            _inputError = true;
+            return;
+        }
+
+        _inputError = false;
+        _target = new DashboardWorkTarget(node, device.EnrollmentId, grant, revision, SandboxId ?? selectedSandbox, ownerEpoch);
+        Access.WorkSelection = new DashboardWorkSelection(device, _target);
+    }
+
+    private void RestoreSelection(DashboardWorkTarget target)
+    {
+        _target = target;
+        _nodeId = target.NodeId.ToString("D");
+        _grantId = target.GrantId.ToString("D");
+        _grantRevision = target.GrantRevision.ToString(CultureInfo.InvariantCulture);
+        _sandboxId = target.SandboxId?.ToString("D") ?? "";
+        _ownerEpoch = target.OwnerEpoch?.ToString("D") ?? "";
+    }
+
+    private void ClearScope()
+    {
+        Access.WorkSelection = null;
+        ResetForm();
+    }
+
+    private void ResetForm()
+    {
+        _target = null;
+        _nodeId = _grantId = _grantRevision = _sandboxId = _ownerEpoch = "";
+        _inputError = false;
+    }
+
+    private void RevocationsChanged(DashboardDevice? confirmed)
+    {
+        if (_disposed || confirmed is not null && confirmed.Id != DeviceId)
+            return;
+
+        _ = InvokeAsync(async () =>
+        {
+            if (confirmed is not null || RevocationPending)
+            {
+                _read?.Cancel();
+                ClearScope();
+            }
+            if (confirmed is not null)
+                _device = confirmed;
+            else if (!RevocationPending)
+                await ReadDeviceAsync();
+            StateHasChanged();
+        });
+    }
+
+    private static string DeviceName(DashboardDevice device) => string.IsNullOrWhiteSpace(device.Name) ? "the enrolled device" : device.Name;
+
+    private static bool TryOptionalId(string text, out Guid? value)
+    {
+        value = null;
+        if (text.Length == 0)
+            return true;
+        if (!DashboardRunTarget.TryIdentifier(text, out var result))
+            return false;
+        value = result;
+        return true;
+    }
+
+    public void Dispose()
+    {
+        _disposed = true;
+        Access.RevocationsChanged -= RevocationsChanged;
+        _read?.Cancel();
+    }
+}

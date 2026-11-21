@@ -179,7 +179,7 @@ button, select, input {
 .dashboard-shell code, .dashboard-device-link {
   overflow-wrap: anywhere;
 }
-.dashboard-intro, .dashboard-summary {
+.dashboard-intro, .dashboard-summary, .dashboard-device-sections, .dashboard-work-scope {
   margin: 0 0 22px;
 }
 .dashboard-intro p, .dashboard-update, .dashboard-empty p, .dashboard-run-status p, .dashboard-access-copy p {
@@ -319,6 +319,14 @@ button, select, input {
 }
 .dashboard-detail-intro {
   margin-bottom: 6px;
+}
+.dashboard-work-view pre {
+  overflow: auto;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.dashboard-table-wrap {
+  overflow-x: auto;
 }
 .dashboard-detail-heading {
   flex-wrap: wrap;

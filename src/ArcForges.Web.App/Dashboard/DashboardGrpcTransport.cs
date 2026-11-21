@@ -27,7 +27,8 @@ internal sealed class DashboardGrpcTransport(HttpMessageHandler transport)
         protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
         {
             var destination = request.RequestUri;
-            if (request.Method != HttpMethod.Post || destination is null ||
+            if (request.Method != HttpMethod.Post || destination is not { IsAbsoluteUri: true } ||
+                destination.UserInfo.Length != 0 ||
                 !string.Equals(destination.GetLeftPart(UriPartial.Authority), origin.GetLeftPart(UriPartial.Authority), StringComparison.Ordinal) ||
                 destination.Query.Length != 0 || destination.Fragment.Length != 0)
             {
@@ -39,7 +40,26 @@ internal sealed class DashboardGrpcTransport(HttpMessageHandler transport)
                 "/arcforges.management.v2.DeviceService/List" or
                 "/arcforges.management.v2.DeviceService/Inspect" or
                 "/arcforges.management.v2.DeviceService/Revoke" or
-                "/arcforges.sandbox.v2.RunService/List"))
+                "/arcforges.sandbox.v2.NodeService/GetOperation" or
+                "/arcforges.sandbox.v2.NodeService/ListRemoteGrants" or
+                "/arcforges.sandbox.v2.SandboxService/List" or
+                "/arcforges.sandbox.v2.SandboxService/Inspect" or
+                "/arcforges.sandbox.v2.SandboxService/Create" or
+                "/arcforges.sandbox.v2.RunService/List" or
+                "/arcforges.sandbox.v2.RunService/Inspect" or
+                "/arcforges.sandbox.v2.RunService/Start" or
+                "/arcforges.sandbox.v2.RunService/Stop" or
+                "/arcforges.sandbox.v2.RunService/WatchOutput" or
+                "/arcforges.sandbox.v2.ResourceService/GetBudget" or
+                "/arcforges.sandbox.v2.ResourceService/SetPolicy" or
+                "/arcforges.sandbox.v2.ResourceService/WatchUsage" or
+                "/arcforges.sandbox.v2.DataService/BeginImport" or
+                "/arcforges.sandbox.v2.DataService/WriteImport" or
+                "/arcforges.sandbox.v2.DataService/CommitImport" or
+                "/arcforges.sandbox.v2.DataService/BeginExport" or
+                "/arcforges.sandbox.v2.DataService/ReadExport" or
+                "/arcforges.sandbox.v2.DataService/InspectTransfer" or
+                "/arcforges.sandbox.v2.DataService/CloseTransfer"))
             {
                 throw new DashboardApiException(DashboardFailure.Incompatible);
             }
@@ -49,6 +69,9 @@ internal sealed class DashboardGrpcTransport(HttpMessageHandler transport)
             request.Headers.CacheControl = new CacheControlHeaderValue { NoStore = true };
             request.SetBrowserRequestCredentials(BrowserRequestCredentials.SameOrigin);
             request.SetBrowserRequestCache(BrowserRequestCache.NoStore);
+            request.SetBrowserRequestOption("redirect", "error");
+            if (path is "/arcforges.sandbox.v2.RunService/WatchOutput" or "/arcforges.sandbox.v2.ResourceService/WatchUsage")
+                request.SetBrowserResponseStreamingEnabled(true);
             return _transport.SendAsync(request, cancellationToken);
         }
 

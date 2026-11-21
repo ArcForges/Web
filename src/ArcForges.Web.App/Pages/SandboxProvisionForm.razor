@@ -1,0 +1,332 @@
+@* SPDX-License-Identifier: AGPL-3.0-only *@
+@using System.Text
+@using ArcForges.Contracts.Foundation.V1
+@using ArcForges.Contracts.Sandbox.V2
+@using ArcForges.Web.App.Dashboard
+@using ArcForges.Web.App.Layout
+@implements IDisposable
+@inject IDashboardWorkspaces Workspaces
+
+<section class="dashboard-panel" aria-labelledby="sandbox-provision-heading">
+    <div class="dashboard-panel-header">
+        <h2 id="sandbox-provision-heading">Create Sandbox</h2>
+        <button type="button" class="dashboard-button dashboard-button-quiet"
+                disabled="@(_loading || Pending is { State: SandboxMutationState.Sending })"
+                @onclick="ReadTemplateAsync">Check template</button>
+    </div>
+    <div class="dashboard-panel-copy" role="status">
+        @if (_loading)
+        {
+            <p>Checking the local provisioning grant…</p>
+        }
+        else if (_grant is null)
+        {
+            <p>Creation needs an active local provisioning grant with permission to read its template.</p>
+        }
+        @if (_failure is not null)
+        {
+            <p>@_failure.Message</p>
+            @if (_failure.Code == "unsupported_combination" && _failure.Reason is { } reason)
+            {
+                <p>The Node refused this policy combination: <code>@reason</code>.</p>
+            }
+            @if (_failure.Code == "owner_epoch_retired")
+            {
+                <p>The local owner epoch has retired. Check the Node and choose the current grant scope.</p>
+            }
+            @if (_failure.CorrelationId is Guid failureReference)
+            {
+                <p>Reference <code>@failureReference</code></p>
+            }
+        }
+        @if (Pending is { } pending)
+        {
+            <p><strong>@ResultLabel(pending.State)</strong></p>
+            <p>Command <code>@SandboxPageValues.CliId(pending.Command.CommandId)</code></p>
+            @if (pending.CorrelationId is Guid receiptReference)
+            {
+                <p>Reference <code>@receiptReference</code></p>
+            }
+            @if (pending.NeedsReconciliation)
+            {
+                <p>Check the original command before creating another Sandbox.</p>
+                <button type="button" class="dashboard-button dashboard-button-quiet" disabled="@pending.Checking"
+                        @onclick="CheckCommandAsync">Check command status</button>
+            }
+            @if (pending is { State: SandboxMutationState.Succeeded, SandboxId: Guid created })
+            {
+                <p>
+                    <a class="dashboard-link" href="@($"/devices/{DeviceId:D}/sandboxes/{created:D}")">
+                        Open Sandbox <code>@SandboxPageValues.CliId(created)</code>
+                    </a>
+                </p>
+                @if (pending.Revision is long revision)
+                {
+                    <p>Confirmed at revision @revision. Use its child grant to inspect its current state.</p>
+                }
+                else
+                {
+                    <p>The original revision is unavailable. Inspect the current Sandbox using its child grant.</p>
+                }
+            }
+        }
+        @if (HasPriorUnresolvedAttempt)
+        {
+            <p>The grant scope changed while a creation result was unresolved. Restore the original scope or check the original command on the enrolled Node.</p>
+        }
+    </div>
+    @if (_grant is { CreationTemplate: { } template } grant)
+    {
+        <div class="dashboard-panel-copy">
+            <dl class="dashboard-detail-facts">
+                <div><dt>Profile</dt><dd>@template.ProfileId @template.ProfileVersion</dd></div>
+                <div><dt>Template revision</dt><dd class="dashboard-number">@grant.TemplateRevision.Value</dd></div>
+                <div><dt>Outbound network</dt><dd>@SandboxPageValues.Network(template.Network.Egress)</dd></div>
+                <div><dt>Inbound network</dt><dd>@SandboxPageValues.Network(template.Network.Ingress)</dd></div>
+                <div><dt>CPU limit</dt><dd>@(template.Resources.HasCpuMaxMillicores ? $"{template.Resources.CpuMaxMillicores} millicores" : "Inherited")</dd></div>
+                <div><dt>Memory limit</dt><dd>@(template.Resources.HasMemoryMaxBytes ? $"{template.Resources.MemoryMaxBytes} bytes" : "Inherited")</dd></div>
+            </dl>
+            <p>The Node validates this visible template at creation. Host mounts, environment entries and private working directories are omitted from this request.</p>
+            @if (Target.OwnerEpoch is null || Target.OwnerEpoch == Guid.Empty)
+            {
+                <p>Provide the current local owner epoch to enable creation.</p>
+            }
+        </div>
+        <form class="dashboard-run-fields dashboard-panel-copy" @onsubmit="CreateAsync" @onsubmit:preventDefault autocomplete="off">
+            <label>
+                Sandbox name
+                <input type="text" @bind="_name" @bind:event="oninput" maxlength="160" required disabled="@(!CanCreate)" />
+            </label>
+            <button type="submit" class="dashboard-button dashboard-button-primary" disabled="@(!CanCreate)">Create Sandbox</button>
+            @if (_invalidName)
+            {
+                <p role="alert">Enter a name of 1 to 80 characters without control characters.</p>
+            }
+        </form>
+    }
+</section>
+
+@code {
+    private const string CreateMethod = "SandboxService.Create";
+    private const string CreateProcedure = "/arcforges.sandbox.v2.SandboxService/Create";
+
+    [CascadingParameter]
+    private DashboardAccess Access { get; set; } = default!;
+
+    [Parameter, EditorRequired]
+    public DashboardWorkTarget Target { get; set; } = default!;
+
+    [Parameter, EditorRequired]
+    public Guid DeviceId { get; set; }
+
+    private readonly CancellationTokenSource _unmounted = new();
+    private RemoteGrant? _grant;
+    private DashboardApiException? _failure;
+    private SandboxMutationReceipt? _sending;
+    private string _name = "";
+    private bool _invalidName;
+    private bool _loading;
+
+    private SandboxMutationReceipt? Pending => Access.SandboxMutations.GetValueOrDefault(Target);
+    private bool HasPriorUnresolvedAttempt => Access.SandboxMutations.Any(entry =>
+        entry.Key != Target && entry.Key.NodeId == Target.NodeId &&
+            entry.Key.EnrollmentId == Target.EnrollmentId && entry.Key.GrantId == Target.GrantId &&
+            (entry.Value.NeedsReconciliation || entry.Value.State == SandboxMutationState.Sending));
+    private bool CanCreate => !_loading && _grant is not null && Target.OwnerEpoch is Guid epoch && epoch != Guid.Empty
+        && Pending is not { State: SandboxMutationState.Sending } && Pending is not { NeedsReconciliation: true }
+        && !HasPriorUnresolvedAttempt;
+
+    protected override Task OnInitializedAsync() => ReadTemplateAsync();
+
+    private async Task ReadTemplateAsync()
+    {
+        if (_unmounted.IsCancellationRequested || _loading || Target.SandboxId is not null)
+            return;
+
+        using var work = CancellationTokenSource.CreateLinkedTokenSource(Access.Cancellation, _unmounted.Token);
+        _loading = true;
+        _grant = null;
+        _failure = null;
+        try
+        {
+            var page = await Workspaces.ListRemoteGrantsAsync(Target, null, work.Token);
+            work.Token.ThrowIfCancellationRequested();
+            if (page.Page is not { NextCursor.Length: 0 } || page.Grants.Count > 1)
+                throw new DashboardApiException(DashboardFailure.Incompatible);
+            _grant = page.Grants.FirstOrDefault(IsProvisionGrant);
+        }
+        catch (DashboardApiException error) when (!work.IsCancellationRequested)
+        {
+            await ReadFailureAsync(error);
+        }
+        catch (DashboardApiException) when (work.IsCancellationRequested)
+        {
+        }
+        catch (OperationCanceledException) when (work.IsCancellationRequested)
+        {
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private bool IsProvisionGrant(RemoteGrant grant) =>
+        SandboxPageValues.Id(grant.GrantId) == Target.GrantId &&
+        SandboxPageValues.Id(grant.EnrollmentId) == Target.EnrollmentId &&
+        grant.Revision?.Value == Target.GrantRevision &&
+        grant.ScopeKind == "provision" && grant.SandboxId is null && grant.State == GrantState.Active &&
+        grant.Methods.Contains(CreateProcedure, StringComparer.Ordinal) && grant.TemplateRevision is { Value: > 0 } &&
+        grant.CreationTemplate is { HasProfileId: true, HasProfileVersion: true, Network: not null, Resources: not null,
+            HostGrants.Count: 0, Environment.Count: 0, HasDefaultWorkdir: false };
+
+    private async Task CreateAsync()
+    {
+        if (_unmounted.IsCancellationRequested || !CanCreate || _grant is not { CreationTemplate: { } config } grant ||
+            Target.OwnerEpoch is not Guid epoch)
+            return;
+
+        var name = _name.Trim();
+        _invalidName = !ValidName(name);
+        if (_invalidName)
+            return;
+
+        using var work = CancellationTokenSource.CreateLinkedTokenSource(Access.Cancellation, _unmounted.Token);
+        var pending = new SandboxMutationReceipt(new DashboardWorkCommand(Guid.NewGuid(), epoch));
+        Access.SandboxMutations[Target] = pending;
+        _sending = pending;
+        _failure = null;
+        _name = "";
+        try
+        {
+            var sandbox = await Workspaces.CreateSandboxAsync(Target, pending.Command, name, config,
+                grant.TemplateRevision.Value, work.Token);
+            work.Token.ThrowIfCancellationRequested();
+            if (SandboxPageValues.Id(sandbox.SandboxId) is not Guid created || sandbox.Revision is not { Value: > 0 } ||
+                sandbox.State is not (SandboxState.Creating or SandboxState.Ready))
+            {
+                throw new DashboardApiException(DashboardFailure.Uncertain);
+            }
+
+            pending.SandboxId = created;
+            if (sandbox.State == SandboxState.Creating)
+            {
+                pending.State = SandboxMutationState.Accepted;
+                return;
+            }
+            pending.Revision = sandbox.Revision.Value;
+            pending.State = SandboxMutationState.Succeeded;
+        }
+        catch (DashboardApiException error) when (!work.IsCancellationRequested)
+        {
+            pending.State = error.Failure == DashboardFailure.Uncertain
+                ? SandboxMutationState.Uncertain : SandboxMutationState.Refused;
+            pending.CorrelationId = error.CorrelationId;
+            if (error.Code == "owner_epoch_retired")
+                _grant = null;
+            await ReadFailureAsync(error);
+        }
+        catch (DashboardApiException) when (work.IsCancellationRequested)
+        {
+        }
+        catch (OperationCanceledException) when (work.IsCancellationRequested)
+        {
+        }
+        finally
+        {
+            if (pending.State == SandboxMutationState.Sending)
+                pending.State = SandboxMutationState.Uncertain;
+            _sending = null;
+        }
+    }
+
+    private async Task CheckCommandAsync()
+    {
+        if (_unmounted.IsCancellationRequested || Pending is not { NeedsReconciliation: true, Checking: false } pending)
+            return;
+
+        using var work = CancellationTokenSource.CreateLinkedTokenSource(Access.Cancellation, _unmounted.Token);
+        pending.Checking = true;
+        _failure = null;
+        try
+        {
+            var operation = await Workspaces.GetOperationAsync(Target, pending.Command, work.Token);
+            work.Token.ThrowIfCancellationRequested();
+            var aggregate = SandboxPageValues.Id(operation.AggregateId);
+            if (SandboxPageValues.Id(operation.CommandId) != pending.Command.CommandId ||
+                SandboxPageValues.Id(operation.OwnerEpoch) != pending.Command.OwnerEpoch || operation.Method != CreateMethod ||
+                operation.AggregateId is not null && aggregate is null ||
+                pending.SandboxId is Guid known && aggregate is Guid actual && known != actual)
+            {
+                throw new DashboardApiException(DashboardFailure.Incompatible);
+            }
+
+            if (aggregate is not null)
+                pending.SandboxId = aggregate;
+            pending.State = operation switch
+            {
+                { State: OperationState.Accepted } => SandboxMutationState.Accepted,
+                { State: OperationState.Failed, Effect: EffectCertainty.DidNotHappen } => SandboxMutationState.Refused,
+                { State: OperationState.Succeeded, Effect: EffectCertainty.Happened }
+                    when aggregate is not null && (operation.Revision is { Value: > 0 } ||
+                        operation is { ResponseCompacted: true, Revision: null }) => SandboxMutationState.Succeeded,
+                _ => SandboxMutationState.Uncertain,
+            };
+            if (pending.State == SandboxMutationState.Succeeded)
+            {
+                pending.Revision = operation.Revision?.Value;
+            }
+        }
+        catch (DashboardApiException error) when (!work.IsCancellationRequested)
+        {
+            await ReadFailureAsync(error);
+        }
+        catch (DashboardApiException) when (work.IsCancellationRequested)
+        {
+        }
+        catch (OperationCanceledException) when (work.IsCancellationRequested)
+        {
+        }
+        finally
+        {
+            pending.Checking = false;
+        }
+    }
+
+    private async Task ReadFailureAsync(DashboardApiException error)
+    {
+        if (error.Failure == DashboardFailure.Unauthenticated)
+            await Access.ExpireAsync();
+        else
+            _failure = error;
+    }
+
+    private static bool ValidName(string name)
+    {
+        var count = 0;
+        for (var index = 0; index < name.Length;)
+        {
+            if (!Rune.TryGetRuneAt(name, index, out var rune) || Rune.IsControl(rune) || ++count > 80)
+                return false;
+            index += rune.Utf16SequenceLength;
+        }
+        return count > 0;
+    }
+
+    private static string ResultLabel(SandboxMutationState state) => state switch
+    {
+        SandboxMutationState.Sending => "Waiting for creation confirmation…",
+        SandboxMutationState.Accepted => "Creation accepted. Result pending.",
+        SandboxMutationState.Succeeded => "Sandbox created.",
+        SandboxMutationState.Refused => "Creation did not take effect.",
+        _ => "Creation result unknown.",
+    };
+
+    public void Dispose()
+    {
+        _unmounted.Cancel();
+        if (_sending is { State: SandboxMutationState.Sending } pending)
+            pending.State = SandboxMutationState.Uncertain;
+        _unmounted.Dispose();
+    }
+}

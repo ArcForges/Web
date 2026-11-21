@@ -49,3 +49,21 @@ function encode(buffer) {
     if (buffer.byteLength > 16384) throw new RangeError("The passkey response is too large to transfer.");
     return btoa(String.fromCharCode(...new Uint8Array(buffer))).replace(/=+$/, "").replaceAll("+", "-").replaceAll("/", "_");
 }
+
+export async function saveVerifiedFile(fileName, stream) {
+    const bytes = await stream.arrayBuffer();
+    if (bytes.byteLength > 16 * 1024 * 1024) throw new RangeError("The browser download exceeds its limit.");
+
+    const url = URL.createObjectURL(new Blob([bytes], { type: "application/octet-stream" }));
+    const link = document.createElement("a");
+    try {
+        link.href = url;
+        link.download = fileName;
+        link.hidden = true;
+        document.body.append(link);
+        link.click();
+    } finally {
+        link.remove();
+        setTimeout(() => URL.revokeObjectURL(url), 1000);
+    }
+}

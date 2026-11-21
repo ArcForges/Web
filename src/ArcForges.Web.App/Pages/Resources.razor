@@ -1,0 +1,78 @@
+@* SPDX-License-Identifier: AGPL-3.0-only *@
+@page "/devices/{DeviceId:guid}/resources"
+@using ArcForges.Web.App.Dashboard
+@inject NavigationManager Navigation
+
+<PageTitle>Resources | ArcForges</PageTitle>
+
+<section class="dashboard-intro">
+    <div>
+        <a class="dashboard-link" href="@($"/devices/{DeviceId:D}")">Device details</a>
+        <h1>Resources</h1>
+    </div>
+</section>
+
+<DashboardWorkScopeView DeviceId="DeviceId" Context="target">
+    @if (target.SandboxId is not Guid sandboxId)
+    {
+        <p class="dashboard-panel-copy">Select the Sandbox covered by your local grant. Host-wide resources are available on the device itself.</p>
+    }
+    else
+    {
+        <section class="dashboard-panel" aria-labelledby="dashboard-resource-scope">
+            <header class="dashboard-panel-header"><h2 id="dashboard-resource-scope">Resource scope</h2></header>
+            <p class="dashboard-panel-copy">Sandbox <code>@sandboxId</code></p>
+            <form class="dashboard-panel-copy dashboard-run-fields" autocomplete="off" @onsubmit="SelectRun" @onsubmit:preventDefault>
+                <label>Run ID <input type="text" required maxlength="36" spellcheck="false" @bind="_runInput" /></label>
+                <div class="dashboard-actions">
+                    <button type="submit" class="dashboard-button dashboard-button-quiet">View Run resources</button>
+                    @if (RunQuery is not null)
+                    {
+                        <a class="dashboard-link" href="@ResourcePath">View Sandbox resources</a>
+                    }
+                </div>
+            </form>
+            @if (_invalidRun || (RunQuery is not null && _runId is null))
+            {
+                <p class="dashboard-notice" role="alert">Enter a full Run ID from this Sandbox.</p>
+            }
+        </section>
+        @if (RunQuery is null || _runId is not null)
+        {
+            <ResourceOverview @key="(target, _runId)" Target="target" RunId="_runId" />
+        }
+    }
+</DashboardWorkScopeView>
+
+@code {
+    [Parameter]
+    public Guid DeviceId { get; set; }
+
+    [SupplyParameterFromQuery(Name = "run")]
+    public string? RunQuery { get; set; }
+
+    private Guid? _runId;
+    private string _runInput = "";
+    private bool _invalidRun;
+    private (Guid DeviceId, string? RunQuery) _selection;
+
+    private string ResourcePath => $"/devices/{DeviceId:D}/resources";
+
+    protected override void OnParametersSet()
+    {
+        if (_selection == (DeviceId, RunQuery))
+            return;
+
+        _selection = (DeviceId, RunQuery);
+        _runId = DashboardRunTarget.TryIdentifier(RunQuery ?? "", out var id) ? id : null;
+        _runInput = _runId?.ToString("D") ?? "";
+        _invalidRun = false;
+    }
+
+    private void SelectRun()
+    {
+        _invalidRun = !DashboardRunTarget.TryIdentifier(_runInput, out var id);
+        if (!_invalidRun)
+            Navigation.NavigateTo($"{ResourcePath}?run={id:D}");
+    }
+}

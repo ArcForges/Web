@@ -1,0 +1,27 @@
+@* SPDX-License-Identifier: AGPL-3.0-only *@
+@page "/devices/{DeviceId:guid}/runs"
+
+<PageTitle>Runs | ArcForges</PageTitle>
+
+<section class="dashboard-intro">
+    <div>
+        <a class="dashboard-link" href="@($"/devices/{DeviceId:D}")">Device details</a>
+        <h1>Runs</h1>
+    </div>
+</section>
+
+<DashboardWorkScopeView DeviceId="DeviceId" Context="target">
+    @if (target.SandboxId is not null)
+    {
+        <RunListView @key="target" DeviceId="DeviceId" Target="target" />
+    }
+    else
+    {
+        <p class="dashboard-panel-copy">Select an authorized Sandbox to view its Runs.</p>
+    }
+</DashboardWorkScopeView>
+
+@code {
+    [Parameter]
+    public Guid DeviceId { get; set; }
+}

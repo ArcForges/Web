@@ -8,18 +8,19 @@ using ArcForges.Contracts.Sandbox.V2;
 using ArcForges.Web.App.Probe;
 using Google.Protobuf;
 using Grpc.Core;
+using Grpc.Net.Client;
 using DeviceApi = ArcForges.Contracts.Management.V2;
 using DeviceClient = ArcForges.Contracts.Management.V2.DeviceService.DeviceServiceClient;
 using ManagementDevice = ArcForges.Contracts.Management.V2.Device;
 
 namespace ArcForges.Web.App.Dashboard;
 
-internal sealed class DashboardCenter(
+internal sealed partial class DashboardCenter(
     DashboardCenterConfiguration configuration,
     SessionProbe sessions,
     DashboardGrpcTransport transport,
     DashboardPasskeys passkeys,
-    TimeProvider time) : IDashboardCenter
+    TimeProvider time) : IDashboardCenter, IDashboardWorkspaces
 {
     private const string DeviceRevoke = "management.deviceRevoke";
     private static readonly TimeSpan CallDeadline = TimeSpan.FromSeconds(10);
@@ -173,13 +174,7 @@ internal sealed class DashboardCenter(
         }
 
         var session = RequireSession();
-        var headers = new Metadata
-        {
-            { "x-arcforges-node-id", target.NodeId.ToString("D") },
-            { "x-arcforges-enrollment-id", target.EnrollmentId.ToString("D") },
-            { "x-arcforges-grant-id", target.GrantId.ToString("D") },
-            { "x-arcforges-grant-revision", target.GrantRevision.ToString(CultureInfo.InvariantCulture) },
-        };
+        var headers = WorkHeaders(target.NodeId, target.EnrollmentId, target.GrantId, target.GrantRevision);
         var request = new RunServiceListRequest { Meta = Meta(session), SandboxId = ExactId(target.SandboxId), Limit = 20 };
         using var channel = transport.Open(RequireOrigin(), session.Csrf, 4096, 1048576);
         var client = new RunService.RunServiceClient(channel);
@@ -240,9 +235,11 @@ internal sealed class DashboardCenter(
         }
     }
 
-    private CallOptions Options(CancellationToken cancellationToken, Metadata? headers = null) =>
-        new(headers, time.GetUtcNow().Add(CallDeadline).UtcDateTime, cancellationToken);
+    private CallOptions Options(CancellationToken cancellationToken, Metadata? headers = null, TimeSpan? deadline = null) =>
+        new(headers, time.GetUtcNow().Add(deadline ?? CallDeadline).UtcDateTime, cancellationToken);
 
+    private GrpcChannel OpenWorkChannel(SessionState session, int requestBytes, int responseBytes) =>
+        transport.Open(RequireOrigin(), session.Csrf, requestBytes, responseBytes);
 
     private async Task<T> CallAsync<T>(AsyncUnaryCall<T> call, SessionState session, CancellationToken cancellationToken, bool mutation = false)
     {
@@ -257,23 +254,28 @@ internal sealed class DashboardCenter(
             catch (RpcException error)
             {
                 cancellationToken.ThrowIfCancellationRequested();
-                var failure = error.StatusCode switch
-                {
-                    StatusCode.Unauthenticated => DashboardFailure.Unauthenticated,
-                    StatusCode.PermissionDenied => DashboardFailure.Forbidden,
-                    StatusCode.NotFound => DashboardFailure.NotFound,
-                    StatusCode.Unimplemented => DashboardFailure.Incompatible,
-                    _ => mutation ? DashboardFailure.Uncertain : DashboardFailure.Unavailable,
-                };
-                if (failure == DashboardFailure.Unauthenticated)
-                    Invalidate(session);
-                throw new DashboardApiException(failure);
+                throw RpcFailure(error, session, mutation);
             }
             catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
             {
                 throw new DashboardApiException(mutation ? DashboardFailure.Uncertain : DashboardFailure.Unavailable);
             }
         }
+    }
+
+    private DashboardApiException RpcFailure(RpcException error, SessionState session, bool mutation = false)
+    {
+        var failure = error.StatusCode switch
+        {
+            StatusCode.Unauthenticated => DashboardFailure.Unauthenticated,
+            StatusCode.PermissionDenied => DashboardFailure.Forbidden,
+            StatusCode.NotFound => DashboardFailure.NotFound,
+            StatusCode.Unimplemented => DashboardFailure.Incompatible,
+            _ => mutation ? DashboardFailure.Uncertain : DashboardFailure.Unavailable,
+        };
+        if (failure == DashboardFailure.Unauthenticated)
+            Invalidate(session);
+        return new DashboardApiException(failure);
     }
 
     private T Accept<T>(T? value, ArcError? error, ResponseMeta? meta, SessionState session, bool mutation = false) where T : class
@@ -299,8 +301,15 @@ internal sealed class DashboardCenter(
             };
         if (failure == DashboardFailure.Unauthenticated)
             Invalidate(session);
-        throw new DashboardApiException(failure, correlation);
+        throw new DashboardApiException(failure, correlation ?? ReadId(error.CorrelationId),
+            WireToken(error.Code), WireToken(error.Details?.State?.Reason));
     }
+
+    private static string? WireToken(string? value) =>
+        value is { Length: > 0 and <= 64 } &&
+        value.All(character => char.IsAsciiLetterLower(character) || char.IsAsciiDigit(character) || character is '_' or '-' or '.')
+            ? value
+            : null;
 
     private static DashboardDevice DeviceView(ManagementDevice? raw)
     {

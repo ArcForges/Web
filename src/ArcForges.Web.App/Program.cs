@@ -19,7 +19,9 @@ using (var settingsTransport = new HttpClientHandler { AllowAutoRedirect = false
 builder.Services.AddSingleton(TimeProvider.System);
 builder.Services.AddSingleton<DashboardGrpcTransport>();
 builder.Services.AddSingleton<DashboardPasskeys>();
-builder.Services.AddSingleton<IDashboardCenter, DashboardCenter>();
+builder.Services.AddSingleton<DashboardCenter>();
+builder.Services.AddSingleton<IDashboardCenter>(services => services.GetRequiredService<DashboardCenter>());
+builder.Services.AddSingleton<IDashboardWorkspaces>(services => services.GetRequiredService<DashboardCenter>());
 builder.Services.AddTransient<IDashboardActivity, DashboardActivity>();
 
 await builder.Build().RunAsync();

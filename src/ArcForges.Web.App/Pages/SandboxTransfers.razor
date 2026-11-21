@@ -1,0 +1,146 @@
+@* SPDX-License-Identifier: AGPL-3.0-only *@
+@using Microsoft.AspNetCore.Components.Forms
+@using ArcForges.Contracts.Sandbox.V2
+@using ArcForges.Web.App.Layout
+
+<section class="dashboard-panel" aria-labelledby="sandbox-transfers">
+    <div class="dashboard-panel-copy">
+        <h2 id="sandbox-transfers">Files</h2>
+        <p class="dashboard-muted">Transfer one regular file at a time, up to 16 MiB in the browser.</p>
+    </div>
+
+    @if (_intent is null && !_previousGrantLease)
+    {
+        <details class="dashboard-run-scope">
+            <summary>Import a file</summary>
+            <form class="dashboard-run-fields" @onsubmit="ImportAsync" @onsubmit:preventDefault>
+                <label>
+                    Local file
+                    <InputFile @key="_fileInputKey" OnChange="SelectUpload" disabled="@_busy" />
+                </label>
+                <label>
+                    Destination path in Sandbox
+                    <input required maxlength="4096" @bind="_importPath" @bind:event="oninput" disabled="@_busy" />
+                </label>
+                <label class="dashboard-run-commands">
+                    <input type="checkbox" @bind="_overwrite" disabled="@_busy" />
+                    Replace an existing file
+                </label>
+                @if (_overwrite)
+                {
+                    <label>
+                        Current file version
+                        <input required maxlength="4096" @bind="_importVersion" @bind:event="oninput" disabled="@_busy" />
+                    </label>
+                }
+                <div class="dashboard-run-commands">
+                    <button type="submit" class="dashboard-button dashboard-button-primary" disabled="@(!CanBegin || _upload is null)">
+                        Upload file
+                    </button>
+                </div>
+            </form>
+        </details>
+        <details class="dashboard-run-scope">
+            <summary>Export a file</summary>
+            <form class="dashboard-run-fields" @onsubmit="ExportAsync" @onsubmit:preventDefault>
+                <label>
+                    Source path in Sandbox
+                    <input required maxlength="4096" @bind="_exportPath" @bind:event="oninput" disabled="@_busy" />
+                </label>
+                <label>
+                    Expected file version (optional)
+                    <input maxlength="4096" @bind="_exportVersion" @bind:event="oninput" disabled="@_busy" />
+                </label>
+                <div class="dashboard-run-commands">
+                    <button type="submit" class="dashboard-button dashboard-button-primary" disabled="@(!CanBegin)">
+                        Prepare export
+                    </button>
+                </div>
+            </form>
+        </details>
+        <p class="dashboard-muted dashboard-panel-copy">Use a path relative to the Sandbox, with / between folders.</p>
+    }
+
+    @if (_receipt is { } observed)
+    {
+        <div class="dashboard-panel-copy">
+            <h3>@(observed.Transfer.Direction == "export" ? "Export" : "Import")</h3>
+            <p><code>@observed.Transfer.RelativePath</code></p>
+            <dl class="dashboard-detail-facts">
+                <div><dt>Transfer state</dt><dd>@TransferStateLabel(observed.Transfer)</dd></div>
+                @if (observed.Transfer.Direction != "export" || observed.Transfer.State == TransferState.Complete || observed.Transfer.ByteLength > 0)
+                {
+                    <div><dt>Verified bytes</dt><dd>@observed.Transfer.VerifiedOffset of @observed.Transfer.ByteLength</dd></div>
+                }
+                @if (observed.Transfer.State == TransferState.Complete)
+                {
+                    <div><dt>SHA-256</dt><dd><code>@observed.Transfer.Sha256</code></dd></div>
+                }
+                @if (observed.Transfer.Direction == "export")
+                {
+                    <div><dt>Snapshot</dt><dd>@SnapshotLabel(observed.Transfer)</dd></div>
+                }
+                @if (ToTime(observed.Transfer.ClosedAt) is DateTimeOffset closed)
+                {
+                    <div><dt>Released</dt><dd><DashboardTime Value="closed" /></dd></div>
+                }
+                @if (ToTime(observed.Transfer.ExpiresAt) is DateTimeOffset expires)
+                {
+                    <div><dt>Retention deadline</dt><dd><DashboardTime Value="expires" /></dd></div>
+                }
+                <div><dt>Transfer ID</dt><dd><code>@ReadId(observed.Transfer.TransferId)</code></dd></div>
+            </dl>
+        </div>
+    }
+
+    @if (_intent is not null)
+    {
+        <div class="dashboard-actions dashboard-panel-copy">
+            @if (_pending is not null)
+            {
+                <button type="button" class="dashboard-button" @onclick="ReconcileAsync" disabled="@_busy">Check original command</button>
+            }
+            else if (_receipt is not null)
+            {
+                <button type="button" class="dashboard-button" @onclick="InspectAsync" disabled="@_busy">Check transfer</button>
+                @if (CanDownload)
+                {
+                    <button type="button" class="dashboard-button dashboard-button-primary" @onclick="DownloadAsync" disabled="@_busy">
+                        Download verified file
+                    </button>
+                }
+                @if (CanClose)
+                {
+                    <button type="button" class="dashboard-button" @onclick="CloseAsync" disabled="@_busy">@CloseLabel</button>
+                }
+                @if (_receipt.Transfer.ClosedAt is not null)
+                {
+                    <button type="button" class="dashboard-button" @onclick="DismissAsync" disabled="@_busy">New transfer</button>
+                }
+            }
+            else if (_canDismiss)
+            {
+                <button type="button" class="dashboard-button" @onclick="DismissAsync" disabled="@_busy">New transfer</button>
+            }
+        </div>
+    }
+
+    <div class="dashboard-panel-copy" role="status">
+        @if (_notice is not null)
+        {
+            <p>@_notice</p>
+        }
+        @if (_pending is { } operation && !_busy)
+        {
+            <p>Command <code>@operation.Command.CommandId</code></p>
+        }
+        @if (_error?.CorrelationId is Guid correlation)
+        {
+            <p>Reference <code>@correlation</code></p>
+        }
+    </div>
+    @if (_browserBytes is int downloaded)
+    {
+        <p class="dashboard-panel-copy">Browser download @downloaded of @_downloadLength bytes</p>
+    }
+</section>

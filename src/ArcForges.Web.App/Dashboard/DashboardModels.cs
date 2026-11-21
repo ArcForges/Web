@@ -58,8 +58,7 @@ public sealed record DashboardRunTarget(Guid NodeId, Guid EnrollmentId, Guid Gra
     {
         target = null;
         if (enrollmentId == Guid.Empty || !TryIdentifier(nodeId, out var node) || !TryIdentifier(grantId, out var grant) ||
-            !TryIdentifier(sandboxId, out var sandbox) || !long.TryParse(grantRevision, NumberStyles.None, CultureInfo.InvariantCulture, out var revision) ||
-            revision <= 0 || !string.Equals(revision.ToString(CultureInfo.InvariantCulture), grantRevision, StringComparison.Ordinal))
+            !TryIdentifier(sandboxId, out var sandbox) || !TryRevision(grantRevision, out var revision))
         {
             return false;
         }
@@ -68,7 +67,11 @@ public sealed record DashboardRunTarget(Guid NodeId, Guid EnrollmentId, Guid Gra
         return true;
     }
 
-    private static bool TryIdentifier(string? text, out Guid id)
+    internal static bool TryRevision(string? text, out long revision) =>
+        long.TryParse(text, NumberStyles.None, CultureInfo.InvariantCulture, out revision) &&
+        revision > 0 && string.Equals(revision.ToString(CultureInfo.InvariantCulture), text, StringComparison.Ordinal);
+
+    internal static bool TryIdentifier(string? text, out Guid id)
     {
         id = Guid.Empty;
         if (text is { Length: 36 } && Guid.TryParseExact(text, "D", out id))
@@ -115,11 +118,14 @@ public enum DashboardFailure
     Uncertain,
 }
 
-public sealed class DashboardApiException(DashboardFailure failure, Guid? correlationId = null)
+public sealed class DashboardApiException(DashboardFailure failure, Guid? correlationId = null,
+    string? code = null, string? reason = null)
     : Exception(MessageFor(failure))
 {
     public DashboardFailure Failure { get; } = failure;
     public Guid? CorrelationId { get; } = correlationId;
+    public string? Code { get; } = code;
+    public string? Reason { get; } = reason;
 
     private static string MessageFor(DashboardFailure failure) => failure switch
     {

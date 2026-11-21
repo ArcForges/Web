@@ -1,0 +1,214 @@
+@* SPDX-License-Identifier: AGPL-3.0-only *@
+@using ArcForges.Contracts.Sandbox.V2
+
+<section class="dashboard-panel" aria-labelledby="dashboard-resource-budget">
+    <header class="dashboard-panel-header">
+        <div>
+            <h2 id="dashboard-resource-budget">@ScopeName budget</h2>
+            @if (RunId is Guid run)
+            {
+                <code>@run</code>
+            }
+        </div>
+        <button type="button" class="dashboard-button dashboard-button-quiet" disabled="@(!CanRead)" @onclick="ReadAsync">Refresh</button>
+    </header>
+    @if (_reading || _readFailure is not null)
+    {
+        <p class="dashboard-panel-copy" role="status">
+            @(_reading ? "Reading the resource budget…" : _readFailure?.Message)
+            @if (!_reading && _readFailure?.CorrelationId is Guid reference)
+            {
+                <span>Reference <code>@reference</code></span>
+            }
+        </p>
+    }
+    @if (_snapshot is { } snapshot)
+    {
+        <dl class="dashboard-detail-facts">
+            <div><dt>Policy revision</dt><dd>@(PolicyRevision?.ToString() ?? "Unavailable")</dd></div>
+            <div><dt>CPU budget</dt><dd>@Count(snapshot.HasBudgetCpuMillicores, snapshot.BudgetCpuMillicores, "millicores")</dd></div>
+            <div><dt>Memory budget</dt><dd>@Count(snapshot.HasBudgetMemoryBytes, snapshot.BudgetMemoryBytes, "bytes")</dd></div>
+            <div><dt>Run memory reservation</dt><dd>@Count(snapshot.HasReservedRunMemoryBytes, snapshot.ReservedRunMemoryBytes, "bytes")</dd></div>
+        </dl>
+    }
+</section>
+
+<section class="dashboard-panel" aria-labelledby="dashboard-resource-usage">
+    <header class="dashboard-panel-header">
+        <div>
+            <h2 id="dashboard-resource-usage">Resource usage</h2>
+            <p class="dashboard-muted" role="status">@WatchStatus</p>
+        </div>
+        <button type="button" class="dashboard-button dashboard-button-quiet" disabled="@(!CanWatch && !_watching)" @onclick="ToggleWatchAsync">
+            @(_watching ? "Stop sampling" : "Watch samples")
+        </button>
+    </header>
+    @if (_watchFailure is { } watchFailure)
+    {
+        <p class="dashboard-notice" role="status">
+            @watchFailure.Message
+            @if (watchFailure.CorrelationId is Guid reference)
+            {
+                <span>Reference <code>@reference</code></span>
+            }
+        </p>
+    }
+    @if (_samples.Count > 0)
+    {
+        <div class="dashboard-table-wrap" role="region" aria-label="Sample history" tabindex="0">
+            <table class="dashboard-table" aria-label="Recent resource samples, latest first">
+                <thead><tr><th scope="col">Sample</th><th scope="col">CPU</th><th scope="col">Memory</th><th scope="col">Pressure</th><th scope="col">Reported freshness</th></tr></thead>
+                <tbody>
+                    @foreach (var sample in _samples)
+                    {
+                        <tr @key="sample.SampleSequence">
+                            <th scope="row"><DashboardTime Value="RunPresentation.ReadTime(sample.SampledAt)" /><br />#@sample.SampleSequence</th>
+                            <td>@Count(sample.HasManagedCpuMillicores, sample.ManagedCpuMillicores, "millicores")</td>
+                            <td>@Count(sample.HasManagedMemoryBytes, sample.ManagedMemoryBytes, "bytes")<br />@MemoryMetric(sample)</td>
+                            <td>@Pressure(sample)</td>
+                            <td>@Freshness(sample)</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+        var latest = _samples[0];
+        <dl class="dashboard-detail-facts">
+            <div><dt>Sampler epoch</dt><dd><code>@latest.SampleEpoch</code></dd></div>
+            <div><dt>Sample interval</dt><dd>@Count(latest.HasSampleIntervalMs, latest.SampleIntervalMs, "ms")</dd></div>
+            <div><dt>Peak memory</dt><dd>@Count(latest.HasPeakMemoryBytes, latest.PeakMemoryBytes, "bytes")</dd></div>
+            <div><dt>Process count</dt><dd>@Count(latest.HasProcessCount, latest.ProcessCount, "")</dd></div>
+            <div><dt>Cumulative process CPU</dt><dd>@Count(latest.HasCumulativeCpuUsec, latest.CumulativeCpuUsec, "µs")</dd></div>
+            @if (latest.HasPsiCpuSome || latest.HasPsiMemorySome || latest.HasPsiMemoryFull)
+            {
+                <div><dt>CPU pressure, some</dt><dd>@Percent(latest.HasPsiCpuSome, latest.PsiCpuSome)</dd></div>
+                <div><dt>Memory pressure, some</dt><dd>@Percent(latest.HasPsiMemorySome, latest.PsiMemorySome)</dd></div>
+                <div><dt>Memory pressure, full</dt><dd>@Percent(latest.HasPsiMemoryFull, latest.PsiMemoryFull)</dd></div>
+            }
+        </dl>
+    }
+    else if (_snapshot is not null)
+    {
+        <p class="dashboard-panel-copy">The device has no resource sample for this scope.</p>
+    }
+</section>
+
+<section class="dashboard-panel" aria-labelledby="dashboard-resource-limits">
+    <header class="dashboard-panel-header"><h2 id="dashboard-resource-limits">Resource policy and limits</h2></header>
+    @if (_snapshot is { Limits.Count: > 0 } limits)
+    {
+        <div class="dashboard-table-wrap" role="region" aria-label="Native limit readback" tabindex="0">
+            <table class="dashboard-table" aria-label="Requested, applied and read-back limits">
+                <thead><tr><th scope="col">Limit</th><th scope="col">Requested</th><th scope="col">Applied</th><th scope="col">Read back</th><th scope="col">Status</th></tr></thead>
+                <tbody>
+                    @foreach (var limit in limits.Limits)
+                    {
+                        <tr>
+                            <th scope="row">@limit.Dimension<br />@limit.Unit</th>
+                            <td>@Reported(limit.HasDesiredValue, limit.DesiredValue)<br />Revision @(limit.DesiredRevision is { HasValue: true } revision ? revision.Value.ToString() : "unavailable")</td>
+                            <td>@Reported(limit.HasAppliedValue, limit.AppliedValue)<br /><DashboardTime Value="RunPresentation.ReadTime(limit.AppliedAt)" /></td>
+                            <td>@Reported(limit.HasReadbackValue, limit.ReadbackValue)<br /><DashboardTime Value="RunPresentation.ReadTime(limit.ReadbackAt)" /></td>
+                            <td>@LimitCaption(limit)
+                                @if (limit.HasReason)
+                                {
+                                    <br /><code>@limit.Reason</code>
+                                }
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+    else if (_snapshot is not null)
+    {
+        <p class="dashboard-panel-copy">The device reports no native limit readback for this scope.</p>
+    }
+
+    @if (VisiblePending is { } pending)
+    {
+        <div class="dashboard-notice" role="status">
+            <p><strong>@(pending.Sending ? "Waiting for the policy receipt" : "Policy result unconfirmed")</strong></p>
+            <p>Command <code>@pending.Command.CommandId</code> · expected revision @pending.Command.ExpectedRevision</p>
+            <p>Original owner epoch <code>@pending.Command.OwnerEpoch</code></p>
+            @if (pending.OriginalTarget.GrantRevision != Target.GrantRevision)
+            {
+                <p>This receipt uses original grant revision @pending.OriginalTarget.GrantRevision.</p>
+            }
+            @if (pending.CorrelationId is Guid reference)
+            {
+                <p>Reference <code>@reference</code></p>
+            }
+            <button type="button" class="dashboard-button dashboard-button-quiet" disabled="@(pending.Sending || _checking || _reading)" @onclick="CheckPolicyAsync">
+                @(_checking ? "Checking receipt…" : "Check receipt")
+            </button>
+        </div>
+    }
+    else if (Pending is not null)
+    {
+        <p class="dashboard-notice" role="status">An earlier change awaits confirmation. Use the original local grant or check the result on the device.</p>
+    }
+    @if (_policyMessage is not null || _policyFailure is not null)
+    {
+        <div class="dashboard-panel-copy" role="status">
+            @if (_policyMessage is not null)
+            {
+                <p>@_policyMessage</p>
+            }
+            @if (_policyFailure is { } failure)
+            {
+                <p>@failure.Message</p>
+                @if (failure.Reason is { } reason)
+                {
+                    <p>Reason <code>@reason</code></p>
+                }
+                @if (failure.CorrelationId is Guid reference)
+                {
+                    <p>Reference <code>@reference</code></p>
+                }
+            }
+        </div>
+    }
+    @if (RunId is null)
+    {
+        <p class="dashboard-panel-copy">Edit Sandbox resource policy on the device. This view receives the budget and revision for the selected Sandbox.</p>
+    }
+    else if (Pending is null && _snapshot is not null)
+    {
+        @if (PolicyRevision == 1)
+        {
+            <p class="dashboard-panel-copy">This Run uses its launch pressure policy. Set the initial resource override on the device.</p>
+        }
+        else if (Target.OwnerEpoch is null)
+        {
+            <p class="dashboard-panel-copy">Select a local grant with the current owner epoch to change limits.</p>
+        }
+        else if (_draft is not null)
+        {
+            <form class="dashboard-panel-copy dashboard-run-fields" aria-describedby="dashboard-resource-policy-help"
+                  @onsubmit="SavePolicyAsync" @onsubmit:preventDefault>
+                <p id="dashboard-resource-policy-help">Lower one or both requested limits for this live Run. Policy revision @_draft.Revision.</p>
+                <label>CPU limit (millicores)
+                    <input type="text" inputmode="numeric" maxlength="10" required @bind="_cpu" />
+                </label>
+                <label>Memory limit (bytes)
+                    <input type="text" inputmode="numeric" maxlength="20" required @bind="_memory" />
+                </label>
+                <div class="dashboard-actions">
+                    <button type="submit" class="dashboard-button dashboard-button-primary">Submit change</button>
+                    <button type="button" class="dashboard-button dashboard-button-quiet" @onclick="CancelPolicyEdit">Cancel</button>
+                </div>
+            </form>
+        }
+        else if (EditableLimits is not null)
+        {
+            <div class="dashboard-panel-copy">
+                <button type="button" class="dashboard-button dashboard-button-quiet" disabled="@(!CanEdit)" @onclick="BeginPolicyEdit">Lower Run limits</button>
+            </div>
+        }
+        else
+        {
+            <p class="dashboard-panel-copy">Changing limits requires a fresh read and matching requested, applied, and read-back values for CPU and memory.</p>
+        }
+    }
+</section>

@@ -60,6 +60,14 @@
 
 @if (_device is DashboardDevice device)
 {
+    @if (Pending is null && _readFailure is null && device.Presence != DashboardDevicePresence.Revoked)
+    {
+        <nav class="dashboard-actions dashboard-device-sections" aria-label="Device management">
+            <a class="dashboard-button dashboard-button-quiet" href="@($"/devices/{device.Id:D}/sandboxes")">Sandboxes</a>
+            <a class="dashboard-button dashboard-button-quiet" href="@($"/devices/{device.Id:D}/runs")">Runs</a>
+            <a class="dashboard-button dashboard-button-quiet" href="@($"/devices/{device.Id:D}/resources")">Resources</a>
+        </nav>
+    }
     <div class="dashboard-detail-grid">
         <section class="dashboard-panel" aria-labelledby="dashboard-enrollment">
             <div class="dashboard-panel-header"><h2 id="dashboard-enrollment">Enrollment</h2></div>
