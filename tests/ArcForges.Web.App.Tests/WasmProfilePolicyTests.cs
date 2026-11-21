@@ -12,6 +12,7 @@ public sealed class WasmProfilePolicyTests
 {
     private static readonly string Root = RepositoryRoot.Find();
     private const string ActivityModulePath = "_framework/arcforges-dashboard-activity.43e6e05b58.js";
+    private const string TransferModulePath = "_framework/arcforges-sandbox-transfer.1eabd2d823.js";
 
     private static string AppSource(string relative) => File.ReadAllText(Path.Combine(Root, "src", "ArcForges.Web.App", relative));
 
@@ -90,16 +91,19 @@ public sealed class WasmProfilePolicyTests
         Assert.Empty(loader.Groups["body"].Value);
     }
 
-    [Fact]
-    public void TheActivityModuleIsImportedByItsExactContentAddressInTheFrameworkNamespace()
+    [Theory]
+    [InlineData("arcforges-dashboard-activity", ActivityModulePath, "Dashboard/DashboardActivity.cs")]
+    [InlineData("arcforges-sandbox-transfer", TransferModulePath, "Pages/SandboxTransfers.razor.cs")]
+    public void EachLocalModuleIsImportedByItsExactContentAddressInTheFrameworkNamespace(
+        string name, string modulePath, string importer)
     {
         var root = Path.Combine(Root, "src", "ArcForges.Web.App", "wwwroot");
-        var path = Assert.Single(Directory.EnumerateFiles(root, "arcforges-dashboard-activity*.js", SearchOption.AllDirectories));
+        var path = Assert.Single(Directory.EnumerateFiles(root, name + "*.js", SearchOption.AllDirectories));
         var hash = Convert.ToHexStringLower(SHA256.HashData(File.ReadAllBytes(path)));
         var relative = Path.GetRelativePath(root, path).Replace('\\', '/');
-        Assert.Equal("_framework/arcforges-dashboard-activity." + hash[..10] + ".js", relative);
-        Assert.Equal(ActivityModulePath, relative);
-        Assert.Contains("\"./" + relative + "\"", AppSource("Dashboard/DashboardActivity.cs"), StringComparison.Ordinal);
+        Assert.Equal("_framework/" + name + "." + hash[..10] + ".js", relative);
+        Assert.Equal(modulePath, relative);
+        Assert.Contains("\"./" + relative + "\"", AppSource(importer), StringComparison.Ordinal);
     }
 
     [Fact]
@@ -116,7 +120,7 @@ public sealed class WasmProfilePolicyTests
     }
 
     [Fact]
-    public void TheAppUsesJavaScriptInteropOnlyForLifecycleAndPasskeys()
+    public void TheAppUsesJavaScriptInteropOnlyForLifecyclePasskeysAndVerifiedDownloads()
     {
         var app = Path.Combine(Root, "src", "ArcForges.Web.App");
         var sources = Directory.EnumerateFiles(app, "*.cs", SearchOption.AllDirectories)
@@ -129,7 +133,12 @@ public sealed class WasmProfilePolicyTests
             if (source.Contains("IJSRuntime", StringComparison.Ordinal))
                 interop.Add(Path.GetRelativePath(app, file).Replace('\\', '/'));
         }
-        Assert.Equal(new[] { "Dashboard/DashboardActivity.cs", "Dashboard/DashboardPasskeys.cs" }, interop.Order(StringComparer.Ordinal));
+        Assert.Equal(new[]
+        {
+            "Dashboard/DashboardActivity.cs",
+            "Dashboard/DashboardPasskeys.cs",
+            "Pages/SandboxTransfers.razor.cs",
+        }, interop.Order(StringComparer.Ordinal));
     }
 
     [Fact]

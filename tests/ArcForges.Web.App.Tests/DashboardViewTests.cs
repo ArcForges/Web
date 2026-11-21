@@ -95,7 +95,17 @@ public sealed class DashboardViewTests
             .Select(route => route.Template)
             .OrderBy(template => template, StringComparer.Ordinal);
 
-        Assert.Equal(new[] { "/devices", "/devices/{DeviceId:guid}", "/overview" }, routes);
+        Assert.Equal(new[]
+        {
+            "/devices",
+            "/devices/{DeviceId:guid}",
+            "/devices/{DeviceId:guid}/resources",
+            "/devices/{DeviceId:guid}/runs",
+            "/devices/{DeviceId:guid}/runs/{RunId:guid}",
+            "/devices/{DeviceId:guid}/sandboxes",
+            "/devices/{DeviceId:guid}/sandboxes/{SandboxId:guid}",
+            "/overview",
+        }, routes);
     }
 
     [Fact]

@@ -29,9 +29,14 @@
         DynamicallyAccessedMemberTypes.PublicProperties |
         DynamicallyAccessedMemberTypes.NonPublicProperties;
 
-    // Router discovers the three page types through their route attributes.
+    // Router discovers the pages through their route attributes.
     [DynamicDependency(RoutedComponentMembers, typeof(Overview))]
     [DynamicDependency(RoutedComponentMembers, typeof(Devices))]
     [DynamicDependency(RoutedComponentMembers, typeof(DeviceDetails))]
+    [DynamicDependency(RoutedComponentMembers, typeof(Sandboxes))]
+    [DynamicDependency(RoutedComponentMembers, typeof(SandboxDetails))]
+    [DynamicDependency(RoutedComponentMembers, typeof(Runs))]
+    [DynamicDependency(RoutedComponentMembers, typeof(RunDetails))]
+    [DynamicDependency(RoutedComponentMembers, typeof(Resources))]
     private static System.Reflection.Assembly DashboardAssembly() => typeof(App).Assembly;
 }

@@ -1,0 +1,128 @@
+@* SPDX-License-Identifier: AGPL-3.0-only *@
+@using ArcForges.Contracts.Sandbox.V2
+@using ArcForges.Web.App.Dashboard
+@using ArcForges.Web.App.Layout
+@implements IDisposable
+@inject IDashboardWorkspaces Workspaces
+
+<section class="dashboard-panel" aria-labelledby="sandbox-visible-heading">
+    <div class="dashboard-panel-header">
+        <h2 id="sandbox-visible-heading">Sandboxes visible to this grant</h2>
+        <button type="button" class="dashboard-button dashboard-button-quiet" disabled="@_reading"
+                @onclick="ReadAsync">Refresh list</button>
+    </div>
+    <div class="dashboard-panel-copy" role="status">
+        @if (_reading)
+        {
+            <p>@(_checkedAt is null ? "Loading Sandboxes…" : "Refreshing Sandboxes…")</p>
+        }
+        @if (_failure is not null)
+        {
+            <p><strong>@(_checkedAt is null ? "Sandbox list unavailable" : "Sandbox list is stale")</strong></p>
+            <p>@_failure.Message</p>
+            @if (_failure.CorrelationId is Guid reference)
+            {
+                <p>Reference <code>@reference</code></p>
+            }
+        }
+        @if (_checkedAt is not null)
+        {
+            <p>@(_failure is null ? "Checked" : "Last successful read") <DashboardTime Value="_checkedAt" /></p>
+        }
+        @if (!_reading && _failure is null && _checkedAt is not null && _sandbox is null)
+        {
+            <p>No Sandboxes are visible to this grant.</p>
+        }
+    </div>
+    @if (_sandbox is { } sandbox && Target.SandboxId is Guid selected)
+    {
+        <table class="dashboard-table">
+            <thead><tr><th scope="col">Sandbox</th><th scope="col">State</th><th scope="col">Revision</th><th scope="col">Active Runs</th></tr></thead>
+            <tbody>
+                <tr>
+                    <th scope="row">
+                        <a class="dashboard-device-link" href="@($"/devices/{DeviceId:D}/sandboxes/{selected:D}")">
+                            @(sandbox.HasDisplayName ? sandbox.DisplayName : SandboxPageValues.CliId(selected))
+                        </a>
+                    </th>
+                    <td>@SandboxPageValues.State(sandbox.State)</td>
+                    <td class="dashboard-number">@sandbox.Revision.Value</td>
+                    <td class="dashboard-number">@sandbox.ActiveRunIds.Count</td>
+                </tr>
+            </tbody>
+        </table>
+    }
+</section>
+
+@code {
+    [CascadingParameter]
+    private DashboardAccess Access { get; set; } = default!;
+
+    [Parameter, EditorRequired]
+    public DashboardWorkTarget Target { get; set; } = default!;
+
+    [Parameter, EditorRequired]
+    public Guid DeviceId { get; set; }
+
+    private readonly CancellationTokenSource _unmounted = new();
+    private Sandbox? _sandbox;
+    private DashboardApiException? _failure;
+    private DateTimeOffset? _checkedAt;
+    private bool _reading;
+
+    protected override Task OnInitializedAsync() => ReadAsync();
+
+    private async Task ReadAsync()
+    {
+        if (_unmounted.IsCancellationRequested || _reading || Target.SandboxId is not Guid sandboxId || sandboxId == Guid.Empty)
+            return;
+
+        using var work = CancellationTokenSource.CreateLinkedTokenSource(Access.Cancellation, _unmounted.Token);
+        _reading = true;
+        _failure = null;
+        try
+        {
+            var page = await Workspaces.ListSandboxesAsync(Target, null, work.Token);
+            work.Token.ThrowIfCancellationRequested();
+            var sandbox = page.Sandboxes.FirstOrDefault();
+            if (page.Page is not { NextCursor.Length: 0 } || page.Sandboxes.Count > 1 ||
+                sandbox is not null && (SandboxPageValues.Id(sandbox.SandboxId) != sandboxId || sandbox.Revision is not { Value: > 0 }))
+            {
+                throw new DashboardApiException(DashboardFailure.Incompatible);
+            }
+
+            _sandbox = sandbox;
+            _checkedAt = DateTimeOffset.UtcNow;
+        }
+        catch (DashboardApiException error) when (!work.IsCancellationRequested)
+        {
+            if (error.Failure == DashboardFailure.Unauthenticated)
+            {
+                await Access.ExpireAsync();
+                return;
+            }
+            if (error.Failure is DashboardFailure.Forbidden or DashboardFailure.NotFound or DashboardFailure.Incompatible)
+            {
+                _sandbox = null;
+                _checkedAt = null;
+            }
+            _failure = error;
+        }
+        catch (DashboardApiException) when (work.IsCancellationRequested)
+        {
+        }
+        catch (OperationCanceledException) when (work.IsCancellationRequested)
+        {
+        }
+        finally
+        {
+            _reading = false;
+        }
+    }
+
+    public void Dispose()
+    {
+        _unmounted.Cancel();
+        _unmounted.Dispose();
+    }
+}

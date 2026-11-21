@@ -1,0 +1,267 @@
+@* SPDX-License-Identifier: AGPL-3.0-only *@
+@using System.Text
+@using ArcForges.Contracts.Sandbox.V2
+@using ArcForges.Web.App.Dashboard
+@using ArcForges.Web.App.Layout
+@implements IDisposable
+@inject IDashboardWorkspaces Workspaces
+
+<section class="dashboard-panel" aria-labelledby="dashboard-start-run-title">
+    <header class="dashboard-panel-header"><h2 id="dashboard-start-run-title">Start a Run</h2></header>
+    @if (Target is not { SandboxId: not null, OwnerEpoch: not null } || SandboxRevision <= 0)
+    {
+        <p class="dashboard-panel-copy">Select an authorized Sandbox, its current revision, and the Node owner epoch before starting a Run.</p>
+    }
+    else
+    {
+        <form class="dashboard-panel-copy dashboard-run-fields" autocomplete="off" @onsubmit="StartAsync" @onsubmit:preventDefault>
+            <label>Executable
+                <input type="text" required maxlength="32768" spellcheck="false" disabled="@ControlsLocked" @bind="_executable" @bind:event="oninput" />
+            </label>
+            <label>Sandbox-relative working directory
+                <input type="text" maxlength="4096" spellcheck="false" disabled="@ControlsLocked" @bind="_workingDirectory" @bind:event="oninput" />
+            </label>
+            <p class="dashboard-muted">Leave the directory blank to use the Sandbox default. Each argument is passed separately, including empty arguments. Enter secrets on the Node.</p>
+            <p class="dashboard-muted">The executable and each argument can use up to 32 KiB. Together with the working directory, they can use up to 240 KiB of UTF-8 text.</p>
+            @for (var index = 0; index < _arguments.Count; index++)
+            {
+                var argument = _arguments[index];
+                <div class="dashboard-actions" @key="argument">
+                    <label>Argument @(index + 1)
+                        <input type="text" maxlength="32768" spellcheck="false" disabled="@ControlsLocked" @bind="argument.Value" @bind:event="oninput" />
+                    </label>
+                    <button type="button" class="dashboard-button dashboard-button-quiet" disabled="@ControlsLocked" @onclick="() => RemoveArgument(argument)">
+                        Remove argument @(index + 1)
+                    </button>
+                </div>
+            }
+            <div class="dashboard-run-commands">
+                <button type="button" class="dashboard-button dashboard-button-quiet" disabled="@(ControlsLocked || _arguments.Count == MaximumArguments)" @onclick="AddArgument">Add argument</button>
+                <button type="submit" class="dashboard-button dashboard-button-primary" disabled="@ControlsLocked">@(_pending is { Sending: true } ? "Starting…" : "Start Run")</button>
+            </div>
+            @if (_inputError is not null)
+            {
+                <p role="alert">@_inputError</p>
+            }
+        </form>
+    }
+    @if (_failure is { } failure)
+    {
+        <p class="dashboard-notice" role="alert">@FailureText(failure)</p>
+        @if (failure.Code is { } code)
+        {
+            <p class="dashboard-panel-copy dashboard-muted">Node result <code>@(code)</code>@(failure.Reason is { } reason ? $" ({reason})" : null)</p>
+        }
+    }
+    @if (_pending is { } pending && _originalTarget is { } originalTarget)
+    {
+        <RunCommandReceipt @key="pending.Command" Target="originalTarget" Command="pending.Command"
+                           Initial="pending.Operation" Sending="pending.Sending" OnChecked="RecordOperation" />
+    }
+    @if (DeviceId != Guid.Empty && _pending?.ResultRunId is { } runId)
+    {
+        <p class="dashboard-panel-copy">
+            <a class="dashboard-link" href="@($"/devices/{DeviceId:D}/runs/{runId:D}")">Inspect Run <code>@runId</code></a>
+        </p>
+    }
+</section>
+
+@code {
+    [CascadingParameter]
+    private DashboardAccess Access { get; set; } = default!;
+
+    [Parameter, EditorRequired]
+    public DashboardWorkTarget Target { get; set; } = default!;
+
+    [Parameter, EditorRequired]
+    public Guid DeviceId { get; set; }
+
+    [Parameter, EditorRequired]
+    public long SandboxRevision { get; set; }
+
+    private const int MaximumArguments = 255;
+    private const int MaximumArgumentBytes = 32_768;
+    private const int MaximumInputBytes = 240 * 1024;
+    private readonly CancellationTokenSource _lifetime = new();
+    private readonly List<Argument> _arguments = [];
+    private string _executable = "";
+    private string _workingDirectory = "";
+    private string? _inputError;
+    private DashboardApiException? _failure;
+    private DashboardWorkTarget? _originalTarget;
+    private DashboardPendingRunCommand? _pending;
+    private long? _conflictedRevision;
+    private bool _disposed;
+
+    private bool ControlsLocked => _conflictedRevision == SandboxRevision ||
+        _pending is { Sending: true } or { IsUnresolved: true };
+
+    protected override void OnInitialized()
+    {
+        ReadPending();
+        Access.RunCommandsChanged += PendingChanged;
+    }
+
+    private void AddArgument()
+    {
+        if (!ControlsLocked && _arguments.Count < MaximumArguments)
+            _arguments.Add(new Argument());
+    }
+
+    private void RemoveArgument(Argument argument)
+    {
+        if (!ControlsLocked)
+            _arguments.Remove(argument);
+    }
+
+    private async Task StartAsync()
+    {
+        if (_disposed)
+            return;
+        ReadPending();
+        if (ControlsLocked || SandboxRevision <= 0 ||
+            Target is not { SandboxId: not null, OwnerEpoch: { } ownerEpoch })
+            return;
+
+        _inputError = null;
+        var argv = new[] { _executable }.Concat(_arguments.Select(argument => argument.Value)).ToArray();
+        var directory = _workingDirectory.Length == 0 ? null : _workingDirectory;
+        var sizes = argv.Select(Encoding.UTF8.GetByteCount).ToArray();
+        if (string.IsNullOrWhiteSpace(argv[0]) || argv.Any(argument => argument.Contains('\0')))
+        {
+            _inputError = "Enter an executable. The executable and arguments cannot contain a null character.";
+            return;
+        }
+        if (sizes.Any(size => size > MaximumArgumentBytes))
+        {
+            _inputError = "The executable and each argument must be at most 32 KiB in UTF-8.";
+            return;
+        }
+        if (sizes.Sum() + Encoding.UTF8.GetByteCount(directory ?? "") > MaximumInputBytes)
+        {
+            _inputError = "The executable, arguments, and working directory total more than 240 KiB in UTF-8.";
+            return;
+        }
+        if (directory is not null && (directory[0] is '/' or '\\' ||
+            directory.Contains(':') || directory.Contains('\0') ||
+            directory.Split('/', '\\').Contains("..", StringComparer.Ordinal)))
+        {
+            _inputError = "Use a path relative to this Sandbox without parent traversal.";
+            return;
+        }
+
+        var command = new DashboardWorkCommand(Guid.NewGuid(), ownerEpoch, SandboxRevision);
+        var target = Target;
+        var pending = new DashboardPendingRunCommand(command) { Sending = true };
+        _originalTarget = target;
+        _pending = pending;
+        Access.RunCommands.Add((target, null), pending);
+        _failure = null;
+        _conflictedRevision = null;
+        ClearForm();
+        Access.NotifyRunCommandsChanged();
+        try
+        {
+            var result = await Workspaces.StartRunAsync(target, command, argv, directory, _lifetime.Token);
+            pending.ResultRunId = RunPresentation.ReadId(result.Run?.RunId);
+            CompleteObservation(pending, target, result.Operation);
+        }
+        catch (OperationCanceledException) when (_disposed)
+        {
+        }
+        catch (DashboardApiException failure)
+        {
+            pending.Failure = failure;
+            if (failure.Failure != DashboardFailure.Uncertain)
+                pending.Settle(Access, target, null);
+            if (!_disposed)
+            {
+                _failure = failure;
+                if (failure.Failure != DashboardFailure.Uncertain)
+                    _pending = null;
+                if (failure.Failure == DashboardFailure.Conflict)
+                    _conflictedRevision = command.ExpectedRevision;
+                if (failure.Failure == DashboardFailure.Unauthenticated)
+                    await Access.ExpireAsync();
+            }
+        }
+        finally
+        {
+            pending.Sending = false;
+            Access.NotifyRunCommandsChanged();
+        }
+    }
+
+    private void RecordOperation(Operation operation)
+    {
+        if (_pending is { } pending && _originalTarget is { } originalTarget)
+        {
+            CompleteObservation(pending, originalTarget, operation);
+            if (!RunPresentation.NeedsCheck(operation))
+                _failure = null;
+        }
+    }
+
+    private void CompleteObservation(DashboardPendingRunCommand pending, DashboardWorkTarget target, Operation operation)
+    {
+        pending.Failure = null;
+        pending.Operation = operation;
+        if (operation.State == OperationState.Succeeded)
+            pending.ResultRunId ??= RunPresentation.ReadId(operation.AggregateId);
+        if (!RunPresentation.NeedsCheck(operation))
+            pending.Settle(Access, target, null);
+    }
+
+    private void ReadPending()
+    {
+        if (DashboardPendingRunCommand.Find(Access, Target, null) is { } found)
+        {
+            _originalTarget = found.Target;
+            _pending = found.Pending;
+            _failure = found.Pending.Failure;
+        }
+        else if (_pending?.Failure is { Failure: not DashboardFailure.Uncertain } refusal)
+        {
+            _failure = refusal;
+            if (refusal.Failure == DashboardFailure.Conflict)
+                _conflictedRevision = _pending.Command.ExpectedRevision;
+            _pending = null;
+        }
+    }
+
+    private void PendingChanged()
+    {
+        if (_disposed)
+            return;
+        ReadPending();
+        _ = InvokeAsync(StateHasChanged);
+    }
+
+    private void ClearForm()
+    {
+        _executable = "";
+        _workingDirectory = "";
+        _arguments.Clear();
+    }
+
+    private static string FailureText(DashboardApiException failure) => failure switch
+    {
+        { Code: "request_too_large" } => "The encoded Run request exceeds 253,947 bytes. Shorten the executable, arguments, or working directory.",
+        { Failure: DashboardFailure.Conflict } => "The Sandbox changed. Refresh its details before starting a new Run.",
+        _ => failure.Message,
+    };
+
+    public void Dispose()
+    {
+        _disposed = true;
+        Access.RunCommandsChanged -= PendingChanged;
+        _lifetime.Cancel();
+        _lifetime.Dispose();
+        ClearForm();
+    }
+
+    private sealed class Argument
+    {
+        public string Value { get; set; } = "";
+    }
+}

@@ -1,0 +1,218 @@
+@* SPDX-License-Identifier: AGPL-3.0-only *@
+@using ArcForges.Contracts.Sandbox.V2
+@using ArcForges.Web.App.Dashboard
+@using ArcForges.Web.App.Layout
+@implements IDisposable
+@inject IDashboardWorkspaces Workspaces
+
+<section class="dashboard-panel" aria-labelledby="sandbox-inspected-heading">
+    <div class="dashboard-panel-header">
+        <h2 id="sandbox-inspected-heading">@(_sandbox is { HasDisplayName: true } ? _sandbox.DisplayName : "Sandbox status")</h2>
+        <button type="button" class="dashboard-button dashboard-button-quiet" disabled="@_reading"
+                @onclick="ReadAsync">Refresh Sandbox</button>
+    </div>
+    <div class="dashboard-panel-copy" role="status">
+        @if (_reading)
+        {
+            <p>@(_sandbox is null ? "Loading Sandbox…" : "Refreshing Sandbox…")</p>
+        }
+        @if (_failure is not null)
+        {
+            <p><strong>@(_sandbox is null ? "Sandbox details unavailable" : "Sandbox details are stale")</strong></p>
+            <p>@FailureText(_failure)</p>
+            @if (_failure.CorrelationId is Guid reference)
+            {
+                <p>Reference <code>@reference</code></p>
+            }
+        }
+        @if (_checkedAt is not null)
+        {
+            <p>@(_failure is null ? "Checked" : "Last successful read") <DashboardTime Value="_checkedAt" /></p>
+        }
+    </div>
+    @if (_sandbox is { } sandbox)
+    {
+        <div class="dashboard-panel-copy">
+            <dl class="dashboard-detail-facts">
+                <div><dt>State</dt><dd>@SandboxPageValues.State(sandbox.State)</dd></div>
+                <div><dt>Revision</dt><dd class="dashboard-number">@sandbox.Revision.Value</dd></div>
+                <div><dt>Active Runs</dt><dd class="dashboard-number">@sandbox.ActiveRunIds.Count</dd></div>
+                @if (sandbox.Config is { } config)
+                {
+                    <div><dt>Profile</dt><dd>@config.ProfileId @config.ProfileVersion</dd></div>
+                    @if (config.Network is { } network)
+                    {
+                        <div><dt>Outbound network</dt><dd>@SandboxPageValues.Network(network.Egress)</dd></div>
+                        <div><dt>Inbound network</dt><dd>@SandboxPageValues.Network(network.Ingress)</dd></div>
+                        <div><dt>Host loopback</dt><dd>@(network.HasHostLoopback ? (network.HostLoopback ? "Allowed by policy" : "Denied by policy") : "Unavailable")</dd></div>
+                    }
+                    @if (config.Resources is { } resources)
+                    {
+                        <div><dt>CPU limit</dt><dd>@(resources.HasCpuMaxMillicores ? $"{resources.CpuMaxMillicores} millicores" : "Inherited")</dd></div>
+                        <div><dt>Memory limit</dt><dd>@(resources.HasMemoryMaxBytes ? $"{resources.MemoryMaxBytes} bytes" : "Inherited")</dd></div>
+                        <div><dt>Concurrent Run limit</dt><dd>@(resources.HasMaxConcurrentRuns ? resources.MaxConcurrentRuns.ToString() : "Inherited")</dd></div>
+                    }
+                }
+            </dl>
+        </div>
+    }
+</section>
+
+@if (_sandbox is { } observed)
+{
+    <section class="dashboard-panel" aria-labelledby="sandbox-capabilities-heading">
+        <div class="dashboard-panel-header"><h2 id="sandbox-capabilities-heading">Profile capabilities</h2></div>
+        <div class="dashboard-panel-copy">
+            @if (observed.Capabilities.Count == 0)
+            {
+                <p>Capability information is unavailable.</p>
+            }
+            else
+            {
+                <ul class="dashboard-capabilities">
+                    @foreach (var capability in observed.Capabilities)
+                    {
+                        <li>
+                            <strong>@capability.Key</strong> @CapabilityLabel(capability.State)
+                            @if (capability.HasReason)
+                            {
+                                <span>(@capability.Reason)</span>
+                            }
+                        </li>
+                    }
+                </ul>
+            }
+        </div>
+    </section>
+}
+
+@if (_sandbox is { State: SandboxState.Ready } ready && _failure is null &&
+    Target.SandboxId is Guid sandboxId && SandboxPageValues.Id(ready.SandboxId) == sandboxId)
+{
+    <div>
+        <SandboxRunStart @key="Target" Target="Target" DeviceId="DeviceId" SandboxRevision="ready.Revision.Value" />
+    </div>
+    <div>
+        <SandboxTransfers @key="Target" Target="Target" SandboxRevision="ready.Revision.Value" LeaseChanged="OnLeaseChanged" />
+    </div>
+}
+
+@if (_sandbox is { } inspected && Target.SandboxId is Guid selected && SandboxPageValues.Id(inspected.SandboxId) == selected)
+{
+    var id = SandboxPageValues.CliId(selected);
+    <section class="dashboard-panel" aria-labelledby="sandbox-config-heading">
+        <div class="dashboard-panel-header"><h2 id="sandbox-config-heading">Configuration</h2></div>
+        <div class="dashboard-panel-copy">
+            <p>Rename or configure this Sandbox on the enrolled Node. The browser view omits private mounts, environment entries and the default working directory. The local rename reads and preserves that complete configuration.</p>
+            <p>Check the current revision on the Node before using either command.</p>
+            <p><code>arcforges --json sandbox inspect @id</code></p>
+            <p><code>arcforges sandbox rename @id "New name" --expected-revision @inspected.Revision.Value</code></p>
+            <p><code>arcforges sandbox configure @id --file sandbox.json --expected-revision @inspected.Revision.Value</code></p>
+        </div>
+    </section>
+    <section class="dashboard-panel" aria-labelledby="sandbox-preview-heading">
+        <div class="dashboard-panel-header"><h2 id="sandbox-preview-heading">Deletion preview</h2></div>
+        <div class="dashboard-panel-copy">
+            <p>Generate a preview as the local owner on the enrolled Node.</p>
+            <p><code>arcforges --json sandbox delete @id --plan-only</code></p>
+            <p>The local preview identifies the owned data, excludes external mounts, and checks for blocking Runs or file transfers.</p>
+            @if (_retainedLease)
+            {
+                <p role="status">A file transfer may still hold a lease. Check or close the transfer and obtain a fresh local preview before deletion.</p>
+            }
+        </div>
+    </section>
+}
+
+@code {
+    [CascadingParameter]
+    private DashboardAccess Access { get; set; } = default!;
+
+    [Parameter, EditorRequired]
+    public DashboardWorkTarget Target { get; set; } = default!;
+
+    [Parameter, EditorRequired]
+    public Guid DeviceId { get; set; }
+
+    private readonly CancellationTokenSource _unmounted = new();
+    private Sandbox? _sandbox;
+    private DashboardApiException? _failure;
+    private DateTimeOffset? _checkedAt;
+    private bool _reading;
+    private bool _retainedLease;
+
+    protected override Task OnInitializedAsync() => ReadAsync();
+
+    private async Task ReadAsync()
+    {
+        if (_unmounted.IsCancellationRequested || _reading || Target.SandboxId is not Guid sandboxId || sandboxId == Guid.Empty)
+            return;
+
+        using var work = CancellationTokenSource.CreateLinkedTokenSource(Access.Cancellation, _unmounted.Token);
+        _reading = true;
+        var priorFailure = _failure;
+        try
+        {
+            var sandbox = await Workspaces.InspectSandboxAsync(Target, work.Token);
+            work.Token.ThrowIfCancellationRequested();
+            if (SandboxPageValues.Id(sandbox.SandboxId) != sandboxId || sandbox.Revision is not { Value: > 0 } ||
+                _sandbox?.Revision.Value > sandbox.Revision.Value)
+            {
+                throw new DashboardApiException(DashboardFailure.Incompatible);
+            }
+            _sandbox = sandbox;
+            _checkedAt = DateTimeOffset.UtcNow;
+            _failure = null;
+        }
+        catch (DashboardApiException error) when (!work.IsCancellationRequested)
+        {
+            if (error.Failure == DashboardFailure.Unauthenticated)
+            {
+                await Access.ExpireAsync();
+                return;
+            }
+            if (error.Failure is DashboardFailure.Forbidden or DashboardFailure.NotFound or DashboardFailure.Incompatible)
+            {
+                _sandbox = null;
+                _checkedAt = null;
+            }
+            _failure = error;
+        }
+        catch (DashboardApiException) when (work.IsCancellationRequested)
+        {
+            _failure = priorFailure;
+        }
+        catch (OperationCanceledException) when (work.IsCancellationRequested)
+        {
+            _failure = priorFailure;
+        }
+        finally
+        {
+            _reading = false;
+        }
+    }
+
+    private void OnLeaseChanged(bool retained) => _retainedLease = retained;
+
+    private static string FailureText(DashboardApiException failure) => failure.Failure switch
+    {
+        DashboardFailure.NotFound => "This Sandbox is unavailable to the selected grant.",
+        DashboardFailure.Conflict => "The Sandbox identity or configuration changed. Refresh the Sandbox.",
+        _ => failure.Message,
+    };
+
+    private static string CapabilityLabel(CapabilityState state) => state switch
+    {
+        CapabilityState.Available => "Available",
+        CapabilityState.Unsupported => "Unsupported",
+        CapabilityState.Unverified => "Unverified",
+        CapabilityState.Disabled => "Disabled",
+        _ => "Unavailable",
+    };
+
+    public void Dispose()
+    {
+        _unmounted.Cancel();
+        _unmounted.Dispose();
+    }
+}

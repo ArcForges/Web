@@ -1,0 +1,25 @@
+@* SPDX-License-Identifier: AGPL-3.0-only *@
+@page "/devices/{DeviceId:guid}/sandboxes/{SandboxId:guid}"
+
+<PageTitle>Sandbox details | ArcForges</PageTitle>
+
+<a class="dashboard-back dashboard-link" href="@($"/devices/{DeviceId:D}/sandboxes")">Sandboxes</a>
+<section class="dashboard-intro" aria-labelledby="sandbox-detail-title">
+    <h1 id="sandbox-detail-title" tabindex="-1">Sandbox details</h1>
+    <p>Sandbox <code>@SandboxPageValues.CliId(SandboxId)</code></p>
+</section>
+
+<DashboardWorkScopeView DeviceId="DeviceId" SandboxId="SandboxId" Context="target">
+    @if (target.SandboxId == SandboxId && SandboxId != Guid.Empty)
+    {
+        <SandboxDetailScope @key="target" Target="target" DeviceId="DeviceId" />
+    }
+</DashboardWorkScopeView>
+
+@code {
+    [Parameter]
+    public Guid DeviceId { get; set; }
+
+    [Parameter]
+    public Guid SandboxId { get; set; }
+}

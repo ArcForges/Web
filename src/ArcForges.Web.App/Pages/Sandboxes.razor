@@ -1,0 +1,26 @@
+@* SPDX-License-Identifier: AGPL-3.0-only *@
+@page "/devices/{DeviceId:guid}/sandboxes"
+
+<PageTitle>Sandboxes | ArcForges</PageTitle>
+
+<a class="dashboard-back dashboard-link" href="@($"/devices/{DeviceId:D}")">Device details</a>
+<section class="dashboard-intro" aria-labelledby="sandbox-list-title">
+    <h1 id="sandbox-list-title" tabindex="-1">Sandboxes</h1>
+    <p>Choose a local Sandbox grant to see its inventory, or choose a provisioning grant to create a Sandbox.</p>
+</section>
+
+<DashboardWorkScopeView DeviceId="DeviceId" Context="target">
+    @if (target.SandboxId is null)
+    {
+        <SandboxProvisionForm @key="target" Target="target" DeviceId="DeviceId" />
+    }
+    else
+    {
+        <SandboxListScope @key="target" Target="target" DeviceId="DeviceId" />
+    }
+</DashboardWorkScopeView>
+
+@code {
+    [Parameter]
+    public Guid DeviceId { get; set; }
+}

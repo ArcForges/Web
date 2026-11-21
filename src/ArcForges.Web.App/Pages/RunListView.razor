@@ -1,0 +1,252 @@
+@* SPDX-License-Identifier: AGPL-3.0-only *@
+@using ArcForges.Contracts.Sandbox.V2
+@using ArcForges.Web.App.Dashboard
+@using ArcForges.Web.App.Layout
+@implements IDisposable
+@inject IDashboardWorkspaces Workspaces
+@inject TimeProvider Clock
+
+<section class="dashboard-panel" aria-labelledby="dashboard-run-list-title">
+    <header class="dashboard-panel-header">
+        <div>
+            <h2 id="dashboard-run-list-title">Runs in this Sandbox</h2>
+            @if (_observedAt is { } observedAt)
+            {
+                <p class="dashboard-muted">Observed <DashboardTime Value="observedAt" />. @(_failure is null ? null : "Results may be stale.")</p>
+            }
+        </div>
+        <button type="button" class="dashboard-button dashboard-button-quiet" disabled="@_reading" @onclick="RefreshAsync">Refresh</button>
+    </header>
+    @if (_reading)
+    {
+        <p class="dashboard-panel-copy" role="status">@(_page is null ? "Reading Runs…" : "Refreshing Runs…")</p>
+    }
+    @if (_failure is not null)
+    {
+        <p class="dashboard-notice" role="alert">@_failure.Message</p>
+        @if (_failure.CorrelationId is Guid reference)
+        {
+            <p class="dashboard-panel-copy dashboard-muted">Reference <code>@reference</code></p>
+        }
+    }
+    @if (_page is { } page)
+    {
+        @if (page.Runs.Count == 0)
+        {
+            <p class="dashboard-panel-copy">@(_cursor is null ? "No Runs in this Sandbox." : "No more Runs on this page.")</p>
+        }
+        else
+        {
+            <div class="dashboard-panel-copy dashboard-run-fields">
+                <label>Filter this page
+                    <select class="dashboard-select" @bind="_filter">
+                        <option value="@RunState.Unspecified">All Run states</option>
+                        <option value="@RunState.Starting">Starting</option>
+                        <option value="@RunState.Running">Running</option>
+                        <option value="@RunState.Stopping">Stopping</option>
+                        <option value="@RunState.Draining">Draining</option>
+                        <option value="@RunState.Exited">Exited</option>
+                        <option value="@RunState.Failed">Failed</option>
+                        <option value="@RunState.RecoveryRequired">Recovery required</option>
+                    </select>
+                </label>
+            </div>
+        }
+        @if (page.Runs.Count > 0 && !VisibleRuns(page).Any())
+        {
+            <p class="dashboard-panel-copy">No Runs on this page match the selected state.</p>
+        }
+        else if (page.Runs.Count > 0)
+        {
+            <table class="dashboard-table" aria-label="Runs in the selected Sandbox">
+                <thead>
+                    <tr><th scope="col">Run</th><th scope="col">State</th><th scope="col" class="dashboard-table-extra">Started</th><th scope="col" class="dashboard-table-extra">Ended</th></tr>
+                </thead>
+                <tbody>
+                    @foreach (var run in VisibleRuns(page))
+                    {
+                        @if (RunPresentation.ReadId(run.RunId) is { } id)
+                        {
+                            <tr @key="id">
+                                <td><a class="dashboard-link dashboard-device-link" href="@($"/devices/{DeviceId:D}/runs/{id:D}")">@RunPresentation.Caption(run)</a></td>
+                                <td>@RunPresentation.Caption(run.State)</td>
+                                <td class="dashboard-table-extra"><DashboardTime Value="@RunPresentation.ReadTime(run.StartedAt)" /></td>
+                                <td class="dashboard-table-extra"><DashboardTime Value="@RunPresentation.ReadTime(run.EndedAt)" /></td>
+                            </tr>
+                        }
+                    }
+                </tbody>
+            </table>
+        }
+        @if (_cursor is not null || !string.IsNullOrEmpty(page.Page?.NextCursor))
+        {
+            <div class="dashboard-panel-footer dashboard-actions">
+                <button type="button" class="dashboard-button dashboard-button-quiet" disabled="@(_reading || _cursor is null)" @onclick="ReadFirstAsync">First page</button>
+                <button type="button" class="dashboard-button dashboard-button-quiet"
+                        disabled="@(_reading || _failure is not null || string.IsNullOrEmpty(page.Page?.NextCursor))"
+                        @onclick="ReadNextAsync">Next page</button>
+            </div>
+        }
+    }
+</section>
+
+<section class="dashboard-panel" aria-labelledby="dashboard-run-command-title">
+    <header class="dashboard-panel-header"><h2 id="dashboard-run-command-title">Check a previous command</h2></header>
+    @foreach (var (key, pending) in Access.RunCommands.Where(entry => DashboardPendingRunCommand.SameSandbox(entry.Key.Target, Target)))
+    {
+        <div class="dashboard-panel-copy" @key="pending.Command">
+            <span>@(key.RunId is null ? "Start" : "Stop") command <code>@pending.Command.CommandId</code></span>
+            <button type="button" class="dashboard-button dashboard-button-quiet"
+                    @onclick="() => ChoosePending(key.Target, key.RunId, pending)">Open recorded receipt</button>
+        </div>
+    }
+    <form class="dashboard-panel-copy dashboard-run-fields" autocomplete="off" @onsubmit="ChooseCommand" @onsubmit:preventDefault>
+        <label>Original command ID <input type="text" maxlength="36" required @bind="_commandId" /></label>
+        <label>Original owner epoch <input type="text" maxlength="36" required @bind="_ownerEpoch" /></label>
+        <div class="dashboard-run-commands">
+            <button type="submit" class="dashboard-button dashboard-button-quiet">Open receipt</button>
+            @if (_commandInputInvalid)
+            {
+                <p role="alert">Enter both original IDs from the command receipt.</p>
+            }
+        </div>
+    </form>
+    @if (_command is { } command)
+    {
+        <RunCommandReceipt @key="command" Target="@(_receiptTarget ?? Target)" Command="command" Initial="_receiptPending?.Operation"
+                           Sending="@(_receiptPending is { Sending: true })" OnChecked="RecordOperation" />
+    }
+</section>
+
+@code {
+    [CascadingParameter]
+    private DashboardAccess Access { get; set; } = default!;
+
+    [Parameter, EditorRequired]
+    public DashboardWorkTarget Target { get; set; } = default!;
+
+    [Parameter, EditorRequired]
+    public Guid DeviceId { get; set; }
+
+    private readonly CancellationTokenSource _lifetime = new();
+    private RunServiceListValue? _page;
+    private DashboardApiException? _failure;
+    private DateTimeOffset? _observedAt;
+    private string? _cursor;
+    private string _commandId = "";
+    private string _ownerEpoch = "";
+    private DashboardWorkCommand? _command;
+    private DashboardWorkTarget? _receiptTarget;
+    private DashboardPendingRunCommand? _receiptPending;
+    private Guid? _receiptRunId;
+    private bool _commandInputInvalid;
+    private bool _reading;
+    private bool _disposed;
+    private RunState _filter;
+
+    private IEnumerable<Run> VisibleRuns(RunServiceListValue page) =>
+        _filter == RunState.Unspecified ? page.Runs : page.Runs.Where(run => run.State == _filter);
+
+    protected override Task OnInitializedAsync()
+    {
+        Access.RunCommandsChanged += PendingChanged;
+        return ReadAsync(null);
+    }
+
+    private Task RefreshAsync() => ReadAsync(_cursor);
+    private Task ReadFirstAsync() => ReadAsync(null);
+    private Task ReadNextAsync() => _page?.Page?.NextCursor is { Length: > 0 } cursor ? ReadAsync(cursor) : Task.CompletedTask;
+
+    private async Task ReadAsync(string? cursor)
+    {
+        if (_reading || _disposed)
+            return;
+
+        _reading = true;
+        try
+        {
+            var page = await Workspaces.ListRunsAsync(Target, cursor, _lifetime.Token);
+            if (!_disposed)
+            {
+                _page = page;
+                _cursor = cursor;
+                _failure = null;
+                _observedAt = Clock.GetUtcNow();
+            }
+        }
+        catch (OperationCanceledException) when (_disposed)
+        {
+        }
+        catch (DashboardApiException failure)
+        {
+            if (!_disposed)
+            {
+                _failure = failure;
+                if (failure.Failure is DashboardFailure.Unauthenticated or DashboardFailure.Forbidden)
+                {
+                    _page = null;
+                    _observedAt = null;
+                }
+                if (failure.Failure == DashboardFailure.Unauthenticated)
+                    await Access.ExpireAsync();
+            }
+        }
+        finally
+        {
+            _reading = false;
+        }
+    }
+
+    private void ChooseCommand()
+    {
+        var validCommand = DashboardRunTarget.TryIdentifier(_commandId, out var command);
+        var validEpoch = DashboardRunTarget.TryIdentifier(_ownerEpoch, out var epoch);
+        _commandInputInvalid = !validCommand || !validEpoch;
+        _command = _commandInputInvalid ? null : new DashboardWorkCommand(command, epoch);
+        _receiptTarget = null;
+        _receiptPending = null;
+        foreach (var (key, recorded) in Access.RunCommands)
+        {
+            if (recorded.Command.CommandId == command && recorded.Command.OwnerEpoch == epoch &&
+                DashboardPendingRunCommand.SameSandbox(key.Target, Target))
+            {
+                ChoosePending(key.Target, key.RunId, recorded);
+                break;
+            }
+        }
+    }
+
+    private void ChoosePending(DashboardWorkTarget target, Guid? runId, DashboardPendingRunCommand pending)
+    {
+        _commandInputInvalid = false;
+        _receiptTarget = target;
+        _receiptRunId = runId;
+        _receiptPending = pending;
+        _command = pending.Command;
+    }
+
+    private void RecordOperation(Operation operation)
+    {
+        if (_receiptPending is { } pending && _receiptTarget is { } target)
+        {
+            pending.Operation = operation;
+            pending.Failure = null;
+            if (!RunPresentation.NeedsCheck(operation))
+                pending.Settle(Access, target, _receiptRunId);
+        }
+    }
+
+    private void PendingChanged()
+    {
+        if (!_disposed)
+            _ = InvokeAsync(StateHasChanged);
+    }
+
+    public void Dispose()
+    {
+        _disposed = true;
+        Access.RunCommandsChanged -= PendingChanged;
+        _lifetime.Cancel();
+        _lifetime.Dispose();
+    }
+}

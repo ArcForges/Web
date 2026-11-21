@@ -1,0 +1,301 @@
+@* SPDX-License-Identifier: AGPL-3.0-only *@
+@using System.Globalization
+@using System.Text
+@using ArcForges.Contracts.Sandbox.V2
+@using ArcForges.Web.App.Dashboard
+@using ArcForges.Web.App.Layout
+@implements IDisposable
+@inject IDashboardWorkspaces Workspaces
+
+<section class="dashboard-panel" aria-labelledby="dashboard-run-output-title">
+    <header class="dashboard-panel-header">
+        <div>
+            <h2 id="dashboard-run-output-title">Run output</h2>
+            <p class="dashboard-muted">A bounded window of the output retained by the Node.</p>
+        </div>
+        @if (_read is not null)
+        {
+            <button type="button" class="dashboard-button dashboard-button-quiet" @onclick="CancelRead">Pause reading</button>
+        }
+    </header>
+    <div class="dashboard-panel-copy">
+        <div class="dashboard-run-fields">
+            <label>Stream
+                <select class="dashboard-select" @bind="_stream" @bind:after="ResetStream" disabled="@(_read is not null)">
+                    @if (Mode == TerminalMode.Interactive)
+                    {
+                        <option value="@StreamKind.Terminal">Terminal output</option>
+                    }
+                    else
+                    {
+                        <option value="@StreamKind.Stdout">Standard output</option>
+                        <option value="@StreamKind.Stderr">Standard error</option>
+                    }
+                </select>
+            </label>
+            <div class="dashboard-run-commands">
+                <button type="button" class="dashboard-button dashboard-button-quiet"
+                        disabled="@(_read is not null || _requiresRunRefresh || !Available)" @onclick="ReadAsync">
+                    @(_offset is null ? "Read output" : "Read more output")
+                </button>
+                @if (_offset is not null)
+                {
+                    <button type="button" class="dashboard-button dashboard-button-quiet"
+                            disabled="@(_read is not null || _requiresRunRefresh || !Available)" @onclick="ReadFromStartAsync">Read from beginning</button>
+                }
+            </div>
+        </div>
+        @if (!Available)
+        {
+            <p class="dashboard-muted" role="status">Output is unavailable. Previously received output is shown if retained in this view.</p>
+        }
+        @if (_readingMessage is not null)
+        {
+            <p class="dashboard-muted" role="status">@_readingMessage</p>
+        }
+        @if (_gap is { } gap)
+        {
+            <p class="dashboard-notice" role="status">@GapText(gap)</p>
+        }
+        @if (_failure is { } failure)
+        {
+            <p class="dashboard-notice" role="alert">@failure.Message</p>
+            @if (failure.CorrelationId is Guid reference)
+            {
+                <p class="dashboard-muted">Reference <code>@reference</code></p>
+            }
+        }
+        @if (_windowStart is { } start && _windowEnd is { } end && _text.Length > 0)
+        {
+            <p class="dashboard-muted">Bytes @OffsetText(start) to @OffsetText(end - 1)</p>
+            <pre class="dashboard-run-output-text" tabindex="0" aria-label="Run output text">@_text.ToString()</pre>
+        }
+    </div>
+</section>
+
+@code {
+    [CascadingParameter]
+    private DashboardAccess Access { get; set; } = default!;
+
+    [Parameter, EditorRequired]
+    public DashboardWorkTarget Target { get; set; } = default!;
+
+    [Parameter, EditorRequired]
+    public Guid RunId { get; set; }
+
+    [Parameter, EditorRequired]
+    public string RunEpoch { get; set; } = "";
+
+    [Parameter, EditorRequired]
+    public TerminalMode Mode { get; set; }
+
+    [Parameter]
+    public bool Available { get; set; } = true;
+
+    private const int WindowBytes = 128 * 1024;
+    private const int MaximumFrames = 128;
+    private readonly StringBuilder _text = new();
+    private readonly Decoder _decoder = Encoding.UTF8.GetDecoder();
+    private CancellationTokenSource? _read;
+    private DashboardApiException? _failure;
+    private OutputGap? _gap;
+    private ulong? _windowStart;
+    private ulong? _windowEnd;
+    private ulong? _offset;
+    private string? _readingMessage;
+    private StreamKind _stream;
+    private bool _requiresRunRefresh;
+    private bool _disposed;
+
+    protected override void OnInitialized()
+    {
+        _stream = Mode == TerminalMode.Interactive ? StreamKind.Terminal : StreamKind.Stdout;
+    }
+
+    protected override void OnParametersSet()
+    {
+        if (!Available)
+            CancelRead();
+    }
+
+    private Task ReadFromStartAsync()
+    {
+        if (_read is not null || _requiresRunRefresh || !Available)
+            return Task.CompletedTask;
+        ResetStream();
+        return ReadAsync();
+    }
+
+    private void ResetStream()
+    {
+        _offset = null;
+        _gap = null;
+        _readingMessage = null;
+        _failure = null;
+        _decoder.Reset();
+        ResetWindow();
+    }
+
+    private void ResetWindow()
+    {
+        _windowStart = null;
+        _windowEnd = null;
+        _text.Clear();
+    }
+
+    private async Task ReadAsync()
+    {
+        if (_disposed || _read is not null || _requiresRunRefresh || !Available || string.IsNullOrEmpty(RunEpoch))
+            return;
+
+        using var read = new CancellationTokenSource();
+        _read = read;
+        _failure = null;
+        _gap = null;
+        _readingMessage = "Reading output…";
+        var remaining = WindowBytes;
+        var frames = 0;
+        var startedWindow = false;
+        try
+        {
+            await foreach (var frame in Workspaces.WatchRunOutputAsync(Target, RunId, _stream, RunEpoch, _offset, read.Token))
+            {
+                if (_disposed)
+                    return;
+                read.Token.ThrowIfCancellationRequested();
+                frames++;
+                if (frame.Chunk is { } chunk)
+                {
+                    if (!IsContiguous(chunk))
+                    {
+                        _failure = new DashboardApiException(DashboardFailure.Incompatible);
+                        _readingMessage = null;
+                        return;
+                    }
+                    if (chunk.Data.Length > remaining || frames > MaximumFrames)
+                        break;
+                    if (!startedWindow)
+                    {
+                        ResetWindow();
+                        startedWindow = true;
+                    }
+                    _windowStart ??= chunk.Offset;
+                    AppendText(chunk);
+                    _offset = chunk.NextOffset;
+                    _windowEnd = chunk.NextOffset;
+                    remaining -= chunk.Data.Length;
+                    if (frames == 1 || frames % 8 == 0)
+                        await ShowReceivedOutputAsync();
+                    continue;
+                }
+                if (frame.Gap is { } gap)
+                {
+                    ApplyGap(gap);
+                    return;
+                }
+                if (frame.Run is { } state)
+                {
+                    FlushDecoder();
+                    _readingMessage = $"The Node ended this stream. Run state: {RunPresentation.Caption(state.State)}.";
+                    return;
+                }
+                if (frame.Error is { } error)
+                {
+                    _readingMessage = $"The Node ended this output read ({error.Code}).";
+                    return;
+                }
+                _failure = new DashboardApiException(DashboardFailure.Incompatible);
+                _readingMessage = null;
+                return;
+            }
+            _readingMessage = remaining == WindowBytes ? "No output was received in this read." :
+                "Output window ended. Read more to continue from the last confirmed byte.";
+        }
+        catch (OperationCanceledException) when (read.IsCancellationRequested)
+        {
+            if (!_disposed)
+                _readingMessage = "Output reading paused.";
+        }
+        catch (DashboardApiException failure)
+        {
+            if (!_disposed)
+            {
+                _failure = failure;
+                _readingMessage = "Previously received output is shown below, if available.";
+                if (failure.Failure is DashboardFailure.Unauthenticated or DashboardFailure.Forbidden)
+                {
+                    ResetWindow();
+                    _decoder.Reset();
+                }
+                if (failure.Failure == DashboardFailure.Unauthenticated)
+                    await Access.ExpireAsync();
+            }
+        }
+        finally
+        {
+            _read = null;
+        }
+    }
+
+    private bool IsContiguous(OutputChunk chunk) => chunk.HasEpoch && chunk.Epoch == RunEpoch &&
+        chunk.HasStream && chunk.Stream == _stream && chunk.HasOffset && chunk.HasNextOffset &&
+        chunk.Data.Length is > 0 and <= 65_536 && (_offset is null ? chunk.Offset == 0 : chunk.Offset == _offset) &&
+        chunk.Offset <= ulong.MaxValue - (ulong)chunk.Data.Length && chunk.NextOffset == chunk.Offset + (ulong)chunk.Data.Length;
+
+    private void ApplyGap(OutputGap gap)
+    {
+        _gap = gap;
+        _readingMessage = null;
+        _decoder.Reset();
+        if (gap.Epoch != RunEpoch || gap.Reason == "epoch_changed")
+        {
+            _requiresRunRefresh = true;
+            _offset = null;
+            ResetWindow();
+        }
+        else if (gap is { Reason: "retention", HasEarliestOffset: true })
+        {
+            _offset = gap.EarliestOffset;
+        }
+    }
+
+    private void AppendText(OutputChunk chunk)
+    {
+        var chars = new char[Encoding.UTF8.GetMaxCharCount(chunk.Data.Length)];
+        var count = _decoder.GetChars(chunk.Data.Span, chars, flush: false);
+        AppendVisible(chars.AsSpan(0, count));
+    }
+
+    private void FlushDecoder()
+    {
+        Span<char> chars = stackalloc char[8];
+        var count = _decoder.GetChars(ReadOnlySpan<byte>.Empty, chars, flush: true);
+        AppendVisible(chars[..count]);
+    }
+
+    private void AppendVisible(ReadOnlySpan<char> chars)
+    {
+        foreach (var character in chars)
+            _text.Append(char.IsControl(character) && character is not ('\t' or '\r' or '\n') ? '�' : character);
+    }
+
+    private static string OffsetText(ulong offset) => offset.ToString(CultureInfo.InvariantCulture);
+
+    private static string GapText(OutputGap gap) => gap.Reason switch
+    {
+        "retention" => $"Earlier output is no longer retained. The first available byte is {OffsetText(gap.EarliestOffset)}.",
+        "epoch_changed" => "The Run output epoch changed. Refresh the Run before reading again.",
+        "slow_consumer" => "Output delivery could not keep up. Read more for the next available output.",
+        _ => "The Node reported discontinuous output. Some output may be missing.",
+    };
+
+    private Task ShowReceivedOutputAsync() => InvokeAsync(StateHasChanged);
+
+    private void CancelRead() => _read?.Cancel();
+
+    public void Dispose()
+    {
+        _disposed = true;
+        CancelRead();
+    }
+}

@@ -1,0 +1,114 @@
+@* SPDX-License-Identifier: AGPL-3.0-only *@
+@using ArcForges.Contracts.Foundation.V1
+@using ArcForges.Contracts.Sandbox.V2
+@using ArcForges.Web.App.Dashboard
+@using ArcForges.Web.App.Layout
+@implements IDisposable
+@inject IDashboardWorkspaces Workspaces
+
+<div class="dashboard-panel-copy">
+    <p role="status">@Status</p>
+    <dl class="dashboard-dialog-facts">
+        <dt>Original command ID</dt><dd><code>@Command.CommandId</code></dd>
+        <dt>Owner epoch</dt><dd><code>@Command.OwnerEpoch</code></dd>
+        @if (Current is { } operation && RunPresentation.ReadId(operation.AggregateId) is { } aggregate)
+        {
+            <dt>Result ID</dt><dd><code>@aggregate</code></dd>
+        }
+    </dl>
+    @if (Current?.Error is { } error)
+    {
+        <p class="dashboard-muted">Node result <code>@error.Code</code></p>
+    }
+    @if (_failure is { } failure)
+    {
+        <p class="dashboard-notice" role="alert">@failure.Message</p>
+        @if (failure.Code is { } code)
+        {
+            <p class="dashboard-muted">Node result <code>@(code)</code>@(failure.Reason is { } reason ? $" ({reason})" : null)</p>
+        }
+    }
+    <button type="button" class="dashboard-button dashboard-button-quiet" disabled="@(_checking || Sending)" @onclick="CheckAsync">
+        @(_checking ? "Checking…" : "Check command outcome")
+    </button>
+</div>
+
+@code {
+    [CascadingParameter]
+    private DashboardAccess Access { get; set; } = default!;
+
+    [Parameter, EditorRequired]
+    public DashboardWorkTarget Target { get; set; } = default!;
+
+    [Parameter, EditorRequired]
+    public DashboardWorkCommand Command { get; set; } = default!;
+
+    [Parameter]
+    public Operation? Initial { get; set; }
+
+    [Parameter]
+    public bool Sending { get; set; }
+
+    [Parameter]
+    public EventCallback<Operation> OnChecked { get; set; }
+
+    private readonly CancellationTokenSource _lifetime = new();
+    private Operation? _checked;
+    private DashboardApiException? _failure;
+    private bool _checking;
+    private bool _disposed;
+
+    private Operation? Current => Initial ?? _checked;
+    private string Status => Sending ? "Sending the original command…" : Current switch
+    {
+        null => "No outcome has been confirmed. Checking this command only reads its existing receipt.",
+        { ResponseCompacted: true } => "The Node retained the effect but compacted the original response.",
+        { State: OperationState.Accepted } => "Command accepted; its final outcome is pending.",
+        { State: OperationState.Succeeded, Effect: EffectCertainty.Happened } => "Command completed.",
+        { State: OperationState.Succeeded, Effect: EffectCertainty.DidNotHappen } => "Command completed without a new effect.",
+        { State: OperationState.Failed, Effect: EffectCertainty.DidNotHappen } => "Command failed without an effect.",
+        { State: OperationState.Failed, Effect: EffectCertainty.Happened } => "The Node reported a failed command with a confirmed effect.",
+        _ => "The command outcome remains unknown.",
+    };
+
+    private async Task CheckAsync()
+    {
+        if (_checking || _disposed || Sending)
+            return;
+
+        _checking = true;
+        _failure = null;
+        try
+        {
+            var operation = await Workspaces.GetOperationAsync(Target, Command, _lifetime.Token);
+            if (!_disposed)
+            {
+                _checked = operation;
+                await OnChecked.InvokeAsync(operation);
+            }
+        }
+        catch (OperationCanceledException) when (_disposed)
+        {
+        }
+        catch (DashboardApiException failure)
+        {
+            if (!_disposed)
+            {
+                _failure = failure;
+                if (failure.Failure == DashboardFailure.Unauthenticated)
+                    await Access.ExpireAsync();
+            }
+        }
+        finally
+        {
+            _checking = false;
+        }
+    }
+
+    public void Dispose()
+    {
+        _disposed = true;
+        _lifetime.Cancel();
+        _lifetime.Dispose();
+    }
+}

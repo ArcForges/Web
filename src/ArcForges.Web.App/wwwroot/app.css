@@ -320,6 +320,26 @@ button, select, input {
 .dashboard-detail-intro {
   margin-bottom: 6px;
 }
+.dashboard-device-sections, .dashboard-work-scope {
+  margin-bottom: 16px;
+}
+.dashboard-work-scope .dashboard-run-scope {
+  border-top: 0;
+}
+.dashboard-work-scope summary {
+  cursor: pointer;
+}
+.dashboard-work-scope code, .dashboard-work-view code {
+  overflow-wrap: anywhere;
+}
+.dashboard-work-view pre {
+  overflow: auto;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.dashboard-table-wrap {
+  overflow-x: auto;
+}
 .dashboard-detail-heading {
   flex-wrap: wrap;
 }
