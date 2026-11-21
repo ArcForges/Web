@@ -1,0 +1,344 @@
+@* SPDX-License-Identifier: AGPL-3.0-only *@
+@page "/account/subscription"
+@using ArcForges.Contracts.PublicApi.V1
+
+<PageTitle>Subscription | ArcForges</PageTitle>
+
+<section class="dashboard-intro">
+    <div>
+        <a class="dashboard-link" href="/account">Account</a>
+        <h1>Subscription</h1>
+    </div>
+    @if (Configured)
+    {
+        <button type="button" class="dashboard-button dashboard-button-quiet" disabled="@_refreshing" @onclick="RefreshAsync">Refresh status</button>
+    }
+</section>
+
+@if (!Configured)
+{
+    <p class="dashboard-notice" role="status">This Dashboard has no configured Center. Hosted billing is unavailable.</p>
+}
+else
+{
+    <section class="dashboard-panel" aria-labelledby="subscription-service">
+        <header class="dashboard-panel-header"><h2 id="subscription-service">@(Official ? "Hosted service access" : "Self-hosted Center")</h2></header>
+        <div class="dashboard-panel-copy">
+            @if (!Official)
+            {
+                <p>This Center's operator manages service access and quotas. Local ArcForges use has no subscription requirement.</p>
+            }
+            @if (_entitlementFailure is { } serviceFailure)
+            {
+                @Failure(serviceFailure, "Service access is unavailable.")
+            }
+            else if (_entitlement is { } entitlement)
+            {
+                @if (entitlement.ServiceTerm is { } term)
+                {
+                    <dl class="dashboard-detail-facts">
+                        <div><dt>Service term</dt><dd>@term.Kind</dd></div>
+                        <div><dt>Starts</dt><dd><DashboardTime Value="RunPresentation.ReadTime(term.StartsAt)" /></dd></div>
+                        <div><dt>Ends</dt><dd><DashboardTime Value="RunPresentation.ReadTime(term.EndsAt)" /></dd></div>
+                        @if (term.GraceEndsAt is not null)
+                        {
+                            <div><dt>Grace ends</dt><dd><DashboardTime Value="RunPresentation.ReadTime(term.GraceEndsAt)" /></dd></div>
+                        }
+                    </dl>
+                }
+                @if (entitlement.Capabilities.Count > 0)
+                {
+                    <dl class="dashboard-detail-facts">
+                        @foreach (var capability in entitlement.Capabilities)
+                        {
+                            <div>
+                                <dt>@CapabilityName(capability.Capability)</dt>
+                                <dd>@CapabilityStatus(capability)</dd>
+                            </div>
+                        }
+                    </dl>
+                }
+                @if (entitlement.Quotas.Count > 0)
+                {
+                    <div class="dashboard-table-wrap" role="region" aria-label="Service quotas" tabindex="0">
+                        <table class="dashboard-table" aria-label="Reported service quotas">
+                            <thead><tr><th scope="col">Quota</th><th scope="col">Used</th><th scope="col">Held</th><th scope="col">Limit</th></tr></thead>
+                            <tbody>
+                                @foreach (var quota in entitlement.Quotas)
+                                {
+                                    <tr><th scope="row">@quota.Kind</th><td>@QuotaValue(quota.HasUsed, quota.Used)</td><td>@QuotaValue(quota.HasHeld, quota.Held)</td><td>@QuotaValue(quota.HasLimit, quota.Limit)</td></tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                }
+                else if (!Official)
+                {
+                    <p>The Center has not reported quota amounts for your account.</p>
+                }
+            }
+            else if (_refreshing)
+            {
+                <p role="status">Reading service access…</p>
+            }
+        </div>
+    </section>
+}
+
+@if (Official)
+{
+    <section class="dashboard-panel" aria-labelledby="subscription-current">
+        <header class="dashboard-panel-header"><h2 id="subscription-current">Current subscription</h2></header>
+        <div class="dashboard-panel-copy">
+            @if (_subscriptionFailure is { } subscriptionFailure)
+            {
+                @Failure(subscriptionFailure, SubscriptionFailureText(subscriptionFailure))
+            }
+            else if (_subscription is { } subscription)
+            {
+                <dl class="dashboard-detail-facts">
+                    <div><dt>Status</dt><dd>@SubscriptionStatus(subscription.State)</dd></div>
+                    <div><dt>Current period begins</dt><dd><DashboardTime Value="RunPresentation.ReadTime(subscription.CurrentPeriod?.From)" /></dd></div>
+                    <div><dt>Current period ends</dt><dd><DashboardTime Value="RunPresentation.ReadTime(subscription.CurrentPeriod?.Until)" /></dd></div>
+                    @if (subscription.HasCancelAtPeriodEnd && subscription.CancelAtPeriodEnd)
+                    {
+                        <div><dt>Renewal</dt><dd>Cancellation scheduled for period end</dd></div>
+                    }
+                    else if (subscription is { State: SubscriptionState.Active, HasCancelAtPeriodEnd: true })
+                    {
+                        <div><dt>Renewal</dt><dd>Automatic renewal is on</dd></div>
+                    }
+                </dl>
+                @if (CanChangeRenewal)
+                {
+                    <button type="button" class="dashboard-button dashboard-button-quiet" @onclick="ReviewRenewal">
+                        @(subscription.CancelAtPeriodEnd ? "Review reactivation" : "Review cancellation")
+                    </button>
+                }
+            }
+            else if (_subscriptionMissing)
+            {
+                <p>No hosted subscription is recorded for this account.</p>
+            }
+            else if (_refreshing)
+            {
+                <p role="status">Reading subscription status…</p>
+            }
+            @if (Journey.Renewal is { } renewal)
+            {
+                <div role="status">
+                    @if (renewal.Receipt is { } receipt)
+                    {
+                        <p>The Center confirmed the renewal change at revision @(receipt.Revision?.Value).</p>
+                    }
+                    else if (renewal.Sending)
+                    {
+                        <p>Checking the renewal request…</p>
+                    }
+                    else
+                    {
+                        <p>The original renewal result is unconfirmed.</p>
+                        @if (CurrentMatches(renewal))
+                        {
+                            <p>The current renewal state matches your request.</p>
+                        }
+                        <div class="dashboard-actions">
+                            <button type="button" class="dashboard-button dashboard-button-quiet" disabled="@_refreshing" @onclick="RefreshAsync">Check current subscription</button>
+                            @if (CanResumeRenewal(renewal))
+                            {
+                                <button type="button" class="dashboard-button dashboard-button-quiet" @onclick="ReviewOriginalRenewal">
+                                    @(renewal.AutoRenew ? "Review reactivation retry" : "Review cancellation retry")
+                                </button>
+                            }
+                        </div>
+                    }
+                    <p>Command <code>@renewal.CommandId</code></p>
+                    @if (renewal.Failure is { } renewalFailure)
+                    {
+                        @Failure(renewalFailure)
+                    }
+                </div>
+            }
+            else if (_renewalFailure is not null)
+            {
+                @Failure(_renewalFailure)
+            }
+        </div>
+    </section>
+
+    <section class="dashboard-panel" aria-labelledby="subscription-catalogue">
+        <header class="dashboard-panel-header"><h2 id="subscription-catalogue">Hosted checkout</h2></header>
+        <div class="dashboard-panel-copy">
+            @if (Journey.Purchase is { } purchase)
+            {
+                <div role="status">
+                    <p><strong>@PurchaseStatus(purchase)</strong></p>
+                    <p>Purchase ID <code>@purchase.Id</code></p>
+                    @if (purchase.CommandId is Guid purchaseCommand)
+                    {
+                        <p>Purchase command <code>@purchaseCommand</code></p>
+                    }
+                    @if (purchase.Checkout is { } checkout)
+                    {
+                        <p>Checkout command <code>@checkout.CommandId</code></p>
+                    }
+                    @if (purchase.Failure is { } purchaseFailure)
+                    {
+                        @Failure(purchaseFailure)
+                    }
+                </div>
+                @if (CheckoutLink(purchase) is Uri link)
+                {
+                    <p>Checkout expires <DashboardTime Value="purchase.Checkout?.ExpiresAt" />.</p>
+                    <a class="dashboard-button dashboard-button-primary" href="@link.AbsoluteUri" target="_blank"
+                       rel="noopener noreferrer" referrerpolicy="no-referrer">Open hosted checkout in a new tab</a>
+                }
+                <div class="dashboard-actions">
+                    <button type="button" class="dashboard-button dashboard-button-quiet" disabled="@(_checkingPurchase || purchase.Sending)" @onclick="ReadActivePurchaseAsync">Check purchase status</button>
+                    @if (CanPrepareCheckout(purchase))
+                    {
+                        <button type="button" class="dashboard-button dashboard-button-quiet" @onclick="ReviewCheckout">Review checkout</button>
+                    }
+                    else if (CanResumeCheckout(purchase))
+                    {
+                        <button type="button" class="dashboard-button dashboard-button-quiet" @onclick="ReviewCheckout">Review original checkout</button>
+                    }
+                    else if (CanResumePurchase(purchase))
+                    {
+                        <button type="button" class="dashboard-button dashboard-button-quiet" @onclick="ReviewOriginalPurchase">Review original purchase</button>
+                    }
+                    @if (IsPurchaseTerminal(purchase) || (purchase.CommandId is null && purchase.VerifiedMissing))
+                    {
+                        <button type="button" class="dashboard-button dashboard-button-quiet" disabled="@(_checkingPurchase || purchase.Sending)" @onclick="ClosePurchase">Close purchase status</button>
+                    }
+                </div>
+            }
+            else
+            {
+                <form class="dashboard-run-fields" @onsubmit="ReadCatalogueAsync" @onsubmit:preventDefault>
+                    <label>Billing country code <input type="text" maxlength="2" required autocomplete="off" @bind="_region" @bind:event="oninput" /></label>
+                    <button type="submit" class="dashboard-button dashboard-button-quiet" disabled="@_loadingCatalogue">Check available offers</button>
+                </form>
+                @if (_regionInvalid)
+                {
+                    <p role="alert">Enter your two-letter billing country code.</p>
+                }
+                @if (_catalogueFailure is { } catalogueFailure)
+                {
+                    @Failure(catalogueFailure, CatalogueFailureText(catalogueFailure))
+                }
+                else if (CatalogueCurrent && _catalogue is { } catalogue)
+                {
+                    @if (catalogue.Items.Count == 0)
+                    {
+                        <p>No hosted offers are available for this billing country.</p>
+                    }
+                    else
+                    {
+                        <ul>
+                            @foreach (var offer in catalogue.Items)
+                            {
+                                <li>
+                                    <span>@OfferPrice(offer)</span>
+                                    @if (CanStartPurchase)
+                                    {
+                                        <button type="button" class="dashboard-button dashboard-button-quiet" @onclick="() => ReviewPurchase(offer)">Review purchase</button>
+                                    }
+                                </li>
+                            }
+                        </ul>
+                    }
+                }
+                @if (_startFailure is not null)
+                {
+                    @Failure(_startFailure)
+                }
+                <form class="dashboard-run-fields" @onsubmit="FindPurchaseAsync" @onsubmit:preventDefault>
+                    <label>Previous purchase ID <input type="text" maxlength="36" required autocomplete="off" spellcheck="false" @bind="_previousPurchase" /></label>
+                    <button type="submit" class="dashboard-button dashboard-button-quiet">Look up purchase</button>
+                </form>
+                @if (_purchaseIdInvalid)
+                {
+                    <p role="alert">Enter the full purchase ID from the original request.</p>
+                }
+            }
+        </div>
+    </section>
+
+    @if (_confirmation is { } confirmation)
+    {
+        <section class="dashboard-panel" aria-labelledby="subscription-confirmation">
+            <header class="dashboard-panel-header"><h2 id="subscription-confirmation">@ConfirmationTitle(confirmation)</h2></header>
+            <div class="dashboard-panel-copy">
+                @if (confirmation.Offer is { } offer)
+                {
+                    <p>@OfferPrice(offer) · billing country @offer.Region</p>
+                }
+                @if (confirmation.Renewal is { } change)
+                {
+                    <p>The current subscription period ends <DashboardTime Value="change.PeriodEndsAt" />.</p>
+                }
+                @if (confirmation.Action == BillingAction.ResumeRenewal)
+                {
+                    <p>Resubmitting can apply the original change if the Center never received it. This uses the original command and subscription revision.</p>
+                }
+                else if (confirmation.Action is BillingAction.ResumePurchase or BillingAction.ResumeCheckout)
+                {
+                    <p>This uses the identifiers and details from the original request.</p>
+                }
+                <div class="dashboard-actions">
+                    <button type="button" class="dashboard-button dashboard-button-primary" @onclick="ConfirmAsync">
+                        @(confirmation.Action == BillingAction.ResumeRenewal ? "Resubmit original request" : "Confirm")
+                    </button>
+                    <button type="button" class="dashboard-button dashboard-button-quiet" @onclick="CloseConfirmation">Back</button>
+                </div>
+            </div>
+        </section>
+    }
+
+    <section class="dashboard-panel" aria-labelledby="subscription-history">
+        <header class="dashboard-panel-header">
+            <h2 id="subscription-history">Billing history</h2>
+            <button type="button" class="dashboard-button dashboard-button-quiet" disabled="@_loadingHistory" @onclick="RefreshBillingAsync">Refresh history</button>
+        </header>
+        <div class="dashboard-panel-copy">
+            <p>Last 90 days</p>
+            @if (_historyFailure is not null)
+            {
+                @Failure(_historyFailure, "Billing history is unavailable.")
+            }
+            else if (_history is { Items.Count: 0 })
+            {
+                <p>No billing entries in this period.</p>
+            }
+            else if (_history is { } history)
+            {
+                <div class="dashboard-table-wrap" role="region" aria-label="Billing entries" tabindex="0">
+                    <table class="dashboard-table" aria-label="Billing history">
+                        <thead><tr><th scope="col">Date</th><th scope="col">Entry</th><th scope="col">Status</th><th scope="col">Amount</th></tr></thead>
+                        <tbody>
+                            @foreach (var item in history.Items)
+                            {
+                                <tr><td><DashboardTime Value="RunPresentation.ReadTime(item.OccurredAt)" /></td><th scope="row">@item.Kind</th><td>@item.State</td><td>@(item.Amount?.Value ?? "Unavailable") @item.Currency</td></tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+                <div class="dashboard-actions">
+                    @if (_historyCursor is not null)
+                    {
+                        <button type="button" class="dashboard-button dashboard-button-quiet" disabled="@_loadingHistory" @onclick="ReadLatestBillingAsync">First page</button>
+                    }
+                    @if (history.Page is { HasMore: true, NextCursor.Length: > 0 })
+                    {
+                        <button type="button" class="dashboard-button dashboard-button-quiet" disabled="@_loadingHistory" @onclick="ReadNextBillingAsync">Next page</button>
+                    }
+                </div>
+            }
+            else if (_loadingHistory)
+            {
+                <p role="status">Reading billing history…</p>
+            }
+        </div>
+    </section>
+}

@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "repository": "Web",
-  "sourceCommit": "e80c58fb6d01d1a1405d7e15f7dc753dc726a996",
+  "sourceCommit": "0f25ad7e8133a62e8c718a79721ce8007f558cb6",
   "manifests": [
     "package.json"
   ],
@@ -28,7 +28,8 @@
     "global.json": "edd2ddb56f786301c083aaf5708258dd2de2482a1ec8bb8b5bdade55af090e54",
     "package-lock.json": "743ea02707522d845fffcbfa8d9f34803a606a09cd226f91cf729ff10c505f83",
     "package.json": "9bb1448740e04aa12313fdab50a1a65c599895690d08a00d71e0db0622a1c885",
-    "src/ArcForges.Web.App/ArcForges.Web.App.csproj": "6892f5d5a7555b61ff4580e52c6d7ad466f345f2b04d32f7b56859a601f0f9ab",
+    "src/ArcForges.Web.App/ArcForges.Web.App.csproj": "17268123036275b8eabb766d68744070ce2d436097bc7a8f0fe4a6fae527e674",
+    "src/ArcForges.Web.App/ProtobufBrowserDiagnostics.xml": "4d30a8c45d3a37e56c68dd62d76fc0f3374f30237293f026800b3b69f322e7bf",
     "src/ArcForges.Web.App/packages.lock.json": "ae9f6a5cb80a6e3eaa226fae34b8f71cd7998708a5d58f945a7160f60a9d5e30",
     "src/ArcForges.Web.Operations/ArcForges.Web.Operations.csproj": "ad7f8197fada085fb3ba6bee69f1d45716e3b79725ed7d388f0a9080ae290077",
     "src/ArcForges.Web.Operations/packages.lock.json": "dd0d5cc799736ba71d84f54862d3d4fd096c3dd80d9dc0eeedc393c23b95bf09",
@@ -59,9 +60,9 @@
   },
   "review": {
     "owner": "Web dependency maintainer",
-    "reviewer": "Design PR85 and Plan PR262 (reviewed Dashboard budget source scope)",
+    "reviewer": "Independent WEB-03 review of linked browser artifacts and pinned inputs",
     "date": "2026-11-21",
-    "rationale": "Review the separate Dashboard profile budget under Design PR85 and Plan PR262. It retains six historical resource baselines and the 10 percent regression rule, and binds the exact current publish's WebAssembly and total gzip measurements. Hosted and native candidate checks select the same reviewed file.",
+    "rationale": "Bind the exact Dashboard App project and diagnostic substitution file. The App-only ILLink rules replace two protobuf diagnostic text paths in Google.Protobuf 3.36.2 and preserve the binary codecs of the published ArcForges.Contracts.PublicApi 1.0.0-ci.481.1 and its matching cohort. The package versions, lockfiles, closures, SDK, profile budgets and verification tools are unchanged.",
     "inputs": {
       ".github/workflows/ci.yml": "ac01cbe840acfcfb7260920cbdd096502a3f557e4da59927e0f89fa1b9b204a8",
       ".node-version": "5c293036fc0a61ad76e15d85f454c3c7cec157e181e035b69f95058a2c239144",
@@ -85,7 +86,8 @@
       "global.json": "edd2ddb56f786301c083aaf5708258dd2de2482a1ec8bb8b5bdade55af090e54",
       "package-lock.json": "743ea02707522d845fffcbfa8d9f34803a606a09cd226f91cf729ff10c505f83",
       "package.json": "9bb1448740e04aa12313fdab50a1a65c599895690d08a00d71e0db0622a1c885",
-      "src/ArcForges.Web.App/ArcForges.Web.App.csproj": "6892f5d5a7555b61ff4580e52c6d7ad466f345f2b04d32f7b56859a601f0f9ab",
+      "src/ArcForges.Web.App/ArcForges.Web.App.csproj": "17268123036275b8eabb766d68744070ce2d436097bc7a8f0fe4a6fae527e674",
+      "src/ArcForges.Web.App/ProtobufBrowserDiagnostics.xml": "4d30a8c45d3a37e56c68dd62d76fc0f3374f30237293f026800b3b69f322e7bf",
       "src/ArcForges.Web.App/packages.lock.json": "ae9f6a5cb80a6e3eaa226fae34b8f71cd7998708a5d58f945a7160f60a9d5e30",
       "src/ArcForges.Web.Operations/ArcForges.Web.Operations.csproj": "ad7f8197fada085fb3ba6bee69f1d45716e3b79725ed7d388f0a9080ae290077",
       "src/ArcForges.Web.Operations/packages.lock.json": "dd0d5cc799736ba71d84f54862d3d4fd096c3dd80d9dc0eeedc393c23b95bf09",
@@ -123,9 +125,9 @@
       "sbom",
       "framework-posture"
     ],
-    "runtimeAssessment": "The exact e80c58fb6d01d1a1405d7e15f7dc753dc726a996 H-22 publish measured initialWasmGzip 4254961 and totalGzip 5292979. The existing budget tool accepted the measured publish and refused the 4705762-byte WebAssembly negative control against its 4680457-byte ceiling. Package and release authorities stay unchanged.",
-    "maintenance": "Preserve all original dependency receipts and package/source evidence. Review any subsequent package or deployment gate changes with their native and contractual evidence.",
-    "previous": "eng/policy/dependency-reviews/afv2-web-01-r2.json",
+    "runtimeAssessment": "Exact H-22 verification of 0f25ad7e8133a62e8c718a79721ce8007f558cb6 built, tested and published successfully. Its original check.log (20261121-142630-0f25ad7e8133-linux, SHA-256 a7f1329598423e11ae1582082df7d029b2931aee7fe80108c110627dbb6d7b7e) refused the changed App project hash before the candidate. The isolated Windows prebuilt-runtime diagnostic with the generated clients measured 62 initial requests, 4396809 bytes of WebAssembly gzip and a verified 23826432-byte profile archive. Formal candidate and browser qualification continue under their existing checks.",
+    "maintenance": "Retain the predecessor receipt and original dependency evidence. Rebind both exact App linker input paths when their reviewed content changes and keep diagnostic presentation separate from binary codecs.",
+    "previous": "eng/policy/dependency-reviews/afv2-web-01-r3.json",
     "immutableHistory": "Admitted review records are retained in Git history. A dependency change requires a new reviewed source commit and updated input-bound rationale; never amend an already accepted provenance record."
   },
   "closure": {
@@ -859,7 +861,7 @@
     ]
   },
   "buildToolPrereleases": {},
-  "reviewRecord": "eng/policy/dependency-reviews/afv2-web-01-r3.json",
+  "reviewRecord": "eng/policy/dependency-reviews/afv2-web-03-r1.json",
   "dependencyClasses": {
     "build-inputs": "Complete current exact stable npm lock; version major compatibility is implemented in owned CLI integration. No prerelease build-tool qualification is used.",
     "runtime": "Only the independently enforced existing shipped artifact records admit runtime inputs and legal scopes.",

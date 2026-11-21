@@ -40,8 +40,24 @@ internal sealed class DashboardGrpcTransport(HttpMessageHandler transport)
                 "/arcforges.management.v2.DeviceService/List" or
                 "/arcforges.management.v2.DeviceService/Inspect" or
                 "/arcforges.management.v2.DeviceService/Revoke" or
+                "/arcforges.publicapi.v1.IdentityService/GetProfile" or
+                "/arcforges.publicapi.v1.IdentityService/UpdateProfile" or
+                "/arcforges.publicapi.v1.IdentityService/GetAccountDeletion" or
+                "/arcforges.publicapi.v1.IdentityService/ListSessions" or
+                "/arcforges.publicapi.v1.IdentityService/ListAuthIdentities" or
+                "/arcforges.publicapi.v1.IdentityService/RevokeSession" or
+                "/arcforges.publicapi.v1.EntitlementService/GetSnapshot" or
+                "/arcforges.publicapi.v1.CommerceService/GetCatalogue" or
+                "/arcforges.publicapi.v1.CommerceService/CreatePurchaseIntent" or
+                "/arcforges.publicapi.v1.CommerceService/CreateCheckoutAttempt" or
+                "/arcforges.publicapi.v1.CommerceService/GetPurchaseState" or
+                "/arcforges.publicapi.v1.CommerceService/GetSubscription" or
+                "/arcforges.publicapi.v1.CommerceService/CancelSubscription" or
+                "/arcforges.publicapi.v1.CommerceService/ReactivateSubscription" or
+                "/arcforges.publicapi.v1.CommerceService/ListBillingHistory" or
                 "/arcforges.sandbox.v2.NodeService/GetOperation" or
                 "/arcforges.sandbox.v2.NodeService/ListRemoteGrants" or
+                "/arcforges.sandbox.v2.NodeService/RevokeRemoteGrant" or
                 "/arcforges.sandbox.v2.SandboxService/List" or
                 "/arcforges.sandbox.v2.SandboxService/Inspect" or
                 "/arcforges.sandbox.v2.SandboxService/Create" or

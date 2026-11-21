@@ -31,6 +31,7 @@ test("verified compiled Dashboard documents, cache policy and exact route bounda
   const device = "/devices/77bfe61e-b5ea-4a5b-8c22-3ab49787a10e";
   const item = "99b6f777-c1ed-4385-aa31-32df881ea31b";
   for (const route of [
+    "/security", "/account", "/account/subscription",
     "/devices", device, device + "?tab=summary", device + "/resources",
     device + "/sandboxes", device + "/sandboxes/" + item,
     device + "/runs", device + "/runs/" + item,
@@ -95,7 +96,9 @@ test("verified compiled Dashboard documents, cache policy and exact route bounda
     device + "/runs/not-a-guid",
     "/x/../overview",
     "/%6fverview",
-    "/account",
+    "/account/",
+    "/account/billing",
+    "/api/account/recovery",
     "/chat",
     "/index.html",
     "/_headers",

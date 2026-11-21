@@ -20,6 +20,8 @@
              aria-label="Dashboard" @onkeydown="HandleMenuKeyAsync">
             <NavLink href="/overview" Match="NavLinkMatch.All" @onclick="CloseMenuAsync">Overview</NavLink>
             <NavLink href="/devices" Match="NavLinkMatch.Prefix" @onclick="CloseMenuAsync">Devices</NavLink>
+            <NavLink href="/security" Match="NavLinkMatch.All" @onclick="CloseMenuAsync">Security</NavLink>
+            <NavLink href="/account" Match="NavLinkMatch.Prefix" @onclick="CloseMenuAsync">Account</NavLink>
         </nav>
     </aside>
     <div class="dashboard-workspace">
@@ -70,7 +72,12 @@
                         @if (CanSignIn && Center.Configuration.SignInUri is Uri signIn)
                         {
                             <a class="dashboard-button dashboard-button-primary" href="@signIn.AbsoluteUri"
-                               @onclick="FollowSignIn" @onclick:preventDefault>Sign in</a>
+                               @onclick="() => FollowCenterPage(signIn)" @onclick:preventDefault>Sign in</a>
+                        }
+                        @if (CanSignIn && Center.Configuration.RecoveryUri is Uri recovery)
+                        {
+                            <a class="dashboard-button dashboard-button-quiet" href="@recovery.AbsoluteUri"
+                               @onclick="() => FollowCenterPage(recovery)" @onclick:preventDefault>Recover account</a>
                         }
                         <button type="button" class="dashboard-button dashboard-button-quiet" aria-disabled="@(_busy ? "true" : "false")"
                                 @onclick="CheckSessionAsync">@(_busy ? "Checking…" : "Check session")</button>
@@ -388,11 +395,11 @@
         }
     }
 
-    private void FollowSignIn()
+    private void FollowCenterPage(Uri page)
     {
-        if (CanSignIn && Center.Configuration.SignInUri is Uri signIn)
+        if (CanSignIn)
         {
-            Navigation.NavigateTo(signIn.AbsoluteUri, forceLoad: true);
+            Navigation.NavigateTo(page.AbsoluteUri, forceLoad: true);
         }
     }
 

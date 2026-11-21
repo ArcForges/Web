@@ -18,6 +18,7 @@ public sealed class DashboardCenterConfiguration
     public string? Name { get; }
 
     public Uri? SignInUri => Origin is null ? null : new Uri(Origin, "/api/account/sign-in#return=%2Foverview");
+    public Uri? RecoveryUri => Origin is null ? null : new Uri(Origin, "/api/account/recovery");
 
     public static DashboardCenterConfiguration FromDeployment(Uri page, string? origin, string? mode, string? name = null)
     {

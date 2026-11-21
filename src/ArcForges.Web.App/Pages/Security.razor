@@ -1,0 +1,28 @@
+@* SPDX-License-Identifier: AGPL-3.0-only *@
+@page "/security"
+
+<PageTitle>Security | ArcForges</PageTitle>
+
+<section class="dashboard-intro"><h1>Security</h1></section>
+
+<SecuritySessions />
+<SecurityCredentials />
+<SecurityDevices SelectedDeviceId="DeviceId" />
+
+@if (DeviceId is Guid selected && selected != Guid.Empty)
+{
+    <section class="dashboard-intro" aria-labelledby="dashboard-security-grant-title">
+        <h2 id="dashboard-security-grant-title">Device grant</h2>
+        <p>Choose the exact local grant on this device to inspect or revoke it.</p>
+    </section>
+    <DashboardWorkScopeView @key="selected" DeviceId="selected" Context="target">
+        <SecurityGrant @key="target" Target="target" />
+    </DashboardWorkScopeView>
+}
+
+@code {
+    [SupplyParameterFromQuery(Name = "device")]
+    public string? DeviceQuery { get; set; }
+
+    private Guid? DeviceId => Guid.TryParseExact(DeviceQuery, "D", out var id) && id != Guid.Empty ? id : null;
+}
